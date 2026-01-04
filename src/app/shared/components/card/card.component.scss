@@ -1,0 +1,18 @@
+.card {
+    height: 100%;
+    background-color: var(--card-color);
+    border-radius: 2rem;
+
+    .card-body {
+        padding: 3rem;
+    }
+    
+    // Make card wider on small screens
+    @media (max-width: 768px) {
+        width: 85% !important;
+    }
+    
+    @media (max-width: 576px) {
+        width: 90% !important;
+    }
+}

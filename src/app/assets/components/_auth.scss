@@ -1,0 +1,48 @@
+@mixin auth-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(2rem, 5vw, 4rem);
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: clamp(1rem, 3vw, 2rem);
+}
+
+@mixin auth-logo {
+    .logo-content {
+        text-align: center;
+        
+        .logo-text {
+            font-size: clamp(3rem, 8vw, 5rem);
+            font-weight: 700;
+            color: var(--card-color);
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            letter-spacing: 0.1em;
+        }
+        
+        .logo-subtitle {
+            font-size: clamp(0.875rem, 2vw, 1.125rem);
+            color: var(--card-color);
+            margin-top: 1rem;
+            opacity: 0.9;
+            font-weight: 300;
+            font-style: italic;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        display: none;
+    }
+}
+
+@mixin auth-form {
+    max-width: 500px;
+    width: 100%;
+    
+    ::ng-deep .card {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+}
+

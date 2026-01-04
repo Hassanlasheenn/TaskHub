@@ -1,0 +1,16 @@
+<section class="input-form">
+    <label class="input-form__label" for="input-{{ name }}">{{ label }}</label>
+    <div class="input-form__error" *ngIf="isInvalid && errorMessage">
+        {{ errorMessage }}
+    </div>
+    <div class="input-form__input" [formGroup]="formGroup">
+        <input
+            id="input-{{ name }}"
+            [type]="type"
+            [placeholder]="placeholder"
+            [formControlName]="name"
+            [ngStyle]="customInputStyle"
+            [ngClass]="getInputClasses()"
+        />
+    </div>
+</section>

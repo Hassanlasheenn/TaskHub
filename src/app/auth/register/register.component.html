@@ -1,0 +1,26 @@
+<div class="register-container">
+    <div class="register-logo">
+        <div class="logo-content">
+            <h1 class="logo-text">TODO</h1>
+            <p class="logo-subtitle">Organize your life, one task at a time</p>
+        </div>
+    </div>
+    <app-card
+        [card]="{ title: 'Create Account' }"
+        class="register-form"
+    >
+        <app-dynamic-form 
+            [fields]="fields" 
+            [form]="form" 
+            [isSubmitted]="isSubmitted"
+        />
+        <div class="mt-4">
+            <button type="button" class="card-button" (click)="onSubmit()">Register</button>
+        </div>
+
+        <div class="mt-2 d-flex justify-content-center align-items-center gap-1">
+            <span>Already a User?</span>
+            <button class="link-button" [routerLink]="['/login']">Sign In</button>
+        </div>
+    </app-card>
+</div>

@@ -1,0 +1,22 @@
+<div class="login-container">
+    <app-card
+        [card]="{ title: 'Login' }"
+        class="login-form"
+    >
+        <app-dynamic-form [fields]="fields" [form]="form" />
+        <div class="mt-4">
+            <button type="button" class="card-button">Login</button>
+        </div>
+
+        <div class="mt-2 d-flex justify-content-center align-items-center gap-1">
+            <span>New to TODO?</span>
+            <button class="link-button" [routerLink]="['/']">Sign Up</button>
+        </div>
+    </app-card>
+    <div class="login-logo">
+        <div class="logo-content">
+            <h1 class="logo-text">TODO</h1>
+            <p class="logo-subtitle">Continue tracking your tasks and organize your life</p>
+        </div>
+    </div>
+</div>

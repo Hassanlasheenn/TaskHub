@@ -1,0 +1,17 @@
+<section class="dynamic-form-wrapper">
+    <form [formGroup]="form">
+        <ng-container *ngFor="let field of fields; trackBy: trackById">
+            <app-input-form
+                [label]="field.label"
+                [type]="field.type"
+                [formGroup]="form"
+                [placeholder]="field.placeholder"
+                [name]="field.formControlName"
+                [customInputStyle]="customInputStyle"
+                [customInputClass]="field.customInputClass"
+                [field]="field"
+                [showErrors]="isSubmitted"
+            />
+        </ng-container>
+    </form>
+</section>
