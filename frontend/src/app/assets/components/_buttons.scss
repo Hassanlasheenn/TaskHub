@@ -1,3 +1,5 @@
+@use "sass:color";
+
 .card-button {
     width: 100%;
     padding: 0.75rem 1.5rem;
@@ -14,8 +16,8 @@
     box-sizing: border-box;
 
     &:hover {
-        background-color: darken(#ce604d, 5%);
-        border-color: darken(#ce604d, 5%);
+        background-color: color.adjust(#ce604d, $lightness: -5%);
+        border-color: color.adjust(#ce604d, $lightness: -5%);
         transform: translateY(-1px);
         box-shadow: 0 4px 8px rgba(206, 96, 77, 0.2);
     }

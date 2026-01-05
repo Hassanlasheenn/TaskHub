@@ -1,13 +1,13 @@
-@use '../../assets/components/auth';
+@use '../../../assets/components/auth';
 
-.register-container {
+.login-container {
     @include auth.auth-container;
 }
 
-.register-logo {
+.login-logo {
     @include auth.auth-logo;
 }
 
-.register-form {
+.login-form {
     @include auth.auth-form;
 }

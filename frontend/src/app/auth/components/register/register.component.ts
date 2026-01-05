@@ -1,9 +1,9 @@
 import { Component, OnInit } from "@angular/core";
-import { SharedModule } from "../../shared/shared.module";
+import { SharedModule } from "../../../shared/shared.module";
 import { FormGroup, ReactiveFormsModule } from "@angular/forms";
-import { ReactiveFormService } from "../../shared/services/reactive-form.service";
-import { IFieldControl } from "../../shared/interfaces";
-import { InputTypes, RegexPatterns, ValidatorTypes } from "../../shared/enums";
+import { ReactiveFormService } from "../../../shared/services/reactive-form.service";
+import { IFieldControl } from "../../../shared/interfaces";
+import { InputTypes, RegexPatterns, ValidatorTypes } from "../../../shared/enums";
 import { RouterLink } from "@angular/router";
 
 @Component({

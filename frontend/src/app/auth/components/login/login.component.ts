@@ -1,12 +1,12 @@
 import { Component, OnInit } from "@angular/core";
 import { FormGroup, ReactiveFormsModule } from "@angular/forms";
-import { SharedModule } from "../../shared/shared.module";
-import { IFieldControl } from "../../shared/interfaces/IFieldControl.interface";
-import { InputTypes } from "../../shared/enums/input-types.enum";
-import { ReactiveFormService } from "../../shared/services/reactive-form.service";
+import { SharedModule } from "../../../shared/shared.module";
+import { IFieldControl } from "../../../shared/interfaces/IFieldControl.interface";
+import { InputTypes } from "../../../shared/enums/input-types.enum";
+import { ReactiveFormService } from "../../../shared/services/reactive-form.service";
 import { RouterLink } from "@angular/router";
-import { ValidatorTypes } from "../../shared/enums/validator-types.enum";
-import { RegexPatterns } from "../../shared/enums/regex-patterns.enum";
+import { ValidatorTypes } from "../../../shared/enums/validator-types.enum";
+import { RegexPatterns } from "../../../shared/enums/regex-patterns.enum";
 
 @Component({
     selector: 'app-login',
