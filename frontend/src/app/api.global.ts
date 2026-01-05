@@ -9,3 +9,9 @@ export const ENDPOINT_URLS = {
     },
 };
 
+export const API_URLS = {
+    auth: {
+        register: `${API_BASE_URL}${ENDPOINT_URLS.auth.register}`,
+        login: `${API_BASE_URL}${ENDPOINT_URLS.auth.login}`,
+    },
+};

@@ -1,10 +1,13 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnDestroy, OnInit } from "@angular/core";
 import { SharedModule } from "../../../shared/shared.module";
 import { FormGroup, ReactiveFormsModule } from "@angular/forms";
 import { ReactiveFormService } from "../../../shared/services/reactive-form.service";
 import { IFieldControl } from "../../../shared/interfaces";
 import { InputTypes, RegexPatterns, ValidatorTypes } from "../../../shared/enums";
 import { RouterLink } from "@angular/router";
+import { AuthService } from "../../services";
+import { IRegisterPayload, IRegisterResponse } from "../../interfaces";
+import { Subject, takeUntil } from "rxjs";
 
 @Component({
     selector: 'app-register',
@@ -13,7 +16,8 @@ import { RouterLink } from "@angular/router";
     imports: [SharedModule, ReactiveFormsModule, RouterLink],
     styleUrls: ['./register.component.scss']
 })
-export class RegisterComponent implements OnInit {
+export class RegisterComponent implements OnInit, OnDestroy {
+    private readonly _destroy$ = new Subject<void>();
     form: FormGroup = new FormGroup({});
     isSubmitted: boolean = false;
     fields: IFieldControl[] = [
@@ -68,7 +72,10 @@ export class RegisterComponent implements OnInit {
         },
     ];
 
-    constructor(private readonly _formService: ReactiveFormService) {}
+    constructor(
+        private readonly _formService: ReactiveFormService,
+        private readonly _authService: AuthService,
+    ) {}
 
     ngOnInit() {
         this.initForm();
@@ -90,7 +97,31 @@ export class RegisterComponent implements OnInit {
             }
         } else if (this.form?.valid) {
             this.isSubmitted = false;
-            console.log('Form submitted:', this.form.value);
+            this.onRegister();
         }
+    }
+
+    onRegister(): void {
+        const payload: IRegisterPayload = {
+            username: this.form.get('username')?.value,
+            email: this.form.get('email')?.value,
+            password: this.form.get('password')?.value,
+        };
+        this._authService
+        .registerUser(payload)
+        .pipe(takeUntil(this._destroy$))
+        .subscribe({
+            next: (res: IRegisterResponse) => {
+                console.log(res);
+            },
+            error: (err: any) => {
+                console.log(err);
+            }
+        });
+    }
+
+    ngOnDestroy(): void {
+        this._destroy$.next();
+        this._destroy$.complete();
     }
 }

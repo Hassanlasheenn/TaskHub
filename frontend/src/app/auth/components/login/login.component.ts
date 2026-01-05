@@ -1,4 +1,4 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnDestroy, OnInit } from "@angular/core";
 import { FormGroup, ReactiveFormsModule } from "@angular/forms";
 import { SharedModule } from "../../../shared/shared.module";
 import { IFieldControl } from "../../../shared/interfaces/IFieldControl.interface";
@@ -7,6 +7,9 @@ import { ReactiveFormService } from "../../../shared/services/reactive-form.serv
 import { RouterLink } from "@angular/router";
 import { ValidatorTypes } from "../../../shared/enums/validator-types.enum";
 import { RegexPatterns } from "../../../shared/enums/regex-patterns.enum";
+import { ILoginPayload, ILoginResponse } from "../../interfaces";
+import { AuthService } from "../../services";
+import { Subject, takeUntil } from "rxjs";
 
 @Component({
     selector: 'app-login',
@@ -15,7 +18,8 @@ import { RegexPatterns } from "../../../shared/enums/regex-patterns.enum";
     styleUrls: ['./login.component.scss'],
     imports: [SharedModule, ReactiveFormsModule, RouterLink],
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent implements OnInit, OnDestroy {
+    private readonly _destroy$ = new Subject<void>();
     form: FormGroup = new FormGroup({});
     isSubmitted: boolean = false;
     fields: IFieldControl[] = [
@@ -46,6 +50,7 @@ export class LoginComponent implements OnInit {
     ];
     constructor(
         private readonly _formService: ReactiveFormService,
+        private readonly _authService: AuthService,
     ) {}
 
     ngOnInit(): void {
@@ -56,12 +61,35 @@ export class LoginComponent implements OnInit {
         this.form = this._formService.initializeForm(this.fields);
     }
 
-    loginUser(): void {
+    onSubmit(): void {
         if(this.form?.invalid) {
             this.isSubmitted = true;
         } else if(this.form?.valid) {
             this.isSubmitted = false;
-            console.log('Form submitted:', this.form.value);
+            this.onLogin();
         }
+    }
+
+    onLogin(): void {
+        const payload: ILoginPayload = {
+            email: this.form.get('email')?.value,
+            password: this.form.get('password')?.value,
+        };
+        this._authService
+        .loginUser(payload)
+        .pipe(takeUntil(this._destroy$))
+        .subscribe({
+            next: (res: ILoginResponse) => {
+                console.log(res);
+            },
+            error: (err: Error) => {
+                console.log(err);
+            }
+        })
+    }
+
+    ngOnDestroy(): void {
+        this._destroy$.next();
+        this._destroy$.complete();
     }
 }
