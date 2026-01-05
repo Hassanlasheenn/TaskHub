@@ -17,6 +17,7 @@ export class DynamicFormComponent implements OnChanges {
     @Input() form: FormGroup = new FormGroup({});
     @Input() customInputStyle: ICustomStyle = {};
     @Input() isSubmitted: boolean = false;
+    @Input() errorSummary: string | null = null;
     
     trackById = trackById;
 

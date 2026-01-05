@@ -8,4 +8,8 @@
   --danger-color-dark: #c82333;
   --warning-color: #ff9800;
   --warning-color-rgb: 255, 152, 0;
+  --error-summary-border-color: var(--danger-color);
+  --error-summary-background-color: #f8d7da;
+  --error-summary-text-color: #721c24;
+  --error-summary-title-color: #721c24;
 }

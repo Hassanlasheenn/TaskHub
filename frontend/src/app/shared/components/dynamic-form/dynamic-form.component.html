@@ -1,4 +1,10 @@
 <section class="dynamic-form-wrapper">
+    <!-- Error Summary Display -->
+    <div *ngIf="errorSummary" class="error-summary-box">
+        <h4 class="error-summary-title">Error</h4>
+        <p class="error-summary-message">{{ errorSummary }}</p>
+    </div>
+
     <form [formGroup]="form">
         <ng-container *ngFor="let field of fields; trackBy: trackById">
             <app-input-form

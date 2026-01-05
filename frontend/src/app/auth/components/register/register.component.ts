@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
+import { HttpErrorResponse } from "@angular/common/http";
 import { SharedModule } from "../../../shared/shared.module";
 import { FormGroup, ReactiveFormsModule } from "@angular/forms";
 import { ReactiveFormService } from "../../../shared/services/reactive-form.service";
@@ -20,6 +21,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
     private readonly _destroy$ = new Subject<void>();
     form: FormGroup = new FormGroup({});
     isSubmitted: boolean = false;
+    errorSummary: string | null = null;
     fields: IFieldControl[] = [
         {
             label: 'Username',
@@ -102,20 +104,26 @@ export class RegisterComponent implements OnInit, OnDestroy {
     }
 
     onRegister(): void {
+        this.errorSummary = null;
+        this.isSubmitted = false;
+
         const payload: IRegisterPayload = {
             username: this.form.get('username')?.value,
             email: this.form.get('email')?.value,
             password: this.form.get('password')?.value,
         };
+
         this._authService
         .registerUser(payload)
         .pipe(takeUntil(this._destroy$))
         .subscribe({
             next: (res: IRegisterResponse) => {
                 console.log(res);
+                this.errorSummary = null;
             },
-            error: (err: any) => {
-                console.log(err);
+            error: (err: HttpErrorResponse) => {
+                this.isSubmitted = true;
+                this.errorSummary = err?.error?.detail || err?.error?.message || err?.message || 'An error occurred during registration. Please try again.';
             }
         });
     }

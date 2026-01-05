@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import { FormGroup, ReactiveFormsModule } from "@angular/forms";
+import { HttpErrorResponse } from "@angular/common/http";
 import { SharedModule } from "../../../shared/shared.module";
 import { IFieldControl } from "../../../shared/interfaces/IFieldControl.interface";
 import { InputTypes } from "../../../shared/enums/input-types.enum";
@@ -22,6 +23,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     private readonly _destroy$ = new Subject<void>();
     form: FormGroup = new FormGroup({});
     isSubmitted: boolean = false;
+    errorSummary: string | null = null;
     fields: IFieldControl[] = [
         {
             label: 'Email',
@@ -71,21 +73,27 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
 
     onLogin(): void {
+        this.errorSummary = null;
+        this.isSubmitted = false;
+
         const payload: ILoginPayload = {
             email: this.form.get('email')?.value,
             password: this.form.get('password')?.value,
         };
+
         this._authService
         .loginUser(payload)
         .pipe(takeUntil(this._destroy$))
         .subscribe({
             next: (res: ILoginResponse) => {
                 console.log(res);
+                this.errorSummary = null;
             },
-            error: (err: Error) => {
-                console.log(err);
+            error: (err: HttpErrorResponse) => {
+                this.isSubmitted = true;
+                this.errorSummary = err?.error?.detail || err?.error?.message || err?.message || 'An error occurred during login. Please try again.';
             }
-        })
+        });
     }
 
     ngOnDestroy(): void {
