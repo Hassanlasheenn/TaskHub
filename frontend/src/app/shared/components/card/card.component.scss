@@ -1,18 +1,77 @@
 .card {
     height: 100%;
-    background-color: var(--card-color);
-    border-radius: 2rem;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: 24px;
+    border: 1px solid var(--card-border-color);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    width: 100%;
+    margin: 0 auto;
+
+    // Subtle gradient overlay at bottom
+    &::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 30%;
+        background: linear-gradient(to top, 
+            rgba(107, 207, 209, 0.15) 0%, 
+            rgba(74, 144, 226, 0.1) 50%,
+            transparent 100%);
+        pointer-events: none;
+        z-index: 0;
+    }
 
     .card-body {
         padding: 3rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .card-title {
+        text-align: center;
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0 0 1.5rem 0;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     }
     
     // Make card wider on small screens
     @media (max-width: 768px) {
-        width: 85% !important;
+        border-radius: 20px;
+        
+        .card-body {
+            padding: 2rem;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+        }
     }
     
     @media (max-width: 576px) {
-        width: 90% !important;
+        border-radius: 16px;
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+        }
+    }
+
+    // Hover effect
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15);
     }
 }

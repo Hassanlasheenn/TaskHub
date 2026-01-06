@@ -1,15 +1,45 @@
 :root {
+  // Base colors
   --white-color: #ffffff;
-  --card-color: #f0f0f0;
   --black-color: #000000;
-  --primary-color: #0c183d;
+  
+  // Glassmorphism colors
+  --card-color: rgba(255, 255, 255, 0.25);
+  --card-border-color: rgba(255, 255, 255, 0.18);
+  --card-shadow: rgba(0, 0, 0, 0.1);
+  
+  // Background colors
+  --bg-primary: #f5f5f5;
+  --bg-secondary: #e8e8e8;
+  --bg-gradient-start: #f8f9fa;
+  --bg-gradient-end: #e9ecef;
+  
+  // Primary accent colors (teal/cyan gradient)
+  --primary-color: #4a90e2;
+  --primary-gradient-start: #6bcfd1;
+  --primary-gradient-end: #4a90e2;
+  --primary-dark: #3a7bc8;
+  
+  // Text colors
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --text-light: #999999;
+  --text-white: #ffffff;
+  
+  // Error colors
   --danger-color: #dc3545;
   --danger-color-rgb: 220, 53, 69;
   --danger-color-dark: #c82333;
-  --warning-color: #ff9800;
-  --warning-color-rgb: 255, 152, 0;
   --error-summary-border-color: var(--danger-color);
-  --error-summary-background-color: #f8d7da;
+  --error-summary-background-color: rgba(248, 215, 218, 0.9);
   --error-summary-text-color: #721c24;
   --error-summary-title-color: #721c24;
+  
+  // Warning colors
+  --warning-color: #ff9800;
+  --warning-color-rgb: 255, 152, 0;
+  
+  // Glass effect blur
+  --glass-blur: blur(10px);
+  --glass-blur-strong: blur(20px);
 }
