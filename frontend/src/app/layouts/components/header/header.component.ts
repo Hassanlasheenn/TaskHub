@@ -3,6 +3,7 @@ import { Router, NavigationEnd } from "@angular/router";
 import { NgIf } from "@angular/common";
 import { filter, Subject, takeUntil } from "rxjs";
 import { AuthService } from "../../../auth/services";
+import { LayoutPaths } from "../../enums";
 
 @Component({
     selector: 'app-header',
@@ -60,7 +61,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     onProfile(): void {
         this.isDropdownOpen = false;
-        // Profile page navigation will be implemented later
+        this._router.navigate([LayoutPaths.PROFILE]);
     }
 
     onLogout(): void {

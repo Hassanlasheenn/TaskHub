@@ -105,13 +105,6 @@
 
             &:hover {
                 color: var(--primary-gradient-start);
-                background: rgba(107, 207, 209, 0.1);
-            }
-
-            &:focus {
-                color: var(--primary-gradient-start);
-                outline: 2px solid var(--primary-gradient-start);
-                outline-offset: 2px;
             }
 
             i {

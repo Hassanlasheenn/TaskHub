@@ -42,4 +42,10 @@
   // Glass effect blur
   --glass-blur: blur(10px);
   --glass-blur-strong: blur(20px);
+  
+  // Header spacing (calculated dynamically)
+  --header-height: 4.5rem; // Base header height (padding + content)
+  --header-top-margin: 1.25rem; // Top margin from viewport
+  --header-spacing: 1.25rem; // Additional spacing below header
+  --header-total-height: calc(var(--header-height) + var(--header-top-margin) + var(--header-spacing));
 }

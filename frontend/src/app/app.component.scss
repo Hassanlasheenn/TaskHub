@@ -5,9 +5,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0; // Allows flex child to shrink below content size
-  // Add padding-top to account for fixed header
-  // Header height (~3.5rem) + top margin (1.25rem) + spacing (1.25rem) = ~6rem
-  padding-top: 6rem;
+  // Dynamic padding-top to account for fixed header
+  padding-top: var(--header-total-height);
   box-sizing: border-box;
   // Hide scrollbar for Firefox
   scrollbar-width: none;
@@ -18,12 +17,11 @@
   &::-webkit-scrollbar {
     display: none;
   }
+}
 
-  @media (max-width: 768px) {
-    padding-top: 5.5rem;
-  }
-
-  @media (max-width: 576px) {
-    padding-top: 5rem;
-  }
+// Automatically apply spacing to all router-outlet content
+::ng-deep router-outlet + * {
+  display: block;
+  width: 100%;
+  min-height: 0;
 }
