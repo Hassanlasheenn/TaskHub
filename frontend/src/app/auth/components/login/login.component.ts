@@ -5,12 +5,13 @@ import { SharedModule } from "../../../shared/shared.module";
 import { IFieldControl } from "../../../shared/interfaces/IFieldControl.interface";
 import { InputTypes } from "../../../shared/enums/input-types.enum";
 import { ReactiveFormService } from "../../../shared/services/reactive-form.service";
-import { RouterLink } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { ValidatorTypes } from "../../../shared/enums/validator-types.enum";
 import { RegexPatterns } from "../../../shared/enums/regex-patterns.enum";
 import { ILoginPayload, ILoginResponse } from "../../interfaces";
 import { AuthService } from "../../services";
 import { Subject, takeUntil } from "rxjs";
+import { LayoutPaths } from "../../../layouts/enums";
 
 @Component({
     selector: 'app-login',
@@ -53,9 +54,15 @@ export class LoginComponent implements OnInit, OnDestroy {
     constructor(
         private readonly _formService: ReactiveFormService,
         private readonly _authService: AuthService,
+        private readonly _router: Router,
     ) {}
 
     ngOnInit(): void {
+        // Redirect to dashboard if user is already logged in
+        if (this._authService.isAuthenticated()) {
+            this._router.navigate([LayoutPaths.DASHBOARD]);
+            return;
+        }
         this.initForm();
     }
 
@@ -86,8 +93,12 @@ export class LoginComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this._destroy$))
         .subscribe({
             next: (res: ILoginResponse) => {
-                console.log(res);
                 this.errorSummary = null;
+                if (res.data?.id) {
+                    this._authService.setCurrentUserId(res.data.id);
+                    this._authService.setCurrentUserData(res.data);
+                }
+                this._router.navigate([LayoutPaths.DASHBOARD]);
             },
             error: (err: HttpErrorResponse) => {
                 this.isSubmitted = true;

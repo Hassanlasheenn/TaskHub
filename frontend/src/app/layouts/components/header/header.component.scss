@@ -1,0 +1,104 @@
+.header {
+    border-radius: 2.5rem;
+    background-color: var(--card-color);
+    padding: 1rem;
+    position: relative;
+}
+
+.dropdown {
+    position: relative;
+}
+
+.user-circle {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    border: none;
+    background-color: var(--primary-color, #007bff);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    padding: 0;
+
+    i {
+        font-size: 1.5rem;
+    }
+
+    &:hover {
+        opacity: 0.9;
+        transform: scale(1.05);
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    min-width: 12rem;
+    background-color: var(--card-color);
+    border-radius: 0.5rem;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    padding: 0;
+    margin: 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-0.5rem);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+    z-index: 1000;
+    overflow: hidden;
+
+    &.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .dropdown-header {
+        padding: 0.75rem 1rem;
+        background-color: rgba(0, 0, 0, 0.02);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+
+        .user-email {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--black-color);
+            word-break: break-word;
+        }
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        background-color: rgba(0, 0, 0, 0.1);
+        margin: 0.25rem 0;
+    }
+
+    .dropdown-item {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: none;
+        background: none;
+        text-align: left;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        color: var(--black-color);
+        font-size: 0.9375rem;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        i {
+            font-size: 1.125rem;
+            color: var(--primary-color);
+        }
+    }
+}

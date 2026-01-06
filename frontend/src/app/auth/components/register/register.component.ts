@@ -5,10 +5,11 @@ import { FormGroup, ReactiveFormsModule } from "@angular/forms";
 import { ReactiveFormService } from "../../../shared/services/reactive-form.service";
 import { IFieldControl } from "../../../shared/interfaces";
 import { InputTypes, RegexPatterns, ValidatorTypes } from "../../../shared/enums";
-import { RouterLink } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { AuthService } from "../../services";
 import { IRegisterPayload, IRegisterResponse } from "../../interfaces";
 import { Subject, takeUntil } from "rxjs";
+import { LayoutPaths } from "../../../layouts/enums";
 
 @Component({
     selector: 'app-register',
@@ -77,9 +78,15 @@ export class RegisterComponent implements OnInit, OnDestroy {
     constructor(
         private readonly _formService: ReactiveFormService,
         private readonly _authService: AuthService,
+        private readonly _router: Router,
     ) {}
 
     ngOnInit() {
+        // Redirect to dashboard if user is already logged in
+        if (this._authService.isAuthenticated()) {
+            this._router.navigate([LayoutPaths.DASHBOARD]);
+            return;
+        }
         this.initForm();
     }
 
@@ -118,8 +125,16 @@ export class RegisterComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this._destroy$))
         .subscribe({
             next: (res: IRegisterResponse) => {
-                console.log(res);
                 this.errorSummary = null;
+                if (res?.id) {
+                    this._authService.setCurrentUserId(res.id);
+                    this._authService.setCurrentUserData({
+                        id: res.id,
+                        username: res.username,
+                        email: res.email
+                    });
+                }
+                this._router.navigate([LayoutPaths.DASHBOARD]);
             },
             error: (err: HttpErrorResponse) => {
                 this.isSubmitted = true;

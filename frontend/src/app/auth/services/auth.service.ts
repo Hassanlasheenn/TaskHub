@@ -1,39 +1,131 @@
 import { Injectable } from "@angular/core";
 import { API_URLS } from "../../api.global";
-import { HttpClient, HttpHeaders, HttpParams } from "@angular/common/http";
+import { HttpClient } from "@angular/common/http";
 import { Observable, take } from "rxjs";
-import { ILoginPayload, ILoginResponse, IRegisterPayload, IRegisterResponse } from "../interfaces";
+import { IUserResponse, ILoginPayload, ILoginResponse, IRegisterPayload, IRegisterResponse } from "../interfaces";
+import { AuthHttpService } from "./auth-http.service";
 
 @Injectable({
     providedIn: 'root',
 })
 export class AuthService {
-    private readonly oauth2Headers = new HttpHeaders({
-        'Content-Type': 'application/x-www-form-urlencoded'
-    });
+    private readonly USER_ID_KEY = 'currentUserId';
+    private readonly USER_DATA_KEY = 'currentUserData';
+    private currentUserId: number | null = null;
+    private currentUserData: IUserResponse | null = null;
 
     constructor(
         private readonly _http: HttpClient,
-    ) {}
+        private readonly _authHttpService: AuthHttpService,
+    ) {
+        this.loadUserIdFromStorage();
+        this.loadUserDataFromStorage();
+        this.ensureUserDataLoaded();
+    }
 
+    // ========== API Methods (delegated to AuthHttpService) ==========
     registerUser(payload: IRegisterPayload): Observable<IRegisterResponse> {
-        return this._http
-        .post<IRegisterResponse>(API_URLS.auth.register, payload)
-        .pipe(take(1));
+        return this._authHttpService.registerUser(payload);
     }
 
     loginUser(payload: ILoginPayload): Observable<ILoginResponse> {
-        const body = new HttpParams()
-            .set('username', payload.email)
-            .set('password', payload.password)
-            .set('grant_type', 'password');
+        return this._authHttpService.loginUser(payload);
+    }
 
-        return this._http
-        .post<ILoginResponse>(
-            API_URLS.auth.login, 
-            body.toString(), 
-            { headers: this.oauth2Headers }
-        )
-        .pipe(take(1));
+    logout(): Observable<void> {
+        this.clearCurrentUser();
+        return this._authHttpService.logout();
+    }
+
+    // ========== Authentication State ==========
+    isAuthenticated(): boolean {
+        return this.getCurrentUserId() !== null;
+    }
+
+    // ========== User ID Management ==========
+    setCurrentUserId(userId: number): void {
+        this.currentUserId = userId;
+        localStorage.setItem(this.USER_ID_KEY, userId.toString());
+    }
+
+    getCurrentUserId(): number | null {
+        if (this.currentUserId === null) {
+            this.loadUserIdFromStorage();
+        }
+        return this.currentUserId;
+    }
+
+    // ========== User Data Management ==========
+    setCurrentUserData(userData: IUserResponse): void {
+        this.currentUserData = userData;
+        localStorage.setItem(this.USER_DATA_KEY, JSON.stringify(userData));
+    }
+
+    getCurrentUserData(): IUserResponse | null {
+        if (this.currentUserData === null) {
+            this.loadUserDataFromStorage();
+            // If still null and we have userId, fetch from API
+            if (this.currentUserData === null && this.currentUserId !== null) {
+                this.fetchUserData();
+            }
+        }
+        return this.currentUserData;
+    }
+
+    clearCurrentUser(): void {
+        this.currentUserId = null;
+        this.currentUserData = null;
+        localStorage.removeItem(this.USER_ID_KEY);
+        localStorage.removeItem(this.USER_DATA_KEY);
+    }
+
+    // ========== Private Helper Methods ==========
+    private fetchUserData(): void {
+        const userId = this.getCurrentUserId();
+        if (!userId) return;
+
+        this._http
+            .get<IUserResponse>(`${API_URLS.user.getUserById}/${userId}`, {
+                withCredentials: true
+            })
+            .pipe(take(1))
+            .subscribe({
+                next: (userData) => {
+                    this.setCurrentUserData(userData);
+                },
+                error: () => {
+                    this.clearCurrentUser();
+                }
+            });
+    }
+
+    private ensureUserDataLoaded(): void {
+        if (this.currentUserId !== null && this.currentUserData === null) {
+            this.fetchUserData();
+        }
+    }
+
+    private loadUserIdFromStorage(): void {
+        const storedUserId = localStorage.getItem(this.USER_ID_KEY);
+        if (storedUserId) {
+            const userId = Number.parseInt(storedUserId, 10);
+            if (Number.isNaN(userId)) {
+                localStorage.removeItem(this.USER_ID_KEY);
+            } else {
+                this.currentUserId = userId;
+            }
+        }
+    }
+
+    private loadUserDataFromStorage(): void {
+        const storedUserData = localStorage.getItem(this.USER_DATA_KEY);
+        if (storedUserData) {
+            try {
+                this.currentUserData = JSON.parse(storedUserData);
+            } catch {
+                localStorage.removeItem(this.USER_DATA_KEY);
+                this.currentUserData = null;
+            }
+        }
     }
 }

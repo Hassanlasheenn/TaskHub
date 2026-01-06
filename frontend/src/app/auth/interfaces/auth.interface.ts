@@ -16,7 +16,7 @@ export interface ILoginPayload {
 }
 
 export interface ILoginResponse {
-    access_token: string;
+    access_token?: string;
     token_type: string;
     data: IUserResponse;
 }
