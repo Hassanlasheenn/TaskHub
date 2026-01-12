@@ -21,10 +21,10 @@
             font-size: 1rem;
             font-family: 'Poppins', sans-serif;
             color: var(--text-primary);
-            background: rgba(255, 255, 255, 0.7);
+            background: var(--input-bg);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid var(--input-border);
             border-radius: 12px;
             outline: none;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -36,33 +36,31 @@
             }
 
             &::placeholder {
-                color: var(--text-light);
+                color: var(--input-placeholder);
                 font-weight: 400;
             }
 
             &:hover {
                 border-color: rgba(107, 207, 209, 0.4);
-                background: rgba(255, 255, 255, 0.8);
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             }
 
             &:focus {
-                border-color: var(--primary-gradient-start);
+                border-color: var(--input-border-focus);
                 box-shadow: 0 0 0 3px rgba(107, 207, 209, 0.15), 
                             0 4px 16px rgba(107, 207, 209, 0.2);
-                background: rgba(255, 255, 255, 0.9);
             }
 
             &:disabled {
-                background: rgba(255, 255, 255, 0.4);
+                background: var(--btn-secondary-bg);
                 cursor: not-allowed;
                 opacity: 0.6;
-                border-color: rgba(0, 0, 0, 0.1);
+                border-color: var(--card-border-color);
             }
 
             &.input-error {
                 border-color: var(--danger-color);
-                background: rgba(248, 215, 218, 0.5);
+                background: var(--error-summary-background-color);
                 
                 &:focus {
                     border-color: var(--danger-color);

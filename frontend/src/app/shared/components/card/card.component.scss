@@ -1,11 +1,11 @@
 .card {
     height: 100%;
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--card-color);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
-    border-radius: 24px;
+    border-radius: 16px;
     border: 1px solid var(--card-border-color);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: var(--card-shadow);
     position: relative;
     overflow: hidden;
     transition: all 0.3s ease;
@@ -28,50 +28,25 @@
         z-index: 0;
     }
 
+    // Using Bootstrap padding classes in HTML for responsive padding
     .card-body {
-        padding: 3rem;
         position: relative;
         z-index: 1;
     }
 
     .card-title {
         text-align: center;
-        font-size: 1.75rem;
+        font-size: clamp(1.25rem, 3vw, 1.75rem);
         font-weight: 700;
         color: var(--text-primary);
         margin: 0 0 1.5rem 0;
         padding-bottom: 1rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    // Make card wider on small screens
-    @media (max-width: 768px) {
-        border-radius: 20px;
-        
-        .card-body {
-            padding: 2rem;
-        }
-
-        .card-title {
-            font-size: 1.5rem;
-        }
-    }
-    
-    @media (max-width: 576px) {
-        border-radius: 16px;
-        
-        .card-body {
-            padding: 1.5rem;
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-        }
+        border-bottom: 1px solid var(--card-border-color);
     }
 
     // Hover effect
     &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15);
+        box-shadow: var(--card-shadow-hover);
     }
 }

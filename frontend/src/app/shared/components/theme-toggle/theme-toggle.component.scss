@@ -1,0 +1,61 @@
+// Inner Moon Toggle Styles - From https://toggles.dev/
+
+.theme-toggle {
+    --theme-toggle__inner-moon--duration: 500ms;
+
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+    color: var(--text-primary);
+
+    &:hover {
+        background: var(--btn-secondary-bg);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--primary-gradient-start);
+        outline-offset: 2px;
+    }
+
+    svg {
+        width: 1.75rem;
+        height: 1.75rem;
+    }
+}
+
+.theme-toggle__inner-moon {
+    path {
+        transform-origin: center;
+        transition: transform var(--theme-toggle__inner-moon--duration) cubic-bezier(0, 0, 0.15, 1.25);
+    }
+
+    circle {
+        transition: transform calc(var(--theme-toggle__inner-moon--duration) / 1.5) cubic-bezier(0.4, 0, 0.2, 1);
+    }
+}
+
+// Toggled (Dark Mode) State
+.theme-toggle--toggled {
+    .theme-toggle__inner-moon {
+        path {
+            transform: rotate(180deg);
+        }
+
+        circle {
+            transform: translate3d(15%, 0, 0);
+        }
+    }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+    .theme-toggle:not(.theme-toggle--force-motion) * {
+        transition: none !important;
+    }
+}

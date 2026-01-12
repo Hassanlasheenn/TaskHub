@@ -1,20 +1,14 @@
 .profile-side-nav {
     width: 100%;
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--card-color);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--card-border-color);
     border-radius: 16px;
-    padding: 0.75rem 1rem;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-
-    @media (min-width: 992px) {
-        padding: 1.25rem;
-        border-radius: 20px;
-    }
+    box-shadow: var(--card-shadow);
+    // Using Bootstrap padding classes in HTML
 
     .side-nav-item {
-        padding: 0.625rem 1rem;
         background: transparent;
         border: 1px solid transparent;
         border-radius: 12px;
@@ -23,14 +17,9 @@
         font-size: 0.875rem;
         font-weight: 500;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        text-align: center;
         outline: none;
         white-space: nowrap;
-
-        @media (min-width: 992px) {
-            text-align: left;
-            padding: 0.75rem 1rem;
-        }
+        // Using Bootstrap padding and alignment classes in HTML
 
         i {
             font-size: 1.125rem;
@@ -43,12 +32,7 @@
         }
 
         &:hover {
-            background: rgba(255, 255, 255, 0.4);
-            transform: translateY(-2px);
-
-            @media (min-width: 992px) {
-                transform: translateX(4px);
-            }
+            background: var(--btn-secondary-hover-bg);
 
             i {
                 color: var(--primary-gradient-start);

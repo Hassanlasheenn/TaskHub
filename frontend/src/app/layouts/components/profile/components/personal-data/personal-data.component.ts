@@ -1,8 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit } from "@angular/core";
-import { FormGroup, ReactiveFormsModule } from "@angular/forms";
+import { FormGroup } from "@angular/forms";
 import { CommonModule } from "@angular/common";
 import { IUserResponse } from "../../../../../auth/interfaces";
-import { SharedModule } from "../../../../../shared/shared.module";
 import { ReactiveFormService } from "../../../../../shared/services/reactive-form.service";
 import { IFieldControl } from "../../../../../shared/interfaces/IFieldControl.interface";
 import { CardComponent } from "../../../../../shared/components/card/card.component";
@@ -16,8 +15,6 @@ import { PersonalDataFieldsService } from "../../services/personal-data-fields.s
     standalone: true,
     imports: [
         CommonModule,
-        ReactiveFormsModule,
-        SharedModule,
         CardComponent,
         DynamicFormComponent
     ],

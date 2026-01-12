@@ -1,0 +1,31 @@
+<div 
+    *ngIf="isOpen" 
+    class="sidebar-backdrop" 
+    @fadeInOut
+    (click)="onBackdropClick($event)"
+    (keydown)="onKeyDown($event)"
+>
+    <aside 
+        class="sidebar-panel" 
+        [style.--sidebar-width]="width"
+        @slideInOut
+        role="dialog"
+        aria-modal="true"
+    >
+        <div class="sidebar-header">
+            <h2 class="sidebar-title">{{ title }}</h2>
+            <button 
+                type="button" 
+                class="sidebar-close-btn"
+                (click)="onClose()"
+                aria-label="Close sidebar"
+            >
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div class="sidebar-content">
+            <ng-content></ng-content>
+        </div>
+    </aside>
+</div>
+

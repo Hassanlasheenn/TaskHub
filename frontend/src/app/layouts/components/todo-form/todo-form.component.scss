@@ -1,0 +1,114 @@
+.todo-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.priority-section {
+    border: none;
+    padding: 0;
+    margin: 0;
+
+    .priority-label {
+        display: block;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.75rem;
+        padding: 0;
+    }
+
+    // Using Bootstrap flex classes in HTML for responsive layout
+
+    .priority-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1rem;
+        border: 2px solid var(--card-border-color);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.5);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        i {
+            font-size: 1.25rem;
+        }
+
+        span {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        &:hover {
+            border-color: var(--priority-color);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        &.selected {
+            border-color: var(--priority-color);
+            background: color-mix(in srgb, var(--priority-color) 10%, white);
+            color: var(--priority-color);
+
+            i {
+                color: var(--priority-color);
+            }
+        }
+    }
+}
+
+.form-actions {
+    padding-top: 1rem;
+    border-top: 1px solid var(--card-border-color);
+    margin-top: 0.5rem;
+    // Using Bootstrap flex classes in HTML
+
+    .btn-cancel {
+        flex: 1;
+        padding: 0.875rem 1.5rem;
+        border: 1px solid var(--card-border-color);
+        border-radius: 12px;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-primary);
+        }
+    }
+
+    .btn-submit {
+        flex: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.875rem 1.5rem;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(107, 207, 209, 0.3);
+
+        &:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(107, 207, 209, 0.4);
+        }
+
+        &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    }
+}
+

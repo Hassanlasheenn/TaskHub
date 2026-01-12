@@ -4,7 +4,8 @@
             <div class="col-12 col-lg-10 col-xl-7">
                 <div class="d-flex flex-column flex-lg-row align-items-stretch gap-3 gap-lg-4">
                     <app-profile-side-nav
-                        class="side-nav-wrapper d-flex"
+                        class="side-nav-wrapper d-flex w-100 w-lg-auto"
+                        style="--lg-width: 220px"
                         [activeSection]="activeSection"
                         (sectionChange)="onSectionChange($event)"
                     />

@@ -1,5 +1,5 @@
-<section class="dashboard-container">
-    <div class="dashboard-header d-flex justify-content-center align-items-center">
+<section class="dashboard-container p-2 p-sm-3 p-lg-4">
+    <div class="dashboard-header d-flex justify-content-center align-items-center px-3 py-3 px-sm-4 py-sm-4 px-lg-5 py-lg-4">
         <h1>Hi, {{ userData?.username }}!</h1>
     </div>
     
@@ -10,3 +10,17 @@
         (deleteTodo)="onDeleteTodo($event)"
     />
 </section>
+
+<!-- Add Todo Sidebar -->
+<app-sidebar
+    [isOpen]="isSidebarOpen"
+    [title]="'Add New Todo'"
+    [width]="'450px'"
+    (closed)="onSidebarClose()"
+>
+    <app-todo-form
+        #todoForm
+        (submitTodo)="onTodoSubmit($event)"
+        (cancel)="onSidebarClose()"
+    />
+</app-sidebar>

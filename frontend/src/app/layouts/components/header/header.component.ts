@@ -4,13 +4,14 @@ import { NgIf } from "@angular/common";
 import { filter, Subject, takeUntil } from "rxjs";
 import { AuthService } from "../../../auth/services";
 import { LayoutPaths } from "../../enums";
+import { ThemeToggleComponent } from "../../../shared/components/theme-toggle/theme-toggle.component";
 
 @Component({
     selector: 'app-header',
     templateUrl: './header.component.html',
     standalone: true,
     styleUrls: ['./header.component.scss'],
-    imports: [NgIf, RouterLink]
+    imports: [NgIf, RouterLink, ThemeToggleComponent]
 })
 export class HeaderComponent implements OnInit, OnDestroy {
     private readonly _destroy$ = new Subject<void>();

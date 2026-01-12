@@ -6,7 +6,9 @@ export interface ITodo {
     title: string;
     description?: string;
     completed: boolean;
-    createdAt?: Date;
+    priority: 'low' | 'medium' | 'high';
+    created_at?: string;
+    user_id?: number;
 }
 
 @Component({
@@ -36,6 +38,18 @@ export class TodoListComponent {
 
     trackById(index: number, item: ITodo): number {
         return item.id;
+    }
+
+    getPriorityClass(priority: string): string {
+        return `priority-${priority}`;
+    }
+
+    getPriorityIcon(priority: string): string {
+        switch (priority) {
+            case 'high': return 'bi-arrow-up';
+            case 'low': return 'bi-arrow-down';
+            default: return 'bi-dash';
+        }
     }
 }
 

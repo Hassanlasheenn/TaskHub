@@ -1,10 +1,10 @@
 .header {
     border-radius: 20px;
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--header-bg);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--card-border-color);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--header-border);
+    box-shadow: var(--card-shadow);
     padding: 1.25rem 2rem;
     position: fixed;
     top: var(--header-top-margin);
@@ -17,7 +17,7 @@
     height: var(--header-height);
 
     &:hover {
-        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.12);
+        box-shadow: var(--card-shadow-hover);
     }
 
     @media (max-width: 768px) {
@@ -55,6 +55,17 @@
     display: inline-flex;
     align-items: center;
     outline: none;
+
+    span {
+        background: linear-gradient(135deg, var(--header-logo-gradient-start) 0%, var(--header-logo-gradient-end) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    &:hover {
+        transform: scale(1.02);
+    }
 }
 
 .notification-btn {
@@ -62,8 +73,8 @@
     width: 2.75rem;
     height: 2.75rem;
     border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--card-border-color);
+    background: var(--btn-secondary-bg);
     color: var(--text-primary);
     cursor: pointer;
     display: flex;
@@ -77,9 +88,9 @@
     }
 
     &:hover {
-        background: rgba(255, 255, 255, 0.4);
+        background: var(--btn-secondary-hover-bg);
         transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--card-shadow);
     }
 
     &:active {
@@ -113,7 +124,7 @@
     width: 3rem;
     height: 3rem;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    border: 2px solid var(--card-border-color);
     background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
     color: white;
     cursor: pointer;
@@ -152,12 +163,12 @@
     top: calc(100% + 0.75rem);
     right: 0;
     min-width: 12rem;
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--dropdown-bg);
     backdrop-filter: var(--glass-blur-strong);
     -webkit-backdrop-filter: var(--glass-blur-strong);
-    border: 1px solid var(--card-border-color);
+    border: 1px solid var(--dropdown-border);
     border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--card-shadow);
     padding: 0.5rem;
     margin: 0;
     opacity: 0;
@@ -175,8 +186,8 @@
 
     .dropdown-header {
         padding: 0.75rem 1rem;
-        background: rgba(107, 207, 209, 0.05);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        background: var(--dropdown-item-hover);
+        border-bottom: 1px solid var(--dropdown-divider);
         border-radius: 12px 12px 0 0;
 
         .user-email {
@@ -189,7 +200,7 @@
 
     .dropdown-divider {
         height: 1px;
-        background: rgba(255, 255, 255, 0.2);
+        background: var(--dropdown-divider);
         margin: 0.25rem 0;
     }
 
@@ -210,7 +221,7 @@
         margin: 0.25rem 0;
 
         &:hover {
-            background: rgba(107, 207, 209, 0.1);
+            background: var(--dropdown-item-hover);
             transform: translateX(4px);
         }
 

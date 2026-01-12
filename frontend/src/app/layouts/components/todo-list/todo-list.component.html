@@ -24,12 +24,19 @@
             </button>
         </div>
         
-        <div class="todo-cards">
+        <div class="todo-cards row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+            <div *ngFor="let todo of todos; trackBy: trackById" class="col">
             <div 
-                *ngFor="let todo of todos; trackBy: trackById" 
-                class="todo-card"
+                class="todo-card h-100"
                 [class.completed]="todo.completed"
+                [ngClass]="getPriorityClass(todo.priority)"
             >
+                <div class="todo-card-header">
+                    <span class="priority-badge" [ngClass]="getPriorityClass(todo.priority)">
+                        <i [class]="'bi ' + getPriorityIcon(todo.priority)"></i>
+                        {{ todo.priority }}
+                    </span>
+                </div>
                 <div class="todo-card-content">
                     <button 
                         type="button" 
@@ -52,6 +59,7 @@
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
+            </div>
             </div>
         </div>
     </div>

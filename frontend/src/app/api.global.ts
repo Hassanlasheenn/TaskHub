@@ -9,7 +9,7 @@ export const API_URLS = {
         logout: `${API_BASE_URL}/logout`,
     },
     user: {
-        getUserById: `${API_BASE_URL}`,
-        updateUser: `${API_BASE_URL}`,
+        getUserById: `${API_BASE_URL}/users`,
+        updateUser: `${API_BASE_URL}/users`,
     },
 };
