@@ -1,5 +1,4 @@
 <div class="calendar-container">
-    <!-- Calendar Month View -->
     <div *ngIf="!isDayView" class="calendar-month-view">
         <div class="calendar-header">
             <button type="button" class="calendar-nav-btn" (click)="previousMonth()" aria-label="Previous month">
@@ -17,12 +16,10 @@
         </button>
 
         <div class="calendar-grid">
-            <!-- Week day headers -->
             <div class="calendar-weekday" *ngFor="let day of weekDays">
                 {{ day }}
             </div>
 
-            <!-- Calendar days -->
             <div
                 *ngFor="let date of calendarDays; trackBy: trackByDate"
                 class="calendar-day"
@@ -49,7 +46,6 @@
         </div>
     </div>
 
-    <!-- Day View -->
     <div *ngIf="isDayView && selectedDate" class="calendar-day-view">
         <div class="day-view-header">
             <button type="button" class="back-btn" (click)="closeDayView()" aria-label="Back to calendar">
@@ -75,7 +71,6 @@
                                 class="hour-todo-item"
                                 [ngClass]="getPriorityClass(todo.priority)"
                             >
-                                <!-- Todo card -->
                                 <div class="todo-card-content">
                                     <div class="todo-time-badge">
                                         <i class="bi bi-clock"></i>

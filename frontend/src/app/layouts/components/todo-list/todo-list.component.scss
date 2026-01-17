@@ -1,8 +1,124 @@
 .todo-list-container {
     width: 100%;
+    max-width: 100%;
+    overflow: visible;
+    box-sizing: border-box;
 }
 
-// Empty State
+.category-group-card {
+    background: var(--card-color);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: 16px;
+    border: 1px solid var(--card-border-color);
+    box-shadow: var(--card-shadow);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+        box-shadow: var(--card-shadow-hover);
+        transform: translateY(-2px);
+    }
+
+    .category-group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.25rem 1.5rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: linear-gradient(135deg, rgba(107, 207, 209, 0.05) 0%, rgba(74, 144, 226, 0.05) 100%);
+        border-bottom: 1px solid var(--card-border-color);
+
+        &:hover {
+            background: linear-gradient(135deg, rgba(107, 207, 209, 0.1) 0%, rgba(74, 144, 226, 0.1) 100%);
+        }
+
+        .category-header-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+        }
+
+        .category-icon {
+            color: var(--primary-gradient-start);
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .category-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+
+            .category-count {
+                font-size: 0.875rem;
+                font-weight: 500;
+                color: var(--text-secondary);
+            }
+        }
+
+        .expand-icon {
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+    }
+
+    .category-group-content {
+        padding: 1.5rem;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        &.expanded {
+            max-height: 10000px;
+            opacity: 1;
+        }
+
+        &.collapsed {
+            max-height: 0;
+            padding: 0 1.5rem;
+            opacity: 0;
+        }
+    }
+
+    @media (max-width: 576px) {
+        border-radius: 12px;
+        margin-bottom: 1rem;
+
+        .category-group-header {
+            padding: 1rem 1.25rem;
+
+            .category-icon {
+                font-size: 1.25rem;
+            }
+
+            .category-title {
+                font-size: 1.125rem;
+            }
+
+            .expand-icon {
+                font-size: 1.125rem;
+            }
+        }
+
+        .category-group-content {
+            padding: 1.25rem;
+
+            &.collapsed {
+                padding: 0 1.25rem;
+            }
+        }
+    }
+}
+
 .empty-state {
     display: flex;
     justify-content: center;
@@ -114,8 +230,12 @@
     }
 }
 
-// Todo Grid
 .todo-grid {
+    width: 100%;
+    max-width: 100%;
+    overflow: visible;
+    box-sizing: border-box;
+
     .todo-section-title {
         font-size: 1.25rem;
         font-weight: 600;
@@ -139,9 +259,17 @@
     }
 }
 
-// Using Bootstrap row-cols for responsive grid
+.todo-cards {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    box-sizing: border-box;
+}
 
 .todo-card {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     background: var(--card-color);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
@@ -165,7 +293,6 @@
         }
     }
 
-    // Priority border colors
     &.priority-high {
         border-left: 4px solid var(--priority-high-text);
     }
@@ -192,6 +319,18 @@
         background: var(--btn-secondary-bg);
         padding: 0.25rem 0.5rem;
         border-radius: 6px;
+    }
+
+    .category-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.625rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: linear-gradient(135deg, rgba(107, 207, 209, 0.15) 0%, rgba(74, 144, 226, 0.15) 100%);
+        color: var(--primary-gradient-start);
+        border: 1px solid rgba(107, 207, 209, 0.3);
     }
 
     .todo-card-content {

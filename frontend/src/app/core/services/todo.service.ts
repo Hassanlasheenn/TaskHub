@@ -2,37 +2,7 @@ import { HttpClient } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { Observable, take } from "rxjs";
 import { API_BASE_URL } from "../../api.global";
-
-export interface ITodoCreate {
-    title: string;
-    description?: string;
-    priority: 'low' | 'medium' | 'high';
-}
-
-export interface ITodoUpdate {
-    title?: string;
-    description?: string;
-    priority?: 'low' | 'medium' | 'high';
-    completed?: boolean;
-}
-
-
-export interface ITodoResponse {
-    id: number;
-    title: string;
-    description?: string;
-    completed: boolean;
-    priority: string;
-    order_index: number;
-    created_at?: string;
-    updated_at?: string;
-    user_id: number;
-}
-
-export interface ITodoListResponse {
-    todos: ITodoResponse[];
-    total: number;
-}
+import { ITodoCreate, ITodoUpdate, ITodoResponse, ITodoListResponse } from "../interfaces/todo.interface";
 
 @Injectable({
     providedIn: 'root',

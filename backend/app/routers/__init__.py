@@ -4,7 +4,6 @@ from .todos import router as todos_router
 from ..auth import router as auth_router
 
 
-# Define all routers with their configurations
 ROUTERS = [
     {"router": auth_router, "prefix": "", "tags": ["auth"]},
     {"router": users_router, "prefix": "/users", "tags": ["users"]},

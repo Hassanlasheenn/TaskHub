@@ -4,7 +4,6 @@ from datetime import datetime
 from enum import Enum
 
 
-# Priority Enum for validation
 class PriorityLevel(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
@@ -33,17 +32,18 @@ class LoginResponse(BaseModel):
     data: UserResponse
 
 
-# Todo Schemas
 class TodoCreate(BaseModel):
     title: str
     description: Optional[str] = None
     priority: PriorityLevel = PriorityLevel.MEDIUM
+    category: Optional[str] = None
 
 class TodoUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     completed: Optional[bool] = None
     priority: Optional[PriorityLevel] = None
+    category: Optional[str] = None
 
 class TodoResponse(BaseModel):
     id: int
@@ -51,6 +51,7 @@ class TodoResponse(BaseModel):
     description: Optional[str] = None
     completed: bool
     priority: str
+    category: Optional[str] = None
     order_index: int = 0
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

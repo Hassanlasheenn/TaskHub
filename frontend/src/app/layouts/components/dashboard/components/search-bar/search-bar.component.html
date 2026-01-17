@@ -1,0 +1,22 @@
+<div class="search-bar-container">
+    <div class="search-input-wrapper">
+        <i class="bi bi-search search-icon"></i>
+        <input
+            type="text"
+            class="search-input"
+            [placeholder]="placeholder"
+            [(ngModel)]="searchQuery"
+            (input)="onSearchChange()"
+        />
+        <button
+            *ngIf="searchQuery"
+            type="button"
+            class="clear-btn"
+            (click)="clearSearch()"
+            aria-label="Clear search"
+        >
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+</div>
+

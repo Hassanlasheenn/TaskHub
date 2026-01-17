@@ -3,14 +3,68 @@
     margin: 0 auto;
     width: 100%;
     box-sizing: border-box;
+    overflow: visible;
+    min-height: 0;
+}
+
+.filters-section {
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+
+    @media (max-width: 576px) {
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+}
+
+.category-filters {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.category-filter-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--card-border-color);
+    border-radius: 8px;
+    background: var(--btn-secondary-bg);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+
+    &:hover {
+        background: var(--btn-secondary-hover-bg);
+        border-color: var(--primary-gradient-start);
+        color: var(--text-primary);
+        transform: translateY(-2px);
+    }
+
+    &.active {
+        background: linear-gradient(135deg, rgba(107, 207, 209, 0.15) 0%, rgba(74, 144, 226, 0.15) 100%);
+        border-color: var(--primary-gradient-start);
+        color: var(--primary-gradient-start);
+        box-shadow: 0 2px 8px rgba(107, 207, 209, 0.2);
+    }
 }
 
 .dashboard-container {
     width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
+    overflow: visible;
+    min-height: 0;
 }
 
 .side-nav-wrapper {
+    width: 100%;
+    
     @media (min-width: 992px) {
         width: 220px;
         flex-shrink: 0;
@@ -18,7 +72,14 @@
 }
 
 .dashboard-content {
-    min-width: 0; // Allows flex child to shrink
+    min-width: 0;
+    width: 100%;
+    overflow: visible;
+}
+
+.todo-list-wrapper {
+    width: 100%;
+    overflow: visible;
 }
 
 .dashboard-header {
@@ -33,7 +94,6 @@
     overflow: hidden;
     transition: all 0.3s ease;
 
-    // Gradient overlay
     &::before {
         content: '';
         position: absolute;

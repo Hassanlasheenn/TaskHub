@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { Component, Input, Output, EventEmitter } from "@angular/core";
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from "@angular/core";
 
 export interface ITodo {
     id: number;
@@ -7,6 +7,7 @@ export interface ITodo {
     description?: string;
     completed: boolean;
     priority: 'low' | 'medium' | 'high';
+    category?: string;
     order_index: number;
     created_at?: string;
     updated_at?: string;
@@ -20,16 +21,43 @@ export interface ITodo {
     standalone: true,
     imports: [CommonModule],
 })
-export class TodoListComponent {
+export class TodoListComponent implements OnInit, OnChanges {
     @Input() todos: ITodo[] = [];
     @Input() totalCount: number = 0;
     @Input() showAddButton: boolean = true;
     @Input() showIndex: boolean = true;
     @Input() sectionTitle: string = 'Your Todos';
+    @Input() groupByCategory: boolean = false;
     @Output() addTodo = new EventEmitter<void>();
     @Output() toggleTodo = new EventEmitter<ITodo>();
     @Output() deleteTodo = new EventEmitter<ITodo>();
     @Output() editTodo = new EventEmitter<ITodo>();
+
+    expandedCategories: Set<string | null> = new Set();
+
+    get groupedTodos(): { category: string | null; todos: ITodo[] }[] {
+        if (!this.groupByCategory) {
+            return [{ category: null, todos: this.todos }];
+        }
+
+        const grouped = new Map<string | null, ITodo[]>();
+        
+        this.todos.forEach(todo => {
+            const category = todo.category || null;
+            if (!grouped.has(category)) {
+                grouped.set(category, []);
+            }
+            grouped.get(category)!.push(todo);
+        });
+
+        const sorted = Array.from(grouped.entries()).sort((a, b) => {
+            if (a[0] === null) return -1;
+            if (b[0] === null) return 1;
+            return (a[0] || '').localeCompare(b[0] || '');
+        });
+
+        return sorted.map(([category, todos]) => ({ category, todos }));
+    }
 
     onAddTodo(): void {
         this.addTodo.emit();
@@ -66,32 +94,25 @@ export class TodoListComponent {
     formatDate(dateString?: string): { date: string; day: string; time: string } | null {
         if (!dateString) return null;
         
-        // Parse the date - if it doesn't have timezone info, treat as local time
         let date: Date;
         if (dateString.endsWith('Z') || dateString.includes('+') || dateString.includes('-', 10)) {
-            // Has timezone info - parse normally (will convert to local)
             date = new Date(dateString);
         } else {
-            // No timezone info - treat as local time, not UTC
-            // Replace 'T' with space and parse without timezone conversion
             date = new Date(dateString.replace('T', ' '));
         }
         
-        // Format: dd/mm/yyyy
         const day = date.getDate().toString().padStart(2, '0');
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
         const year = date.getFullYear();
         const formattedDate = `${day}/${month}/${year}`;
         
-        // Week day name
         const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const weekDay = weekDays[date.getDay()];
         
-        // Time: HH:MM AM/PM
         let hours = date.getHours();
         const minutes = date.getMinutes().toString().padStart(2, '0');
         const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12 || 12; // 0 becomes 12
+        hours = hours % 12 || 12;
         const formattedTime = `${hours}:${minutes} ${ampm}`;
         
         return {
@@ -99,6 +120,38 @@ export class TodoListComponent {
             day: weekDay,
             time: formattedTime
         };
+    }
+
+    toggleCategory(category: string | null): void {
+        if (this.expandedCategories.has(category)) {
+            this.expandedCategories.delete(category);
+        } else {
+            this.expandedCategories.add(category);
+        }
+    }
+
+    isCategoryExpanded(category: string | null): boolean {
+        return this.expandedCategories.has(category);
+    }
+
+    ngOnInit(): void {
+        this.initializeExpandedCategories();
+    }
+
+    private initializeExpandedCategories(): void {
+        if (this.groupByCategory && this.todos.length > 0) {
+            this.groupedTodos.forEach(group => {
+                if (!this.expandedCategories.has(group.category)) {
+                    this.expandedCategories.add(group.category);
+                }
+            });
+        }
+    }
+
+    ngOnChanges(): void {
+        if (this.groupByCategory) {
+            this.initializeExpandedCategories();
+        }
     }
 }
 

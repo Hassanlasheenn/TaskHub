@@ -26,7 +26,7 @@ export class CalendarComponent implements OnInit, OnChanges {
     selectedDate: Date | null = null;
     selectedDayTodos: ITodo[] = [];
     isDayView: boolean = false;
-    hours: number[] = Array.from({ length: 24 }, (_, i) => (i + 9) % 24); // 9 AM to 8 AM next day (9-8)
+    hours: number[] = Array.from({ length: 24 }, (_, i) => (i + 9) % 24);
 
     ngOnInit(): void {
         this.generateCalendar();
@@ -40,12 +40,10 @@ export class CalendarComponent implements OnInit, OnChanges {
 
         this.calendarDays = [];
 
-        // Add empty cells for days before the first day of the month
         for (let i = 0; i < startingDayOfWeek; i++) {
             this.calendarDays.push(null);
         }
 
-        // Add all days of the month
         for (let day = 1; day <= daysInMonth; day++) {
             this.calendarDays.push(new Date(this.currentYear, this.currentMonth, day));
         }
@@ -100,7 +98,6 @@ export class CalendarComponent implements OnInit, OnChanges {
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['todos'] && !changes['todos'].firstChange) {
-            // Calendar will re-render automatically when todos change
         }
     }
 
@@ -113,7 +110,6 @@ export class CalendarComponent implements OnInit, OnChanges {
             const todoDate = this.parseTodoDate(todo.created_at);
             const compareDate = new Date(date);
             
-            // Compare year, month, and day
             return todoDate.getFullYear() === compareDate.getFullYear() &&
                    todoDate.getMonth() === compareDate.getMonth() &&
                    todoDate.getDate() === compareDate.getDate();
@@ -139,13 +135,9 @@ export class CalendarComponent implements OnInit, OnChanges {
     }
 
     parseTodoDate(dateString: string): Date {
-        // Parse the date - if it doesn't have timezone info, treat as local time
         if (dateString.endsWith('Z') || dateString.includes('+') || dateString.includes('-', 10)) {
-            // Has timezone info - parse normally (will convert to local)
             return new Date(dateString);
         } else {
-            // No timezone info - treat as local time, not UTC
-            // Replace 'T' with space and parse without timezone conversion
             return new Date(dateString.replace('T', ' '));
         }
     }
@@ -160,7 +152,6 @@ export class CalendarComponent implements OnInit, OnChanges {
             return todoDate.getHours() === hour;
         });
 
-        // Sort by exact time (minutes and seconds)
         return todosInHour.sort((a, b) => {
             if (!a.created_at || !b.created_at) return 0;
             const dateA = this.parseTodoDate(a.created_at);
@@ -176,7 +167,6 @@ export class CalendarComponent implements OnInit, OnChanges {
         const minutes = todoDate.getMinutes();
         const seconds = todoDate.getSeconds();
         
-        // Return formatted time with minutes and seconds
         return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
 
@@ -187,12 +177,10 @@ export class CalendarComponent implements OnInit, OnChanges {
         const minutes = todoDate.getMinutes();
         const seconds = todoDate.getSeconds();
         
-        // Calculate position as percentage of the hour (0-100%)
-        // 60 minutes * 60 seconds = 3600 seconds in an hour
         const totalSeconds = (minutes * 60) + seconds;
         const percentage = (totalSeconds / 3600) * 100;
         
-        return Math.min(percentage, 95); // Cap at 95% to prevent overflow
+        return Math.min(percentage, 95);
     }
 
     formatHour(hour: number): string {

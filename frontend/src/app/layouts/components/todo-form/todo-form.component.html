@@ -6,6 +6,33 @@
         [errorSummary]="errorSummary"
     />
 
+    <!-- Category Selection -->
+    <fieldset class="category-section">
+        <legend class="category-label">Category</legend>
+        <div class="d-flex flex-wrap gap-2">
+            <button
+                *ngFor="let category of availableCategories"
+                type="button"
+                class="category-btn"
+                [class.selected]="selectedCategory === category"
+                (click)="selectCategory(category)"
+            >
+                {{ category }}
+            </button>
+        </div>
+        <!-- Custom Category Input - Show when "Other" is selected -->
+        <div *ngIf="isOtherCategory" class="custom-category-input mt-3">
+            <label class="custom-category-label">Enter custom category</label>
+            <input
+                type="text"
+                class="custom-category-field"
+                [(ngModel)]="customCategory"
+                placeholder="Type your custom category name..."
+                maxlength="100"
+            />
+        </div>
+    </fieldset>
+
     <!-- Priority Selection -->
     <fieldset class="priority-section">
         <legend class="priority-label">Priority</legend>

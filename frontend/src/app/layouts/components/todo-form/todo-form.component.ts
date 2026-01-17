@@ -1,12 +1,13 @@
 import { Component, Output, EventEmitter, OnInit, Input } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
 import { FormGroup } from "@angular/forms";
 import { DynamicFormComponent } from "../../../shared/components/dynamic-form/dynamic-form.component";
 import { ReactiveFormService } from "../../../shared/services/reactive-form.service";
 import { IFieldControl } from "../../../shared/interfaces/IFieldControl.interface";
 import { InputTypes } from "../../../shared/enums/input-types.enum";
 import { ValidatorTypes } from "../../../shared/enums/validator-types.enum";
-import { ITodoCreate, ITodoUpdate } from "../../../core/services/todo.service";
+import { ITodoCreate, ITodoUpdate } from "../../../core/interfaces/todo.interface";
 import { ITodo } from "../todo-list/todo-list.component";
 
 @Component({
@@ -14,7 +15,7 @@ import { ITodo } from "../todo-list/todo-list.component";
     templateUrl: './todo-form.component.html',
     styleUrls: ['./todo-form.component.scss'],
     standalone: true,
-    imports: [CommonModule, DynamicFormComponent],
+    imports: [CommonModule, FormsModule, DynamicFormComponent],
 })
 export class TodoFormComponent implements OnInit {
     @Input() editingTodo: ITodo | null = null;
@@ -58,7 +59,11 @@ export class TodoFormComponent implements OnInit {
     ];
 
     selectedPriority: 'low' | 'medium' | 'high' = 'medium';
+    selectedCategory: string = '';
+    customCategory: string = '';
+    isOtherCategory: boolean = false;
     isCompleted: boolean = false;
+    availableCategories: string[] = ['Work', 'Personal', 'Shopping', 'Health', 'Learning', 'Other'];
 
     constructor(private readonly _formService: ReactiveFormService) {}
 
@@ -70,16 +75,48 @@ export class TodoFormComponent implements OnInit {
         this.selectedPriority = priority;
     }
 
+    selectCategory(category: string): void {
+        if (category === 'Other') {
+            if (this.selectedCategory === 'Other') {
+                this.isOtherCategory = false;
+                this.selectedCategory = '';
+                this.customCategory = '';
+            } else {
+                this.isOtherCategory = true;
+                this.selectedCategory = 'Other';
+                this.customCategory = '';
+            }
+        } else {
+            this.isOtherCategory = false;
+            this.selectedCategory = this.selectedCategory === category ? '' : category;
+            this.customCategory = '';
+        }
+    }
+
     onSubmit(): void {
         if (this.form.invalid) {
             this.isSubmitted = true;
             return;
         }
 
+        if (this.isOtherCategory && !this.customCategory.trim()) {
+            this.errorSummary = 'Please enter a custom category name';
+            this.isSubmitted = true;
+            return;
+        }
+
+        let categoryToUse: string | undefined = undefined;
+        if (this.isOtherCategory && this.customCategory.trim()) {
+            categoryToUse = this.customCategory.trim();
+        } else if (this.selectedCategory && this.selectedCategory !== 'Other') {
+            categoryToUse = this.selectedCategory;
+        }
+
         const todoData: ITodoCreate = {
             title: this.form.get('title')?.value,
             description: this.form.get('description')?.value || undefined,
-            priority: this.selectedPriority
+            priority: this.selectedPriority,
+            category: categoryToUse
         };
 
         if (this.isEditMode && this.editingTodo) {
@@ -87,6 +124,7 @@ export class TodoFormComponent implements OnInit {
                 title: todoData.title,
                 description: todoData.description,
                 priority: todoData.priority,
+                category: todoData.category,
                 completed: this.isCompleted
             };
             this.updateTodo.emit({ 
@@ -105,6 +143,9 @@ export class TodoFormComponent implements OnInit {
     resetForm(): void {
         this.form.reset();
         this.selectedPriority = 'medium';
+        this.selectedCategory = '';
+        this.customCategory = '';
+        this.isOtherCategory = false;
         this.isCompleted = false;
         this.isSubmitted = false;
         this.errorSummary = null;
@@ -120,6 +161,23 @@ export class TodoFormComponent implements OnInit {
             description: todo.description || ''
         });
         this.selectedPriority = todo.priority;
+        
+        if (todo.category) {
+            if (this.availableCategories.includes(todo.category)) {
+                this.selectedCategory = todo.category;
+                this.isOtherCategory = false;
+                this.customCategory = '';
+            } else {
+                this.selectedCategory = 'Other';
+                this.isOtherCategory = true;
+                this.customCategory = todo.category;
+            }
+        } else {
+            this.selectedCategory = '';
+            this.isOtherCategory = false;
+            this.customCategory = '';
+        }
+        
         this.isCompleted = todo.completed;
     }
 

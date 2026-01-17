@@ -1,7 +1,8 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, ViewChild } from "@angular/core";
 import { AuthService } from "../../../auth/services";
-import { TodoService, ITodoCreate, ITodoUpdate, ITodoResponse } from "../../../core/services/todo.service";
+import { TodoService } from "../../../core/services/todo.service";
+import { ITodoCreate, ITodoUpdate, ITodoResponse } from "../../../core/interfaces/todo.interface";
 import { LoaderService } from "../../../core/services/loader.service";
 import { ToastService } from "../../../core/services/toast.service";
 import { TodoListComponent, ITodo } from "../todo-list/todo-list.component";
@@ -9,6 +10,8 @@ import { SidebarComponent } from "../../../shared/components/sidebar/sidebar.com
 import { TodoFormComponent } from "../todo-form/todo-form.component";
 import { DashboardSideNavComponent } from "./components/dashboard-side-nav/dashboard-side-nav.component";
 import { CalendarComponent } from "./components/calendar/calendar.component";
+import { SearchBarComponent } from "./components/search-bar/search-bar.component";
+import { QuickFiltersComponent, QuickFilterType } from "./components/quick-filters/quick-filters.component";
 import { DashboardSections } from "../../enums/dashboard-sections.enum";
 
 @Component({
@@ -16,7 +19,7 @@ import { DashboardSections } from "../../enums/dashboard-sections.enum";
     templateUrl: './dashboard.component.html',
     styleUrls: ['./dashboard.component.scss'],
     standalone: true,
-    imports: [CommonModule, TodoListComponent, SidebarComponent, TodoFormComponent, DashboardSideNavComponent, CalendarComponent],
+    imports: [CommonModule, TodoListComponent, SidebarComponent, TodoFormComponent, DashboardSideNavComponent, CalendarComponent, SearchBarComponent, QuickFiltersComponent],
 })
 export class DashboardComponent implements OnInit {
     @ViewChild('todoForm') todoFormComponent!: TodoFormComponent;
@@ -28,6 +31,9 @@ export class DashboardComponent implements OnInit {
     editingTodo: ITodo | null = null;
     activeSection: DashboardSections = DashboardSections.DASHBOARD;
     DashboardSections = DashboardSections;
+    searchQuery: string = '';
+    activeFilter: QuickFilterType = 'all';
+    selectedCategory: string | null = null;
     
     constructor(
         private readonly _authService: AuthService,
@@ -61,6 +67,20 @@ export class DashboardComponent implements OnInit {
 
     get sidebarTitle(): string {
         return this.editingTodo ? 'Edit Todo' : 'Add New Todo';
+    }
+
+    get timeBasedGreeting(): string {
+        const hour = new Date().getHours();
+        
+        if (hour >= 5 && hour < 12) {
+            return 'Good Morning';
+        } else if (hour >= 12 && hour < 17) {
+            return 'Good Afternoon';
+        } else if (hour >= 17 && hour < 22) {
+            return 'Good Evening';
+        } else {
+            return 'Good Night';
+        }
     }
 
     onAddTodo(): void {
@@ -100,7 +120,6 @@ export class DashboardComponent implements OnInit {
     }
 
     onToggleTodo(todo: ITodo): void {
-        // Toggle locally for instant feedback
         const index = this.todos.findIndex(t => t.id === todo.id);
         if (index !== -1) {
             this.todos[index] = { ...todo, completed: !todo.completed };
@@ -133,7 +152,6 @@ export class DashboardComponent implements OnInit {
         this.editingTodo = todo;
         this.isSidebarOpen = true;
         
-        // Wait for the sidebar to open and form to be ready
         setTimeout(() => {
             if (this.todoFormComponent) {
                 this.todoFormComponent.populateForm(todo);
@@ -170,32 +188,92 @@ export class DashboardComponent implements OnInit {
 
     onSectionChange(section: DashboardSections): void {
         this.activeSection = section;
-        // Handle section changes - for now just update the active section
-        // You can add filtering logic here based on the section
+        this.searchQuery = '';
+        this.activeFilter = 'all';
+        this.selectedCategory = null;
+    }
+
+    onSearchChange(query: string): void {
+        this.searchQuery = query.toLowerCase().trim();
+    }
+
+    onFilterChange(filter: QuickFilterType): void {
+        this.activeFilter = filter;
     }
 
     get filteredTodos(): ITodo[] {
+        let filtered = this.todos;
+
         switch (this.activeSection) {
-            case DashboardSections.TODAY:
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                return this.todos.filter(todo => {
+            case DashboardSections.COMPLETED:
+                filtered = filtered.filter(todo => todo.completed);
+                break;
+            default:
+                break;
+        }
+
+        if (this.activeSection === DashboardSections.DASHBOARD) {
+            filtered = this.applyQuickFilter(filtered);
+        }
+
+        if (this.searchQuery) {
+            filtered = filtered.filter(todo => {
+                const titleMatch = todo.title.toLowerCase().includes(this.searchQuery);
+                const descMatch = todo.description?.toLowerCase().includes(this.searchQuery);
+                return titleMatch || descMatch;
+            });
+        }
+
+        if (this.selectedCategory) {
+            filtered = filtered.filter(todo => todo.category === this.selectedCategory);
+        }
+
+        return filtered;
+    }
+
+    private applyQuickFilter(todos: ITodo[]): ITodo[] {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const startOfWeek = new Date(today);
+        const dayOfWeek = today.getDay();
+        startOfWeek.setDate(today.getDate() - dayOfWeek);
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+
+        switch (this.activeFilter) {
+            case 'today':
+                return todos.filter(todo => {
                     if (!todo.created_at) return false;
                     const todoDate = new Date(todo.created_at);
                     todoDate.setHours(0, 0, 0, 0);
                     return todoDate.getTime() === today.getTime();
                 });
-            case DashboardSections.COMPLETED:
-                return this.todos.filter(todo => todo.completed);
-            case DashboardSections.UPCOMING:
-                const now = new Date();
-                return this.todos.filter(todo => {
+            case 'thisWeek':
+                return todos.filter(todo => {
                     if (!todo.created_at) return false;
                     const todoDate = new Date(todo.created_at);
-                    return todoDate > now && !todo.completed;
+                    return todoDate >= startOfWeek && todoDate <= endOfWeek;
                 });
             default:
-                return this.todos;
+                return todos;
         }
+    }
+
+    get categories(): string[] {
+        const cats = new Set<string>();
+        this.todos.forEach(todo => {
+            if (todo.category) {
+                cats.add(todo.category);
+            }
+        });
+        return Array.from(cats).sort();
+    }
+
+    onCategorySelect(category: string | null): void {
+        this.selectedCategory = category;
     }
 }

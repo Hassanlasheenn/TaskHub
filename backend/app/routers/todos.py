@@ -7,7 +7,6 @@ from .. import database, models, schemas
 router = APIRouter(prefix="/todos", tags=["todos"])
 
 
-# Get all todos for a user
 @router.get("", response_model=schemas.TodoListResponse)
 def get_todos(
     user_id: int,
@@ -24,7 +23,7 @@ def get_todos(
     
     return schemas.TodoListResponse(todos=todos, total=total)
 
-# Create a new todo
+
 @router.post("", response_model=schemas.TodoResponse, status_code=status.HTTP_201_CREATED)
 def create_todo(
     todo: schemas.TodoCreate,
@@ -32,7 +31,6 @@ def create_todo(
     db: Session = Depends(database.get_db)
 ):
     """Create a new todo for a user"""
-    # Verify user exists
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(
@@ -40,7 +38,6 @@ def create_todo(
             detail="User not found"
         )
     
-    # Get the next order index for this user
     max_index = db.query(func.max(models.Todo.order_index)).filter(
         models.Todo.user_id == user_id
     ).scalar()
@@ -50,6 +47,7 @@ def create_todo(
         title=todo.title,
         description=todo.description,
         priority=todo.priority.value,
+        category=todo.category,
         order_index=next_index,
         user_id=user_id
     )
@@ -74,6 +72,8 @@ def update_todo(todo_id: int, todo: schemas.TodoUpdate, user_id: int, db: Sessio
         todo_db.priority = todo.priority.value
     if todo.completed is not None:
         todo_db.completed = todo.completed
+    if todo.category is not None:
+        todo_db.category = todo.category
     db.commit()
     db.refresh(todo_db)
     return todo_db
@@ -95,7 +95,6 @@ def delete_todo(
     deleted_index = todo.order_index
     db.delete(todo)
     
-    # Reorder remaining todos - decrease index for all todos with higher index
     db.query(models.Todo).filter(
         models.Todo.user_id == user_id,
         models.Todo.order_index > deleted_index

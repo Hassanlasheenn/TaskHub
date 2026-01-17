@@ -1,5 +1,4 @@
 <section class="todo-list-container">
-    <!-- Empty State -->
     <div *ngIf="todos.length === 0" class="empty-state">
         <div class="empty-state-content">
             <div class="empty-icon">
@@ -14,7 +13,6 @@
         </div>
     </div>
 
-    <!-- Todo List -->
     <div *ngIf="todos.length > 0" class="todo-grid">
         <div class="todo-header d-flex justify-content-between align-items-center mb-4">
             <div class="d-flex align-items-center gap-2">
@@ -27,7 +25,108 @@
             </button>
         </div>
         
-        <div class="todo-cards row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+        <ng-container *ngIf="groupByCategory">
+            <div *ngFor="let group of groupedTodos" class="category-group-card">
+                <div class="category-group-header" (click)="toggleCategory(group.category)">
+                    <div class="category-header-content">
+                        <i class="bi bi-folder-fill category-icon"></i>
+                        <h3 class="category-title">
+                            {{ group.category || 'Uncategorized' }}
+                            <span class="category-count">({{ group.todos.length }})</span>
+                        </h3>
+                    </div>
+                    <i 
+                        class="bi expand-icon" 
+                        [class.bi-chevron-down]="isCategoryExpanded(group.category)"
+                        [class.bi-chevron-up]="!isCategoryExpanded(group.category)"
+                    ></i>
+                </div>
+                <div 
+                    class="category-group-content" 
+                    [class.expanded]="isCategoryExpanded(group.category)"
+                    [class.collapsed]="!isCategoryExpanded(group.category)"
+                >
+                    <div class="todo-cards row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+                    <div *ngFor="let todo of group.todos; trackBy: trackById" class="col">
+                        <div 
+                            class="todo-card h-100"
+                            [class.completed]="todo.completed"
+                            [ngClass]="getPriorityClass(todo.priority)"
+                        >
+                            <div class="todo-card-header">
+                                <span *ngIf="showIndex" class="todo-index">#{{ todo.order_index }}</span>
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span *ngIf="todo.category" class="category-badge">{{ todo.category }}</span>
+                                    <span class="priority-badge" [ngClass]="getPriorityClass(todo.priority)">
+                                        <i [class]="'bi ' + getPriorityIcon(todo.priority)"></i>
+                                        {{ todo.priority }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="todo-card-content">
+                                <div class="todo-info">
+                                    <div class="todo-title-wrapper d-flex align-items-center gap-2 flex-wrap">
+                                        <h4 class="todo-title">{{ todo.title }}</h4>
+                                        <span *ngIf="todo.completed" class="done-badge">Done</span>
+                                    </div>
+                                    <p *ngIf="todo.description" class="todo-description">{{ todo.description }}</p>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    class="todo-edit-btn"
+                                    (click)="onEditTodo(todo)"
+                                    aria-label="Edit todo"
+                                >
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button 
+                                    type="button" 
+                                    class="todo-delete-btn"
+                                    (click)="onDeleteTodo(todo)"
+                                    aria-label="Delete todo"
+                                >
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                            <div class="todo-card-footer">
+                                <div class="date-timestamps">
+                                    <ng-container *ngIf="formatDate(todo.created_at) as createdInfo">
+                                        <div class="created-at">
+                                            <i class="bi bi-calendar3"></i>
+                                            <span class="date-label">Created</span>
+                                            <div class="date-info">
+                                                <span class="date-full">{{ createdInfo.date }}</span>
+                                            </div>
+                                            <div class="time-info">
+                                                <i class="bi bi-clock"></i>
+                                                <span>{{ createdInfo.time }}</span>
+                                            </div>
+                                        </div>
+                                    </ng-container>
+                                    
+                                    <ng-container *ngIf="todo.updated_at && formatDate(todo.updated_at) as updatedInfo">
+                                        <div class="updated-at">
+                                            <i class="bi bi-pencil-square"></i>
+                                            <span class="date-label">Updated</span>
+                                            <div class="date-info">
+                                                <span class="date-full">{{ updatedInfo.date }}</span>
+                                            </div>
+                                            <div class="time-info">
+                                                <i class="bi bi-clock"></i>
+                                                <span>{{ updatedInfo.time }}</span>
+                                            </div>
+                                        </div>
+                                    </ng-container>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </ng-container>
+
+        <div *ngIf="!groupByCategory" class="todo-cards row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
             <div *ngFor="let todo of todos; trackBy: trackById" class="col">
             <div 
                 class="todo-card h-100"
@@ -36,10 +135,13 @@
             >
                 <div class="todo-card-header">
                     <span *ngIf="showIndex" class="todo-index">#{{ todo.order_index }}</span>
-                    <span class="priority-badge" [ngClass]="getPriorityClass(todo.priority)">
-                        <i [class]="'bi ' + getPriorityIcon(todo.priority)"></i>
-                        {{ todo.priority }}
-                    </span>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span *ngIf="todo.category" class="category-badge">{{ todo.category }}</span>
+                        <span class="priority-badge" [ngClass]="getPriorityClass(todo.priority)">
+                            <i [class]="'bi ' + getPriorityIcon(todo.priority)"></i>
+                            {{ todo.priority }}
+                        </span>
+                    </div>
                 </div>
                 <div class="todo-card-content">
                     <div class="todo-info">
@@ -68,7 +170,6 @@
                 </div>
                 <div class="todo-card-footer">
                     <div class="date-timestamps">
-                        <!-- Created At - Always shown -->
                         <ng-container *ngIf="formatDate(todo.created_at) as createdInfo">
                             <div class="created-at">
                                 <i class="bi bi-calendar3"></i>
@@ -81,10 +182,9 @@
                                     <span>{{ createdInfo.time }}</span>
                                 </div>
                             </div>
-                        </ng-container>
-                        
-                        <!-- Updated At - Shown only if exists -->
-                        <ng-container *ngIf="todo.updated_at && formatDate(todo.updated_at) as updatedInfo">
+                                        </ng-container>
+                                        
+                                        <ng-container *ngIf="todo.updated_at && formatDate(todo.updated_at) as updatedInfo">
                             <div class="updated-at">
                                 <i class="bi bi-pencil-square"></i>
                                 <span class="date-label">Updated</span>
