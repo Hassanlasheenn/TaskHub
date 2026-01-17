@@ -23,7 +23,6 @@ export class ProfileSideNavComponent {
 
     navItems: NavItem[] = [
         { section: ProfileSections.PERSONAL_DATA, icon: 'bi-person-circle', label: 'Personal Data' },
-        { section: ProfileSections.RESET_PASSWORD, icon: 'bi-key', label: 'Reset Password' },
         { section: ProfileSections.NOTIFICATION_SETTINGS, icon: 'bi-bell', label: 'Notifications' }
     ];
 
