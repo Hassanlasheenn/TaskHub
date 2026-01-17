@@ -7,4 +7,6 @@ export enum InputTypes {
     TIME = 'time',
     FILE = 'file',
     UPLOAD_PHOTO = 'upload-photo',
+    CHECKBOX = 'checkbox',
+    DROPDOWN = 'dropdown',
 }

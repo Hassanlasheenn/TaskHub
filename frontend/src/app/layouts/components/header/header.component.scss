@@ -68,6 +68,37 @@
     }
 }
 
+.admin-btn {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    border: 1px solid var(--card-border-color);
+    background: var(--btn-secondary-bg);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0;
+    text-decoration: none;
+
+    i {
+        font-size: 1.25rem;
+    }
+
+    &:hover {
+        background: var(--btn-secondary-hover-bg);
+        transform: scale(1.05);
+        box-shadow: var(--card-shadow);
+        color: var(--accent-color);
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+}
+
 .notification-btn {
     position: relative;
     width: 2.75rem;

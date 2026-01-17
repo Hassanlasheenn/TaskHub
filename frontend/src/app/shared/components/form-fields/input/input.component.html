@@ -1,10 +1,13 @@
-<section class="input-form">
-    <label class="input-form__label" for="input-{{ name }}">{{ label }}</label>
-    <div class="input-form__error" *ngIf="isInvalid && errorMessage">
-        {{ errorMessage }}
+<section class="input-form" [class.input-form--checkbox]="isCheckbox">
+    <div *ngIf="!isCheckbox" class="input-form__label-wrapper">
+        <label class="input-form__label" for="input-{{ name }}">{{ label }}</label>
+        <div class="input-form__error" *ngIf="isInvalid && errorMessage">
+            {{ errorMessage }}
+        </div>
     </div>
-    <div class="input-form__input" [formGroup]="formGroup">
+    <div class="input-form__input" [formGroup]="formGroup" [class.input-form__input--checkbox]="isCheckbox">
         <input
+            *ngIf="!isCheckbox"
             id="input-{{ name }}"
             [type]="inputType"
             [placeholder]="placeholder"
@@ -13,6 +16,18 @@
             [ngClass]="getInputClasses()"
             [class.input-with-icon]="isPasswordField"
         />
+        <div *ngIf="isCheckbox" class="checkbox-wrapper">
+            <input
+                id="input-{{ name }}"
+                type="checkbox"
+                [formControlName]="name"
+                [ngClass]="getInputClasses()"
+            />
+            <label class="checkbox-label" for="input-{{ name }}">
+                <span class="checkbox-custom"></span>
+                <span class="checkbox-text">{{ label }}</span>
+            </label>
+        </div>
         <button
             *ngIf="isPasswordField"
             type="button"
@@ -22,5 +37,8 @@
         >
             <i [class]="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
         </button>
+    </div>
+    <div *ngIf="isCheckbox && isInvalid && errorMessage" class="input-form__error">
+        {{ errorMessage }}
     </div>
 </section>

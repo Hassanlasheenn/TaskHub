@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, OnInit, Input } from "@angular/core";
+import { Component, Output, EventEmitter, OnInit, Input, OnDestroy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { FormGroup } from "@angular/forms";
@@ -9,6 +9,12 @@ import { InputTypes } from "../../../shared/enums/input-types.enum";
 import { ValidatorTypes } from "../../../shared/enums/validator-types.enum";
 import { ITodoCreate, ITodoUpdate } from "../../../core/interfaces/todo.interface";
 import { ITodo } from "../todo-list/todo-list.component";
+import { UserService } from "../../../core/services/user.service";
+import { IUserListResponse } from "../../../auth/interfaces";
+import { Subject, takeUntil } from "rxjs";
+import { AuthService } from "../../../auth/services/auth.service";
+
+type PriorityLevel = 'low' | 'medium' | 'high';
 
 @Component({
     selector: 'app-todo-form',
@@ -17,16 +23,20 @@ import { ITodo } from "../todo-list/todo-list.component";
     standalone: true,
     imports: [CommonModule, FormsModule, DynamicFormComponent],
 })
-export class TodoFormComponent implements OnInit {
+export class TodoFormComponent implements OnInit, OnDestroy {
     @Input() editingTodo: ITodo | null = null;
     @Output() submitTodo = new EventEmitter<ITodoCreate>();
     @Output() updateTodo = new EventEmitter<{ id: number; data: ITodoUpdate }>();
     @Output() cancel = new EventEmitter<void>();
 
+    private readonly _destroy$ = new Subject<void>();
     form: FormGroup = new FormGroup({});
     isSubmitted: boolean = false;
     errorSummary: string | null = null;
     isEditMode: boolean = false;
+    users: IUserListResponse[] = [];
+    selectedUserId: number | null = null;
+    isAdmin: boolean = false;
 
     fields: IFieldControl[] = [
         {
@@ -50,28 +60,92 @@ export class TodoFormComponent implements OnInit {
             required: false,
             validations: [],
         },
+        {
+            label: 'Assign To',
+            type: InputTypes.DROPDOWN,
+            formControlName: 'assigned_to_user_id',
+            placeholder: 'Select user',
+            value: null,
+            required: false,
+            validations: [],
+            options: [],
+        },
     ];
 
-    priorities: { value: 'low' | 'medium' | 'high'; label: string; icon: string; color: string }[] = [
+    priorities: { value: PriorityLevel; label: string; icon: string; color: string }[] = [
         { value: 'low', label: 'Low', icon: 'bi-arrow-down', color: '#28a745' },
         { value: 'medium', label: 'Medium', icon: 'bi-dash', color: '#ffc107' },
         { value: 'high', label: 'High', icon: 'bi-arrow-up', color: '#dc3545' },
     ];
 
-    selectedPriority: 'low' | 'medium' | 'high' = 'medium';
-    selectedCategory: string = '';
+    selectedPriority: PriorityLevel = 'medium';
+    selectedCategory: string = 'Other';
     customCategory: string = '';
     isOtherCategory: boolean = false;
     isCompleted: boolean = false;
     availableCategories: string[] = ['Work', 'Personal', 'Shopping', 'Health', 'Learning', 'Other'];
 
-    constructor(private readonly _formService: ReactiveFormService) {}
+    constructor(
+        private readonly _formService: ReactiveFormService,
+        private readonly _userService: UserService,
+        private readonly _authService: AuthService
+    ) {}
 
     ngOnInit(): void {
+        this.isAdmin = this._authService.isAdmin();
+        this.updateFieldsBasedOnRole();
         this.form = this._formService.initializeForm(this.fields);
+            
+        if (this.isAdmin) {
+            this.loadUsers();
+        }
     }
 
-    selectPriority(priority: 'low' | 'medium' | 'high'): void {
+    ngOnDestroy(): void {
+        this._destroy$.next();
+        this._destroy$.complete();
+    }
+
+    updateFieldsBasedOnRole(): void {
+        if (!this.isAdmin) {
+            this.fields = this.fields.filter(f => f.formControlName !== 'assigned_to_user_id');
+        }
+    }
+
+    loadUsers(): void {
+        if (!this.isAdmin) {
+            return;
+        }
+        
+        this._userService.getUsersWithRoleUser()
+            .pipe(takeUntil(this._destroy$))
+            .subscribe({
+                next: (users) => {
+                    this.users = users;
+                    this.updateUserDropdownField();
+                    
+                    if (!this.form.get('assigned_to_user_id')) {
+                        this.form = this._formService.initializeForm(this.fields);
+                    }
+                    
+                    if (this.isEditMode && this.editingTodo) {
+                        this.populateFormData(this.editingTodo);
+                    }
+                },
+                error: (error) => {
+                    console.error('Failed to load users:', error);
+                }
+            });
+    }
+
+    updateUserDropdownField(): void {
+        const userFieldIndex = this.fields.findIndex(f => f.formControlName === 'assigned_to_user_id');
+        if (userFieldIndex !== -1) {
+            this.fields[userFieldIndex].options = this.users.map(user => ({ key: user.id, value: user.username }));
+        }
+    }
+
+    selectPriority(priority: PriorityLevel): void {
         this.selectedPriority = priority;
     }
 
@@ -110,13 +184,17 @@ export class TodoFormComponent implements OnInit {
             categoryToUse = this.customCategory.trim();
         } else if (this.selectedCategory && this.selectedCategory !== 'Other') {
             categoryToUse = this.selectedCategory;
+        } else if (this.selectedCategory === 'Other' && !this.isOtherCategory) {
+            categoryToUse = 'Other';
         }
 
+        const assignedUserId = this.isAdmin ? (this.form.get('assigned_to_user_id')?.value || null) : null;
         const todoData: ITodoCreate = {
             title: this.form.get('title')?.value,
             description: this.form.get('description')?.value || undefined,
             priority: this.selectedPriority,
-            category: categoryToUse
+            category: categoryToUse,
+            assigned_to_user_id: assignedUserId
         };
 
         if (this.isEditMode && this.editingTodo) {
@@ -125,7 +203,8 @@ export class TodoFormComponent implements OnInit {
                 description: todoData.description,
                 priority: todoData.priority,
                 category: todoData.category,
-                completed: this.isCompleted
+                completed: this.isCompleted,
+                assigned_to_user_id: todoData.assigned_to_user_id
             };
             this.updateTodo.emit({ 
                 id: this.editingTodo.id, 
@@ -143,7 +222,7 @@ export class TodoFormComponent implements OnInit {
     resetForm(): void {
         this.form.reset();
         this.selectedPriority = 'medium';
-        this.selectedCategory = '';
+        this.selectedCategory = 'Other';
         this.customCategory = '';
         this.isOtherCategory = false;
         this.isCompleted = false;
@@ -151,15 +230,47 @@ export class TodoFormComponent implements OnInit {
         this.errorSummary = null;
         this.isEditMode = false;
         this.editingTodo = null;
+        this.selectedUserId = null;
     }
 
     populateForm(todo: ITodo): void {
         this.isEditMode = true;
         this.editingTodo = todo;
-        this.form.patchValue({
+        this.selectedUserId = todo.assigned_to_user_id || null;
+        
+        // Ensure users are loaded before populating form
+        if (this.users.length === 0) {
+            // Users not loaded yet, wait for them - loadUsers will call populateFormData
+            this.loadUsers();
+            return;
+        }
+        
+        // Users already loaded, populate form data directly
+        this.populateFormData(todo);
+    }
+
+    private populateFormData(todo: ITodo): void {
+        // Ensure form has all controls
+        if (this.isAdmin && !this.form.get('assigned_to_user_id')) {
+            this.form = this._formService.initializeForm(this.fields);
+        }
+        
+        // Update dropdown options if admin
+        if (this.isAdmin) {
+            this.updateUserDropdownField();
+        }
+        
+        const formValue: any = {
             title: todo.title,
             description: todo.description || ''
-        });
+        };
+        
+        // Only include assigned_to_user_id if admin
+        if (this.isAdmin) {
+            formValue.assigned_to_user_id = todo.assigned_to_user_id || null;
+        }
+        
+        this.form.patchValue(formValue);
         this.selectedPriority = todo.priority;
         
         if (todo.category) {
@@ -173,7 +284,7 @@ export class TodoFormComponent implements OnInit {
                 this.customCategory = todo.category;
             }
         } else {
-            this.selectedCategory = '';
+            this.selectedCategory = 'Other';
             this.isOtherCategory = false;
             this.customCategory = '';
         }

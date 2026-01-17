@@ -15,8 +15,18 @@ export class ReactiveFormService {
         const controls: { [key: string]: any } = {};
         fields.forEach((field: IFieldControl) => {
             const validators = this.buildValidators(field, fields);
+            // Handle checkbox type differently - use boolean value
+            // Handle dropdown type - use null or the value
+            let defaultValue: any = '';
+            if (field.type === InputTypes.CHECKBOX) {
+                defaultValue = field?.value === true || field?.value === 'true';
+            } else if (field.type === InputTypes.DROPDOWN) {
+                defaultValue = field?.value !== undefined && field?.value !== null ? field.value : null;
+            } else {
+                defaultValue = field?.value || '';
+            }
             controls[field.formControlName] = [
-                { value: field?.value || '', disabled: field?.disabled || false },
+                { value: defaultValue, disabled: field?.disabled || false },
                 validators
             ];
         });

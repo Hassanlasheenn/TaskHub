@@ -2,16 +2,13 @@ import { HttpClient } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { Observable, take } from "rxjs";
 import { API_URLS } from "../../api.global";
-import { IUserResponse } from "../../auth/interfaces";
+import { IUserResponse, IUserListResponse } from "../../auth/interfaces";
 
 @Injectable({
     providedIn: 'root',
 })
 export class UserService {
-
-    constructor(
-        private readonly _http: HttpClient,
-    ) {}
+    constructor(private readonly _http: HttpClient) {}
 
     getUserById(userId: number): Observable<IUserResponse> {
         return this._http
@@ -27,5 +24,13 @@ export class UserService {
             withCredentials: true
         })
         .pipe(take(1));
+    }
+
+    getUsersWithRoleUser(): Observable<IUserListResponse[]> {
+        return this._http
+            .get<IUserListResponse[]>(API_URLS.user.getUsersWithRoleUser, {
+                withCredentials: true
+            })
+            .pipe(take(1));
     }
 }

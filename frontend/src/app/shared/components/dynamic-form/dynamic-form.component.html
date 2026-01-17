@@ -17,12 +17,25 @@
                 />
             </div>
 
-            <app-input-form
-                *ngIf="field.type === InputTypes.TEXT || field.type === InputTypes.EMAIL || field.type === InputTypes.PASSWORD || field.type === InputTypes.NUMBER || field.type === InputTypes.DATE || field.type === InputTypes.TIME"
+            <app-dropdown-form
+                *ngIf="field.type === InputTypes.DROPDOWN"
                 [label]="field.label"
                 [type]="field.type"
                 [formGroup]="form"
                 [placeholder]="field.placeholder"
+                [name]="field.formControlName"
+                [customInputStyle]="customInputStyle"
+                [customInputClass]="field.customInputClass"
+                [field]="field"
+                [showErrors]="isSubmitted"
+            />
+
+            <app-input-form
+                *ngIf="field.type === InputTypes.TEXT || field.type === InputTypes.EMAIL || field.type === InputTypes.PASSWORD || field.type === InputTypes.NUMBER || field.type === InputTypes.DATE || field.type === InputTypes.TIME || field.type === InputTypes.CHECKBOX"
+                [label]="field.label"
+                [type]="field.type"
+                [formGroup]="form"
+                [placeholder]="field.placeholder || ''"
                 [name]="field.formControlName"
                 [customInputStyle]="customInputStyle"
                 [customInputClass]="field.customInputClass"

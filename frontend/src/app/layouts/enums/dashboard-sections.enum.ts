@@ -6,5 +6,6 @@ export enum DashboardSections {
     COMPLETED = 'completed',
     ANALYTICS = 'analytics',
     SETTINGS = 'settings',
+    ADMIN_PANEL = 'admin-panel',
 }
 

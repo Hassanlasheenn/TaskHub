@@ -67,8 +67,10 @@
     pointer-events: none;
     transform: scale(0.95);
     transition: opacity 0.5s ease, transform 0.5s ease;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
 
     &.active {
         opacity: 1;
@@ -155,9 +157,18 @@
 
 // Mobile: show only forms with swipe
 @media (max-width: 767.98px) {
+    .auth-wrapper {
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+
     .forms-panel {
         width: 100%;
         left: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
 
         .login-mode & {
             left: 0;
@@ -172,6 +183,11 @@
         opacity: 1;
         pointer-events: auto;
         position: relative;
+        align-items: flex-start;
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        min-height: 100%;
+        height: auto;
         
         &:not(.active) {
             display: none;

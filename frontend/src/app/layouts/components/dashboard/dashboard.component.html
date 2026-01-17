@@ -8,7 +8,7 @@
         </div>
 
         <div class="dashboard-content flex-grow-1 d-flex flex-column">
-            <div *ngIf="activeSection !== DashboardSections.CALENDAR && activeSection !== DashboardSections.COMPLETED" class="dashboard-header d-flex justify-content-center align-items-center px-3 py-3 px-sm-4 py-sm-4 px-lg-5 py-lg-4">
+            <div *ngIf="activeSection !== DashboardSections.CALENDAR && activeSection !== DashboardSections.COMPLETED && activeSection !== DashboardSections.ADMIN_PANEL" class="dashboard-header d-flex justify-content-center align-items-center px-3 py-3 px-sm-4 py-sm-4 px-lg-5 py-lg-4">
                 <h1>{{ timeBasedGreeting }}, {{ userData?.username }}!</h1>
             </div>
             
@@ -17,7 +17,11 @@
                 [todos]="todos"
             />
 
-            <div *ngIf="activeSection !== DashboardSections.CALENDAR" class="todo-list-wrapper">
+            <app-admin-panel
+                *ngIf="activeSection === DashboardSections.ADMIN_PANEL"
+            />
+
+            <div *ngIf="activeSection !== DashboardSections.CALENDAR && activeSection !== DashboardSections.ADMIN_PANEL" class="todo-list-wrapper">
                 <div *ngIf="activeSection === DashboardSections.DASHBOARD" class="filters-section">
                     <app-search-bar
                         placeholder="Search todos by title or description..."
@@ -56,6 +60,8 @@
                     [showIndex]="activeSection !== DashboardSections.COMPLETED"
                     [sectionTitle]="activeSection === DashboardSections.COMPLETED ? 'Completed Todos' : 'Your Todos'"
                     [groupByCategory]="activeSection === DashboardSections.DASHBOARD && selectedCategory === null && !searchQuery"
+                    [showUsername]="true"
+                    [username]="userData?.username || null"
                     (addTodo)="onAddTodo()"
                     (toggleTodo)="onToggleTodo($event)"
                     (deleteTodo)="onDeleteTodo($event)"

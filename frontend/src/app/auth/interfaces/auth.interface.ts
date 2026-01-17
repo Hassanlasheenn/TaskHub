@@ -26,4 +26,17 @@ export interface IUserResponse {
     username: string;
     email: string;
     photo?: string | null;
+    role?: string;
+}
+
+export interface IUserListResponse {
+    id: number;
+    username: string;
+    email: string;
+    photo?: string | null;
+    role: string;
+}
+
+export interface IUserRoleUpdate {
+    role: "user" | "admin";
 }

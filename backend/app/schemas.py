@@ -24,9 +24,23 @@ class UserResponse(BaseModel):
     username: str
     email: EmailStr
     photo: Optional[str] = None
+    role: Optional[str] = "user"
 
     class Config:
         from_attributes = True
+
+class UserListResponse(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+    photo: Optional[str] = None
+    role: str
+
+    class Config:
+        from_attributes = True
+
+class UserRoleUpdate(BaseModel):
+    role: Literal["user", "admin"]
 
 class LoginResponse(BaseModel):
     data: UserResponse
@@ -37,6 +51,7 @@ class TodoCreate(BaseModel):
     description: Optional[str] = None
     priority: PriorityLevel = PriorityLevel.MEDIUM
     category: Optional[str] = None
+    assigned_to_user_id: Optional[int] = None
 
 class TodoUpdate(BaseModel):
     title: Optional[str] = None
@@ -44,6 +59,7 @@ class TodoUpdate(BaseModel):
     completed: Optional[bool] = None
     priority: Optional[PriorityLevel] = None
     category: Optional[str] = None
+    assigned_to_user_id: Optional[int] = None
 
 class TodoResponse(BaseModel):
     id: int
@@ -56,6 +72,8 @@ class TodoResponse(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     user_id: int
+    assigned_to_user_id: Optional[int] = None
+    assigned_to_username: Optional[str] = None
 
     class Config:
         from_attributes = True

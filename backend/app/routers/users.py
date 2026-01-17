@@ -1,8 +1,9 @@
 import base64
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 from .. import database, models, schemas
+from ..dependencies import get_current_user
 
 
 router = APIRouter(tags=["users"])
@@ -24,7 +25,8 @@ def get_user_data(user_id: int, db: Session = Depends(database.get_db)):
         "id": user_db.id,
         "username": user_db.username,
         "email": user_db.email,
-        "photo": getattr(user_db, 'profile_pic', None)
+        "photo": getattr(user_db, 'profile_pic', None),
+        "role": getattr(user_db, 'role', 'user')
     }
     return schemas.UserResponse(**user_dict)
 
@@ -74,6 +76,29 @@ async def update_user_data(
         "id": user_db.id,
         "username": user_db.username,
         "email": user_db.email,
-        "photo": user_db.profile_pic
+        "photo": user_db.profile_pic,
+        "role": getattr(user_db, 'role', 'user')
     }
     return schemas.UserResponse(**user_dict)
+
+
+@router.get("/role/user", response_model=List[schemas.UserListResponse])
+def get_users_with_role_user(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get all users with role 'user' (for assignment dropdown) - requires authentication"""
+    users = db.query(models.User).filter(
+        models.User.role == models.UserRole.USER.value
+    ).all()
+    
+    return [
+        schemas.UserListResponse(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            photo=getattr(user, 'profile_pic', None),
+            role=user.role
+        )
+        for user in users
+    ]

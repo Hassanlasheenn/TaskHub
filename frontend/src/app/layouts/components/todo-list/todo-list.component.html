@@ -31,7 +31,7 @@
                     <div class="category-header-content">
                         <i class="bi bi-folder-fill category-icon"></i>
                         <h3 class="category-title">
-                            {{ group.category || 'Uncategorized' }}
+                            {{ group.category || 'Other' }}
                             <span class="category-count">({{ group.todos.length }})</span>
                         </h3>
                     </div>
@@ -46,30 +46,35 @@
                     [class.expanded]="isCategoryExpanded(group.category)"
                     [class.collapsed]="!isCategoryExpanded(group.category)"
                 >
-                    <div class="todo-cards row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+                    <div class="todo-cards row row-cols-1 row-cols-sm-2 row-cols-lg-2 row-cols-xl-3 g-2 g-sm-3 g-lg-3 py-2 py-sm-3 py-lg-3">
                     <div *ngFor="let todo of group.todos; trackBy: trackById" class="col">
                         <div 
                             class="todo-card h-100"
                             [class.completed]="todo.completed"
                             [ngClass]="getPriorityClass(todo.priority)"
                         >
-                            <div class="todo-card-header">
-                                <span *ngIf="showIndex" class="todo-index">#{{ todo.order_index }}</span>
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    <span *ngIf="todo.category" class="category-badge">{{ todo.category }}</span>
-                                    <span class="priority-badge" [ngClass]="getPriorityClass(todo.priority)">
-                                        <i [class]="'bi ' + getPriorityIcon(todo.priority)"></i>
-                                        {{ todo.priority }}
-                                    </span>
+                            <div class="todo-card-header d-flex flex-column gap-1 gap-sm-2">
+                                <div class="d-flex align-items-center justify-content-between w-100">
+                                    <span *ngIf="showIndex" class="todo-index">#{{ todo.order_index }}</span>
+                                    <div class="d-flex align-items-center gap-1 gap-sm-2 flex-wrap justify-content-end">
+                                        <span *ngIf="todo.category" class="category-badge">{{ todo.category }}</span>
+                                        <span class="priority-badge" [ngClass]="getPriorityClass(todo.priority)">
+                                            <i [class]="'bi ' + getPriorityIcon(todo.priority)"></i>
+                                            {{ todo.priority }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="todo-card-content">
                                 <div class="todo-info">
-                                    <div class="todo-title-wrapper d-flex align-items-center gap-2 flex-wrap">
+                                    <div class="todo-title-wrapper d-flex align-items-center gap-1 gap-sm-2 flex-wrap">
                                         <h4 class="todo-title">{{ todo.title }}</h4>
                                         <span *ngIf="todo.completed" class="done-badge">Done</span>
                                     </div>
                                     <p *ngIf="todo.description" class="todo-description">{{ todo.description }}</p>
+                                    <div class="assigned-to-section mt-2">
+                                        <span class="assigned-to-username">{{ todo.assigned_to_username || 'Unassigned' }}</span>
+                                    </div>
                                 </div>
                                 <button 
                                     type="button" 
@@ -88,32 +93,40 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
-                            <div class="todo-card-footer">
-                                <div class="date-timestamps">
+                            <div class="todo-card-footer px-3 px-sm-4 py-2 py-sm-3">
+                                <div class="date-timestamps d-flex flex-column gap-2 gap-sm-3">
                                     <ng-container *ngIf="formatDate(todo.created_at) as createdInfo">
-                                        <div class="created-at">
-                                            <i class="bi bi-calendar3"></i>
-                                            <span class="date-label">Created</span>
-                                            <div class="date-info">
-                                                <span class="date-full">{{ createdInfo.date }}</span>
+                                        <div class="created-at d-flex align-items-center justify-content-between w-100">
+                                            <div class="d-flex align-items-center gap-1">
+                                                <i class="bi bi-calendar3 flex-shrink-0"></i>
+                                                <span class="date-label flex-shrink-0">Created</span>
                                             </div>
-                                            <div class="time-info">
-                                                <i class="bi bi-clock"></i>
-                                                <span>{{ createdInfo.time }}</span>
+                                            <div class="d-flex align-items-center gap-1 gap-sm-2">
+                                                <div class="date-info flex-shrink-1">
+                                                    <span class="date-full">{{ createdInfo.date }}</span>
+                                                </div>
+                                                <div class="time-info d-flex align-items-center gap-1 gap-sm-2 px-1 px-sm-2 px-md-3 py-1 py-sm-2">
+                                                    <i class="bi bi-clock flex-shrink-0"></i>
+                                                    <span class="text-nowrap">{{ createdInfo.time }}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </ng-container>
                                     
                                     <ng-container *ngIf="todo.updated_at && formatDate(todo.updated_at) as updatedInfo">
-                                        <div class="updated-at">
-                                            <i class="bi bi-pencil-square"></i>
-                                            <span class="date-label">Updated</span>
-                                            <div class="date-info">
-                                                <span class="date-full">{{ updatedInfo.date }}</span>
+                                        <div class="updated-at d-flex align-items-center justify-content-between w-100">
+                                            <div class="d-flex align-items-center gap-1">
+                                                <i class="bi bi-pencil-square flex-shrink-0"></i>
+                                                <span class="date-label flex-shrink-0">Updated</span>
                                             </div>
-                                            <div class="time-info">
-                                                <i class="bi bi-clock"></i>
-                                                <span>{{ updatedInfo.time }}</span>
+                                            <div class="d-flex align-items-center gap-1 gap-sm-2">
+                                                <div class="date-info flex-shrink-1">
+                                                    <span class="date-full">{{ updatedInfo.date }}</span>
+                                                </div>
+                                                <div class="time-info d-flex align-items-center gap-1 gap-sm-2 px-1 px-sm-2 px-md-3 py-1 py-sm-2">
+                                                    <i class="bi bi-clock flex-shrink-0"></i>
+                                                    <span class="text-nowrap">{{ updatedInfo.time }}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </ng-container>
@@ -126,21 +139,23 @@
             </div>
         </ng-container>
 
-        <div *ngIf="!groupByCategory" class="todo-cards row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+        <div *ngIf="!groupByCategory" class="todo-cards row row-cols-1 row-cols-sm-2 row-cols-lg-2 row-cols-xl-3 g-2 g-sm-3 g-lg-3 py-2 py-sm-3 py-lg-3">
             <div *ngFor="let todo of todos; trackBy: trackById" class="col">
             <div 
                 class="todo-card h-100"
                 [class.completed]="todo.completed"
                 [ngClass]="getPriorityClass(todo.priority)"
             >
-                <div class="todo-card-header">
-                    <span *ngIf="showIndex" class="todo-index">#{{ todo.order_index }}</span>
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <span *ngIf="todo.category" class="category-badge">{{ todo.category }}</span>
-                        <span class="priority-badge" [ngClass]="getPriorityClass(todo.priority)">
-                            <i [class]="'bi ' + getPriorityIcon(todo.priority)"></i>
-                            {{ todo.priority }}
-                        </span>
+                <div class="todo-card-header d-flex flex-column gap-1 gap-sm-2">
+                    <div class="d-flex align-items-center justify-content-between w-100">
+                        <span *ngIf="showIndex" class="todo-index">#{{ todo.order_index }}</span>
+                        <div class="d-flex align-items-center gap-1 gap-sm-2 flex-wrap justify-content-end">
+                            <span *ngIf="todo.category" class="category-badge">{{ todo.category }}</span>
+                            <span class="priority-badge" [ngClass]="getPriorityClass(todo.priority)">
+                                <i [class]="'bi ' + getPriorityIcon(todo.priority)"></i>
+                                {{ todo.priority }}
+                            </span>
+                        </div>
                     </div>
                 </div>
                 <div class="todo-card-content">
@@ -150,6 +165,9 @@
                             <span *ngIf="todo.completed" class="done-badge">Done</span>
                         </div>
                         <p *ngIf="todo.description" class="todo-description">{{ todo.description }}</p>
+                        <div class="assigned-to-section mt-2">
+                            <span class="assigned-to-username">{{ todo.assigned_to_username || 'Unassigned' }}</span>
+                        </div>
                     </div>
                     <button 
                         type="button" 
@@ -168,32 +186,40 @@
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
-                <div class="todo-card-footer">
-                    <div class="date-timestamps">
+                <div class="todo-card-footer px-3 px-sm-4 py-2 py-sm-3">
+                    <div class="date-timestamps d-flex flex-column gap-2 gap-sm-3">
                         <ng-container *ngIf="formatDate(todo.created_at) as createdInfo">
-                            <div class="created-at">
-                                <i class="bi bi-calendar3"></i>
-                                <span class="date-label">Created</span>
-                                <div class="date-info">
-                                    <span class="date-full">{{ createdInfo.date }}</span>
+                            <div class="created-at d-flex align-items-center justify-content-between w-100">
+                                <div class="d-flex align-items-center gap-1">
+                                    <i class="bi bi-calendar3 flex-shrink-0"></i>
+                                    <span class="date-label flex-shrink-0">Created</span>
                                 </div>
-                                <div class="time-info">
-                                    <i class="bi bi-clock"></i>
-                                    <span>{{ createdInfo.time }}</span>
+                                <div class="d-flex align-items-center gap-1 gap-sm-2">
+                                    <div class="date-info flex-shrink-1">
+                                        <span class="date-full">{{ createdInfo.date }}</span>
+                                    </div>
+                                    <div class="time-info d-flex align-items-center gap-1 gap-sm-2 px-1 px-sm-2 px-md-3 py-1 py-sm-2">
+                                        <i class="bi bi-clock flex-shrink-0"></i>
+                                        <span class="text-nowrap">{{ createdInfo.time }}</span>
+                                    </div>
                                 </div>
                             </div>
-                                        </ng-container>
-                                        
-                                        <ng-container *ngIf="todo.updated_at && formatDate(todo.updated_at) as updatedInfo">
-                            <div class="updated-at">
-                                <i class="bi bi-pencil-square"></i>
-                                <span class="date-label">Updated</span>
-                                <div class="date-info">
-                                    <span class="date-full">{{ updatedInfo.date }}</span>
+                        </ng-container>
+
+                        <ng-container *ngIf="todo.updated_at && formatDate(todo.updated_at) as updatedInfo">
+                            <div class="updated-at d-flex align-items-center justify-content-between w-100">
+                                <div class="d-flex align-items-center gap-1">
+                                    <i class="bi bi-pencil-square flex-shrink-0"></i>
+                                    <span class="date-label flex-shrink-0">Updated</span>
                                 </div>
-                                <div class="time-info">
-                                    <i class="bi bi-clock"></i>
-                                    <span>{{ updatedInfo.time }}</span>
+                                <div class="d-flex align-items-center gap-1 gap-sm-2">
+                                    <div class="date-info flex-shrink-1">
+                                        <span class="date-full">{{ updatedInfo.date }}</span>
+                                    </div>
+                                    <div class="time-info d-flex align-items-center gap-1 gap-sm-2 px-1 px-sm-2 px-md-3 py-1 py-sm-2">
+                                        <i class="bi bi-clock flex-shrink-0"></i>
+                                        <span class="text-nowrap">{{ updatedInfo.time }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </ng-container>

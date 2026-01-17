@@ -8,6 +8,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    position: relative;
 
     ::ng-deep .card {
         width: 100% !important;
@@ -15,6 +16,50 @@
         height: 100%;
         display: flex;
         flex-direction: column;
+        position: relative;
+    }
+
+    .role-badge-wrapper {
+        position: absolute;
+        top: 1rem;
+        right: 1.5rem;
+        z-index: 10;
+
+        @media (max-width: 576px) {
+            position: relative;
+            top: auto;
+            right: auto;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            background: var(--btn-secondary-bg);
+            color: var(--text-secondary);
+            text-transform: capitalize;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+            &.role-admin {
+                background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+                color: white;
+                box-shadow: 0 2px 12px rgba(255, 107, 107, 0.4);
+            }
+        }
+    }
+
+    .photo-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 1rem;
     }
 }
 

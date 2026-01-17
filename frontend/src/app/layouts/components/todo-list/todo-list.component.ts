@@ -12,6 +12,8 @@ export interface ITodo {
     created_at?: string;
     updated_at?: string;
     user_id?: number;
+    assigned_to_user_id?: number | null;
+    assigned_to_username?: string | null;
 }
 
 @Component({
@@ -28,6 +30,8 @@ export class TodoListComponent implements OnInit, OnChanges {
     @Input() showIndex: boolean = true;
     @Input() sectionTitle: string = 'Your Todos';
     @Input() groupByCategory: boolean = false;
+    @Input() showUsername: boolean = false;
+    @Input() username: string | null = null;
     @Output() addTodo = new EventEmitter<void>();
     @Output() toggleTodo = new EventEmitter<ITodo>();
     @Output() deleteTodo = new EventEmitter<ITodo>();

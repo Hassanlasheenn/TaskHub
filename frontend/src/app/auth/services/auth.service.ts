@@ -42,6 +42,15 @@ export class AuthService {
         return this.getCurrentUserId() !== null;
     }
 
+    isAdmin(): boolean {
+        const userData = this.getCurrentUserData();
+        // If userData doesn't have role, try to fetch fresh data
+        if (userData && !userData.role && this.currentUserId) {
+            this.fetchUserData();
+        }
+        return userData?.role === 'admin';
+    }
+
     // ========== User ID Management ==========
     setCurrentUserId(userId: number): void {
         this.currentUserId = userId;

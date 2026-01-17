@@ -1,0 +1,21 @@
+<section class="dropdown-form">
+    <div class="dropdown-form__label-wrapper">
+        <label class="dropdown-form__label" for="dropdown-{{ name }}">{{ label }}</label>
+        <div class="dropdown-form__error" *ngIf="isInvalid && errorMessage">
+            {{ errorMessage }}
+        </div>
+    </div>
+    <div class="dropdown-form__input" [formGroup]="formGroup">
+        <select
+            id="dropdown-{{ name }}"
+            [formControlName]="name"
+            [ngClass]="getInputClasses()"
+            [ngStyle]="customInputStyle"
+        >
+            <option [value]="null">Select</option>
+            <option *ngFor="let option of field?.options" [value]="option.key">
+                {{ option.value }}
+            </option>
+        </select>
+    </div>
+</section>

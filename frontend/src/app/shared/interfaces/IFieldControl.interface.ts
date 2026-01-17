@@ -4,9 +4,9 @@ export interface IFieldControl {
     id?: string | number;
     label: string;
     type: InputTypes;
-    placeholder: string;
+    placeholder?: string;
     formControlName: string;
-    value: string;
+    value: string | boolean | number | null;
     disabled?: boolean;
     required?: boolean;
     options?: IDropdownOptions[];
@@ -17,7 +17,7 @@ export interface IFieldControl {
 }
 
 export interface IDropdownOptions {
-    key: number;
+    key: number | null;
     value: string;
 }
 

@@ -1,0 +1,72 @@
+<div class="admin-panel-container">
+    <div class="admin-panel-header">
+        <h2>Admin Panel - All Users & Todos</h2>
+        <p class="subtitle">View all users and their todo items</p>
+    </div>
+
+    <div class="users-grid">
+        <div *ngFor="let userData of usersWithTodos" class="user-card">
+            <div class="user-card-header" [class.no-todos]="userData.todos.length === 0" (click)="toggleUserExpansion(userData.user.id)">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <img *ngIf="userData.user.photo" [src]="userData.user.photo" [alt]="userData.user.username" />
+                        <i *ngIf="!userData.user.photo" class="bi bi-person-circle"></i>
+                    </div>
+                    <div class="user-details">
+                        <h3 class="username">{{ userData.user.username }}</h3>
+                        <p class="user-email">{{ userData.user.email }}</p>
+                        <span class="user-role" [class.role-admin]="userData.user.role === 'admin'">
+                            {{ userData.user.role === 'admin' ? 'Admin' : 'User' }}
+                        </span>
+                    </div>
+                </div>
+                <div class="user-stats">
+                    <div class="stat-item">
+                        <i class="bi bi-list-check"></i>
+                        <span class="stat-value">{{ userData.todo_count }}</span>
+                        <span class="stat-label">Todos</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="bi bi-check-circle"></i>
+                        <span class="stat-value">{{ getCompletedCount(userData.todos) }}</span>
+                        <span class="stat-label">Completed</span>
+                    </div>
+                </div>
+                <button class="expand-btn" [class.expanded]="isUserExpanded(userData.user.id)">
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+            </div>
+
+            <div class="user-todos" *ngIf="isUserExpanded(userData.user.id) && userData.todos.length > 0">
+                <div class="todos-list">
+                    <div *ngFor="let todo of userData.todos" class="todo-item" [class.completed]="todo.completed">
+                        <div class="todo-priority" [class]="getPriorityClass(todo.priority)"></div>
+                        <div class="todo-content">
+                            <div class="todo-header">
+                                <h4 class="todo-title">{{ todo.title }}</h4>
+                                <span class="todo-priority-badge" [class]="getPriorityClass(todo.priority)">
+                                    {{ todo.priority }}
+                                </span>
+                            </div>
+                            <p *ngIf="todo.description" class="todo-description">{{ todo.description }}</p>
+                            <div class="todo-meta">
+                                <span *ngIf="todo.category" class="todo-category">
+                                    <i class="bi bi-tag"></i> {{ todo.category }}
+                                </span>
+                                <span class="todo-status" [class.completed]="todo.completed">
+                                    <i [class]="todo.completed ? 'bi bi-check-circle-fill' : 'bi bi-circle'"></i>
+                                    {{ todo.completed ? 'Completed' : 'Not Completed' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div *ngIf="usersWithTodos.length === 0" class="no-users">
+            <i class="bi bi-people"></i>
+            <p>No users found</p>
+        </div>
+    </div>
+</div>

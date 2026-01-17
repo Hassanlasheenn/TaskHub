@@ -3,6 +3,7 @@ export interface ITodoCreate {
     description?: string;
     priority: 'low' | 'medium' | 'high';
     category?: string;
+    assigned_to_user_id?: number | null;
 }
 
 export interface ITodoUpdate {
@@ -11,6 +12,7 @@ export interface ITodoUpdate {
     priority?: 'low' | 'medium' | 'high';
     completed?: boolean;
     category?: string;
+    assigned_to_user_id?: number | null;
 }
 
 export interface ITodoResponse {
@@ -24,6 +26,8 @@ export interface ITodoResponse {
     created_at?: string;
     updated_at?: string;
     user_id: number;
+    assigned_to_user_id?: number | null;
+    assigned_to_username?: string | null;
 }
 
 export interface ITodoListResponse {

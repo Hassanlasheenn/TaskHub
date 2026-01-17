@@ -1,21 +1,14 @@
 import os
-import secrets
 from fastapi.security import OAuth2PasswordRequestForm
 import jwt 
 from datetime import datetime, timedelta, timezone
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from fastapi import HTTPException, status
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 from . import models, schemas, database
-
-load_dotenv()
-
-SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+from .config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 ph = PasswordHasher()
 
@@ -45,7 +38,12 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     
     hashed_password = hash_password(user.password)
 
-    new_user = models.User(email=user.email, username=user.username, hashed_password=hashed_password)
+    new_user = models.User(
+        email=user.email,
+        username=user.username,
+        hashed_password=hashed_password,
+        role=models.UserRole.USER.value
+    )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -54,7 +52,8 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
         "id": new_user.id,
         "username": new_user.username,
         "email": new_user.email,
-        "photo": getattr(new_user, 'profile_pic', None)
+        "photo": getattr(new_user, 'profile_pic', None),
+        "role": getattr(new_user, 'role', 'user')
     }
     return schemas.UserResponse(**user_dict)
 
@@ -70,7 +69,9 @@ def login(
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password", headers={"WWW-Authenticate": "Bearer"})
     
-    access_token = create_access_token(data={"sub": user.email})
+    # Include role in token
+    user_role = getattr(user, 'role', 'user')
+    access_token = create_access_token(data={"sub": user.email, "role": user_role})
     
     max_age = 7 * 24 * 60 * 60
     is_production = os.getenv("ENVIRONMENT", "development") == "production"
@@ -89,7 +90,8 @@ def login(
         "id": user.id,
         "username": user.username,
         "email": user.email,
-        "photo": getattr(user, 'profile_pic', None)
+        "photo": getattr(user, 'profile_pic', None),
+        "role": getattr(user, 'role', 'user')
     }
     
     return { 

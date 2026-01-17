@@ -11,6 +11,11 @@ class PriorityLevel(str, enum.Enum):
     HIGH = "high"
 
 
+class UserRole(str, enum.Enum):
+    USER = "user"
+    ADMIN = "admin"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -19,8 +24,9 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     profile_pic = Column(Text, nullable=True)
+    role = Column(String(20), default=UserRole.USER.value, nullable=False, index=True)
     
-    todos = relationship("Todo", back_populates="user", cascade="all, delete-orphan")
+    todos = relationship("Todo", back_populates="user", foreign_keys="[Todo.user_id]", cascade="all, delete-orphan")
 
 
 class Todo(Base):
@@ -37,5 +43,7 @@ class Todo(Base):
     updated_at = Column(DateTime, onupdate=func.now())  
     
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    assigned_to_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     
-    user = relationship("User", back_populates="todos")
+    user = relationship("User", back_populates="todos", foreign_keys=[user_id])
+    assigned_to_user = relationship("User", foreign_keys=[assigned_to_user_id])

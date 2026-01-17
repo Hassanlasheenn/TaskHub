@@ -16,7 +16,7 @@ import { Subscription } from "rxjs";
 export class InputFormComponent implements OnInit, OnDestroy, OnChanges {
     @Input() label: string = '';
     @Input() type: InputTypes = InputTypes.TEXT;
-    @Input() placeholder: string = '';
+    @Input() placeholder?: string;
     @Input() value: string = '';
     @Input() name: string = '';
     @Input() formGroup: FormGroup = new FormGroup({});
@@ -93,7 +93,12 @@ export class InputFormComponent implements OnInit, OnDestroy, OnChanges {
         return this.type === InputTypes.PASSWORD;
     }
 
+    get isCheckbox(): boolean {
+        return this.type === InputTypes.CHECKBOX;
+    }
+
     get inputType(): string {
+        if (this.isCheckbox) return 'checkbox';
         return this.isPasswordField && this.showPassword ? 'text' : this.type;
     }
 

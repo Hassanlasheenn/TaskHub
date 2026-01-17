@@ -18,6 +18,12 @@
     height: calc(100vh - var(--header-total-height, 80px));
     max-height: calc(100vh - var(--header-total-height, 80px));
     overflow: hidden;
+
+    @media (max-width: 767.98px) {
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
   }
 }
 

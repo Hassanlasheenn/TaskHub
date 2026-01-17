@@ -12,6 +12,16 @@
             
             <ng-container *ngIf="isAuthenticated">
                 <button 
+                    *ngIf="isAdmin"
+                    type="button" 
+                    class="admin-btn"
+                    [routerLink]="[LayoutPaths.ADMIN]"
+                    aria-label="Admin Panel"
+                    title="Admin Panel"
+                >
+                    <i class="bi bi-shield-check"></i>
+                </button>
+                <button 
                     type="button" 
                     class="notification-btn"
                     aria-label="Notifications"

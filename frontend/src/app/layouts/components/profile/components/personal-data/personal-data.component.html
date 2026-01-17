@@ -1,13 +1,21 @@
 <app-card [card]="{ title: 'Personal Data' }" class="profile-card">
-    <app-dynamic-form
-        [fields]="fields"
-        [form]="form"
-        [isSubmitted]="isSubmitted"
-        [errorSummary]="errorSummary"
-        (photoSelected)="onPhotoSelected()"
-        (errorSummaryChange)="onErrorSummaryChange($event)"
-        (photoRemoved)="onPhotoRemoved()"
-    />
+    <div class="role-badge-wrapper" *ngIf="userData?.role">
+        <span class="role-badge" [class.role-admin]="userData?.role === 'admin'">
+            {{ userData?.role === 'admin' ? 'Admin' : 'User' }}
+        </span>
+    </div>
+    
+    <div class="photo-section">
+        <app-dynamic-form
+            [fields]="fields"
+            [form]="form"
+            [isSubmitted]="isSubmitted"
+            [errorSummary]="errorSummary"
+            (photoSelected)="onPhotoSelected()"
+            (errorSummaryChange)="onErrorSummaryChange($event)"
+            (photoRemoved)="onPhotoRemoved()"
+        />
+    </div>
 
     <div class="mt-4">
         <button type="button" class="card-button" [disabled]="form.invalid" (click)="onSubmit()">

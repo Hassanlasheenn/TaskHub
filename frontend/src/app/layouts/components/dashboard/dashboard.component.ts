@@ -1,10 +1,12 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, ViewChild } from "@angular/core";
+import { Subject, takeUntil } from "rxjs";
 import { AuthService } from "../../../auth/services";
 import { TodoService } from "../../../core/services/todo.service";
 import { ITodoCreate, ITodoUpdate, ITodoResponse } from "../../../core/interfaces/todo.interface";
 import { LoaderService } from "../../../core/services/loader.service";
 import { ToastService } from "../../../core/services/toast.service";
+import { ConfirmationDialogService } from "../../../core/services/confirmation-dialog.service";
 import { TodoListComponent, ITodo } from "../todo-list/todo-list.component";
 import { SidebarComponent } from "../../../shared/components/sidebar/sidebar.component";
 import { TodoFormComponent } from "../todo-form/todo-form.component";
@@ -12,6 +14,7 @@ import { DashboardSideNavComponent } from "./components/dashboard-side-nav/dashb
 import { CalendarComponent } from "./components/calendar/calendar.component";
 import { SearchBarComponent } from "./components/search-bar/search-bar.component";
 import { QuickFiltersComponent, QuickFilterType } from "./components/quick-filters/quick-filters.component";
+import { AdminPanelComponent } from "./components/admin-panel/admin-panel.component";
 import { DashboardSections } from "../../enums/dashboard-sections.enum";
 
 @Component({
@@ -19,10 +22,11 @@ import { DashboardSections } from "../../enums/dashboard-sections.enum";
     templateUrl: './dashboard.component.html',
     styleUrls: ['./dashboard.component.scss'],
     standalone: true,
-    imports: [CommonModule, TodoListComponent, SidebarComponent, TodoFormComponent, DashboardSideNavComponent, CalendarComponent, SearchBarComponent, QuickFiltersComponent],
+    imports: [CommonModule, TodoListComponent, SidebarComponent, TodoFormComponent, DashboardSideNavComponent, CalendarComponent, SearchBarComponent, QuickFiltersComponent, AdminPanelComponent],
 })
 export class DashboardComponent implements OnInit {
     @ViewChild('todoForm') todoFormComponent!: TodoFormComponent;
+    private readonly _destroy$ = new Subject<void>();
     
     userData: any;
     todos: ITodo[] = [];
@@ -39,7 +43,8 @@ export class DashboardComponent implements OnInit {
         private readonly _authService: AuthService,
         private readonly _todoService: TodoService,
         private readonly _loaderService: LoaderService,
-        private readonly _toastService: ToastService
+        private readonly _toastService: ToastService,
+        private readonly _confirmationDialog: ConfirmationDialogService
     ) {}
 
     ngOnInit(): void {
@@ -131,19 +136,30 @@ export class DashboardComponent implements OnInit {
         const userId = this._authService.getCurrentUserId();
         if (!userId) return;
 
-        this._loaderService.show();
-        this._todoService.deleteTodo(userId, todo.id).subscribe({
-            next: (response) => {
-                this.todos = this.todos
-                    .filter(t => t.id !== todo.id)
-                    .map((t, idx) => ({ ...t, order_index: idx + 1 }));
-                this.totalTodos = Math.max(0, this.totalTodos - 1);
-                this._loaderService.hide();
-                this._toastService.success(response?.message || 'Todo deleted successfully');
-            },
-            error: (error) => {
-                this._toastService.error(error?.error?.detail || 'Failed to delete todo');
-                this._loaderService.hide();
+        this._confirmationDialog.show({
+            title: 'Delete Todo',
+            message: `Are you sure you want to delete "${todo.title}"? This action cannot be undone.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel'
+        })
+        .pipe(takeUntil(this._destroy$))
+        .subscribe(result => {
+            if (result.confirmed) {
+                this._loaderService.show();
+                this._todoService.deleteTodo(userId, todo.id).subscribe({
+                    next: (response) => {
+                        this.todos = this.todos
+                            .filter(t => t.id !== todo.id)
+                            .map((t, idx) => ({ ...t, order_index: idx + 1 }));
+                        this.totalTodos = Math.max(0, this.totalTodos - 1);
+                        this._loaderService.hide();
+                        this._toastService.success(response?.message || 'Todo deleted successfully');
+                    },
+                    error: (error) => {
+                        this._toastService.error(error?.error?.detail || 'Failed to delete todo');
+                        this._loaderService.hide();
+                    }
+                });
             }
         });
     }

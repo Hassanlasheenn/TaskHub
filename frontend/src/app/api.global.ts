@@ -8,8 +8,15 @@ export const API_URLS = {
         login: `${API_BASE_URL}/login`,
         logout: `${API_BASE_URL}/logout`,
     },
-    user: {
-        getUserById: `${API_BASE_URL}/users`,
-        updateUser: `${API_BASE_URL}/users`,
+           user: {
+               getUserById: `${API_BASE_URL}/users`,
+               updateUser: `${API_BASE_URL}/users`,
+               getUsersWithRoleUser: `${API_BASE_URL}/users/role/user`,
+           },
+    admin: {
+        listUsers: `${API_BASE_URL}/admin/users`,
+        listUsersWithTodos: `${API_BASE_URL}/admin/users-with-todos`,
+        deleteUser: `${API_BASE_URL}/admin/users`,
+        updateUserRole: `${API_BASE_URL}/admin/users`,
     },
 };

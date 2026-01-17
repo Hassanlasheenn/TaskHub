@@ -17,6 +17,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private readonly _destroy$ = new Subject<void>();
     isDropdownOpen = false;
     isAuthenticated = false;
+    isAdmin = false;
     userEmail: string = '';
     userPhoto: string | null = null;
     LayoutPaths = LayoutPaths;
@@ -41,6 +42,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     private checkAuthentication(): void {
         this.isAuthenticated = this._authService.isAuthenticated();
+        this.isAdmin = this._authService.isAdmin();
         
         if (this.isAuthenticated) {
             const userData = this._authService.getCurrentUserData();
@@ -49,6 +51,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
         } else {
             this.userEmail = '';
             this.userPhoto = null;
+            this.isAdmin = false;
         }
     }
 
