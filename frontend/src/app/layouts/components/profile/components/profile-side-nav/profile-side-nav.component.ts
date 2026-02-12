@@ -23,7 +23,6 @@ export class ProfileSideNavComponent {
 
     navItems: NavItem[] = [
         { section: ProfileSections.PERSONAL_DATA, icon: 'bi-person-circle', label: 'Personal Data' },
-        { section: ProfileSections.NOTIFICATION_SETTINGS, icon: 'bi-bell', label: 'Notifications' }
     ];
 
     onSectionClick(section: ProfileSections): void {
