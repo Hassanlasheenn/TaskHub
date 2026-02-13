@@ -147,6 +147,14 @@ jobs:
           name: frontend-dist
           path: frontend/dist/frontend
           retention-days: 7
+          
+      - name: Verify artifact structure
+        working-directory: ./frontend
+        run: |
+          echo "📁 Build output structure:"
+          ls -la dist/frontend/ | head -10
+          echo ""
+          echo "✅ Artifact ready for upload"
 
   build-backend:
     name: Build Backend
@@ -299,6 +307,37 @@ jobs:
         with:
           name: frontend-dist
           path: frontend-dist
+          
+      - name: Verify and fix artifact structure
+        if: needs.detect-changes.outputs.frontend == 'true'
+        run: |
+          echo "📁 Checking artifact structure..."
+          ls -la frontend-dist/ || echo "frontend-dist not found"
+          
+          # Check if there's a nested structure (frontend-dist/frontend-dist or frontend-dist/browser)
+          if [ -d "frontend-dist/frontend" ]; then
+            echo "⚠️  Found nested structure, flattening..."
+            mv frontend-dist/frontend/* frontend-dist/ 2>/dev/null || true
+            rmdir frontend-dist/frontend 2>/dev/null || true
+          fi
+          
+          if [ -d "frontend-dist/browser" ]; then
+            echo "⚠️  Found browser subdirectory, moving contents up..."
+            mv frontend-dist/browser/* frontend-dist/ 2>/dev/null || true
+            rmdir frontend-dist/browser 2>/dev/null || true
+          fi
+          
+          echo "✅ Final structure:"
+          ls -la frontend-dist/ | head -15
+          
+          # Verify index.html exists
+          if [ ! -f "frontend-dist/index.html" ]; then
+            echo "❌ Error: index.html not found after structure fix"
+            find frontend-dist -name "index.html" -type f || echo "No index.html found anywhere"
+            exit 1
+          fi
+          
+          echo "✅ index.html found at: frontend-dist/index.html"
 
       - name: Download backend artifacts
         if: needs.detect-changes.outputs.backend == 'true'
@@ -411,56 +450,85 @@ EOF
             exit 1
           fi
           
-          echo "🔗 Linking Vercel project..."
-          # Link the project (only needed first time, but safe to run multiple times)
-          vercel link --yes --token $VERCEL_TOKEN --project $VERCEL_PROJECT_ID --scope $VERCEL_ORG_ID || {
-            echo "⚠️  Warning: Project linking failed, continuing anyway..."
-          }
-          
-          echo "🚀 Deploying to Vercel..."
+          echo "🔗 Setting up Vercel project..."
           echo "📦 Project ID: $VERCEL_PROJECT_ID"
           echo "🏢 Organization ID: $VERCEL_ORG_ID"
+          
+          # Create .vercel directory with project configuration
+          mkdir -p .vercel
+          echo "{\"projectId\":\"$VERCEL_PROJECT_ID\",\"orgId\":\"$VERCEL_ORG_ID\"}" > .vercel/project.json
+          
           echo "📁 Working directory: $(pwd)"
           echo "📂 Contents:"
-          ls -la | head -10
+          ls -la | head -15
+          
+          # Verify index.html exists
+          if [ ! -f "index.html" ]; then
+            echo "❌ Error: index.html not found in deployment directory"
+            echo "Current directory contents:"
+            find . -type f -name "*.html" | head -5
+            exit 1
+          fi
+          
+          echo "✅ index.html found, ready to deploy"
           
           # Deploy as static files (no build) - use --prebuilt to skip build
           # The vercel.json in this directory should prevent any build attempts
-          echo "🔄 Running: vercel deploy --prod --yes --token [HIDDEN] --prebuilt --force"
-          DEPLOYMENT_OUTPUT=$(vercel deploy --prod --yes --token $VERCEL_TOKEN --prebuilt --force 2>&1)
+          echo "🚀 Deploying to Vercel (production)..."
+          echo "🔄 Command: vercel deploy --prod --yes --token [HIDDEN] --prebuilt"
+          
+          DEPLOYMENT_OUTPUT=$(vercel deploy --prod --yes --token $VERCEL_TOKEN --prebuilt 2>&1)
           DEPLOYMENT_EXIT_CODE=$?
           
+          echo "📋 Deployment output:"
           echo "$DEPLOYMENT_OUTPUT"
           
           if [ $DEPLOYMENT_EXIT_CODE -eq 0 ]; then
             echo "✅ Deployment completed successfully!"
             
-            # Extract deployment URL from output
-            DEPLOYMENT_URL=$(echo "$DEPLOYMENT_OUTPUT" | grep -oE 'https://[a-zA-Z0-9-]+\.vercel\.app' | head -1 || echo "")
+            # Extract deployment URL from output (multiple patterns)
+            DEPLOYMENT_URL=$(echo "$DEPLOYMENT_OUTPUT" | grep -oE 'https://[a-zA-Z0-9-]+\.vercel\.app' | head -1)
+            
+            if [ -z "$DEPLOYMENT_URL" ]; then
+              # Try alternative pattern
+              DEPLOYMENT_URL=$(echo "$DEPLOYMENT_OUTPUT" | grep -oE 'https://[^\s]+\.vercel\.app' | head -1)
+            fi
+            
             if [ -n "$DEPLOYMENT_URL" ]; then
               echo "🌐 Deployment URL: $DEPLOYMENT_URL"
               echo "::notice title=Deployment Success::Frontend deployed to $DEPLOYMENT_URL"
             else
-              echo "ℹ️  Check Vercel dashboard for deployment URL"
+              echo "ℹ️  Deployment succeeded! Check Vercel dashboard for URL:"
               echo "🔗 https://vercel.com/$VERCEL_ORG_ID/$VERCEL_PROJECT_ID"
             fi
           else
             echo "❌ Error: Vercel deployment failed with exit code $DEPLOYMENT_EXIT_CODE"
-            echo "Attempting alternative deployment method (without --prebuilt)..."
+            echo ""
+            echo "📋 Full error output:"
+            echo "$DEPLOYMENT_OUTPUT"
+            echo ""
+            echo "🔧 Attempting alternative deployment method..."
             
-            # Try deploying without --prebuilt flag
-            vercel deploy --prod --yes --token $VERCEL_TOKEN --force
+            # Try deploying without --prebuilt flag but with explicit config
+            echo "🔄 Trying: vercel deploy --prod --yes --token [HIDDEN]"
+            vercel deploy --prod --yes --token $VERCEL_TOKEN 2>&1
             
             if [ $? -eq 0 ]; then
               echo "✅ Alternative deployment method succeeded"
             else
               echo "❌ All deployment methods failed"
               echo ""
-              echo "Troubleshooting steps:"
-              echo "1. Verify VERCEL_TOKEN is valid (Settings → Tokens in Vercel)"
-              echo "2. Verify VERCEL_PROJECT_ID matches your project"
-              echo "3. Verify VERCEL_ORG_ID matches your team/org"
-              echo "4. Check Vercel dashboard: https://vercel.com"
+              echo "🔍 Troubleshooting checklist:"
+              echo "1. Verify VERCEL_TOKEN is valid and not expired"
+              echo "   → Get new token: https://vercel.com/account/tokens"
+              echo "2. Verify VERCEL_PROJECT_ID is correct"
+              echo "   → Check: Vercel Dashboard → Project Settings → General"
+              echo "3. Verify VERCEL_ORG_ID matches your team"
+              echo "   → Check: Vercel Dashboard → Team Settings → General"
+              echo "4. Verify project exists and you have access"
+              echo "   → Check: https://vercel.com/$VERCEL_ORG_ID/$VERCEL_PROJECT_ID"
+              echo "5. Check if index.html exists in deployment directory"
+              echo ""
               exit 1
             fi
           fi
