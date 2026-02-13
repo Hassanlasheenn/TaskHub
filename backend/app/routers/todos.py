@@ -365,7 +365,6 @@ async def update_todo(
                     fields_str = updated_field_names[0]
                     message = f"{updater_username} updated the {fields_str} of todo: {todo_db.title}"
                 else:
-                    # Join with commas and 'and' for the last item
                     fields_str = ', '.join(updated_field_names[:-1]) + f' and {updated_field_names[-1]}'
                     message = f"{updater_username} updated the {fields_str} of todo: {todo_db.title}"
             else:

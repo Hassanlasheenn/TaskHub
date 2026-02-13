@@ -495,7 +495,10 @@ jobs:
       # This step deploys the pre-built Angular app from GitHub Actions to Vercel
       - name: Install Vercel CLI
         if: needs.detect-changes.outputs.frontend == 'true'
-        run: npm install -g vercel@latest
+        run: |
+          npm install -g vercel@latest
+          echo "✅ Vercel CLI installed"
+          vercel --version
 
       - name: Prepare Vercel deployment
         if: needs.detect-changes.outputs.frontend == 'true'
@@ -591,11 +594,26 @@ jobs:
           echo "🚀 Deploying to Vercel (production)..."
           echo "🔄 Command: vercel deploy --prod --yes --token [HIDDEN] --prebuilt"
           
-          DEPLOYMENT_OUTPUT=$(vercel deploy --prod --yes --token $VERCEL_TOKEN --prebuilt 2>&1)
-          DEPLOYMENT_EXIT_CODE=$?
+          # Verify Vercel CLI is installed
+          if ! command -v vercel &> /dev/null; then
+            echo "❌ Error: Vercel CLI not found. Installing..."
+            npm install -g vercel@latest
+          fi
           
+          echo "✅ Vercel CLI version:"
+          vercel --version || echo "⚠️  Could not get version"
+          
+          # Deploy with better error handling
+          echo "🚀 Starting deployment..."
+          set +e  # Don't exit on error immediately
+          DEPLOYMENT_OUTPUT=$(vercel deploy --prod --yes --token $VERCEL_TOKEN --prebuilt --force 2>&1)
+          DEPLOYMENT_EXIT_CODE=$?
+          set -e  # Re-enable exit on error
+          
+          echo ""
           echo "📋 Deployment output:"
           echo "$DEPLOYMENT_OUTPUT"
+          echo ""
           
           if [ $DEPLOYMENT_EXIT_CODE -eq 0 ]; then
             echo "✅ Deployment completed successfully!"
@@ -621,16 +639,43 @@ jobs:
             echo "📋 Full error output:"
             echo "$DEPLOYMENT_OUTPUT"
             echo ""
-            echo "🔧 Attempting alternative deployment method..."
+            
+            # Check for common errors
+            if echo "$DEPLOYMENT_OUTPUT" | grep -q "Project not found"; then
+              echo "🔍 Error: Project not found. Verify VERCEL_PROJECT_ID is correct."
+            elif echo "$DEPLOYMENT_OUTPUT" | grep -q "Invalid token"; then
+              echo "🔍 Error: Invalid token. Verify VERCEL_TOKEN is valid and not expired."
+            elif echo "$DEPLOYMENT_OUTPUT" | grep -q "Organization not found"; then
+              echo "🔍 Error: Organization not found. Verify VERCEL_ORG_ID is correct."
+            elif echo "$DEPLOYMENT_OUTPUT" | grep -q "prebuilt"; then
+              echo "🔍 Error: --prebuilt flag issue. Trying without it..."
+            fi
+            
+            echo ""
+            echo "🔧 Attempting alternative deployment method (without --prebuilt)..."
             
             # Try deploying without --prebuilt flag but with explicit config
             echo "🔄 Trying: vercel deploy --prod --yes --token [HIDDEN]"
-            vercel deploy --prod --yes --token $VERCEL_TOKEN 2>&1
+            ALTERNATIVE_OUTPUT=$(vercel deploy --prod --yes --token $VERCEL_TOKEN --force 2>&1)
+            ALTERNATIVE_EXIT=$?
             
-            if [ $? -eq 0 ]; then
+            echo "📋 Alternative deployment output:"
+            echo "$ALTERNATIVE_OUTPUT"
+            
+            if [ $ALTERNATIVE_EXIT -eq 0 ]; then
               echo "✅ Alternative deployment method succeeded"
+              
+              # Extract deployment URL
+              ALT_DEPLOYMENT_URL=$(echo "$ALTERNATIVE_OUTPUT" | grep -oE 'https://[a-zA-Z0-9-]+\.vercel\.app' | head -1)
+              if [ -n "$ALT_DEPLOYMENT_URL" ]; then
+                echo "🌐 Deployment URL: $ALT_DEPLOYMENT_URL"
+                echo "::notice title=Deployment Success::Frontend deployed to $ALT_DEPLOYMENT_URL"
+              fi
             else
               echo "❌ All deployment methods failed"
+              echo ""
+              echo "📋 Last error output:"
+              echo "$ALTERNATIVE_OUTPUT"
               echo ""
               echo "🔍 Troubleshooting checklist:"
               echo "1. Verify VERCEL_TOKEN is valid and not expired"

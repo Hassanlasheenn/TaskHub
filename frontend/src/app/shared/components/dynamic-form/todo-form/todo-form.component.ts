@@ -300,7 +300,6 @@ export class TodoFormComponent implements OnInit, OnDestroy {
             this.customCategory = '';
         }
         
-        // Set completed state
         this.isCompleted = todo.completed || false;
         
         // Prepare form values
