@@ -118,7 +118,7 @@ def login(
     
     return { 
         "token_type": "bearer",
-        "access_token": access_token,  # Include token in response for header-based auth
+        "access_token": access_token,
         "data": schemas.UserResponse(**user_dict)
     }
 

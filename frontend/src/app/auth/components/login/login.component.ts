@@ -60,7 +60,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     ) {}
 
     ngOnInit(): void {
-        // Redirect to dashboard if user is already logged in
         if (this._authService.isAuthenticated()) {
             this._router.navigate([LayoutPaths.DASHBOARD]);
             return;
