@@ -208,15 +208,15 @@ jobs:
           echo "📁 Contents of dist directory:"
           ls -la dist/ 2>/dev/null || echo "dist directory not found"
           
-          # Check multiple possible output locations
+          # Check multiple possible output locations (Angular 19 uses browser subdirectory)
           BUILD_OUTPUT=""
-          if [ -d "dist/frontend" ]; then
+          if [ -f "dist/frontend/browser/index.html" ]; then
+            BUILD_OUTPUT="dist/frontend/browser"
+            echo "✅ Found output at: dist/frontend/browser (Angular 19 structure)"
+          elif [ -f "dist/frontend/index.html" ]; then
             BUILD_OUTPUT="dist/frontend"
             echo "✅ Found output at: dist/frontend"
-          elif [ -d "dist/frontend/browser" ]; then
-            BUILD_OUTPUT="dist/frontend/browser"
-            echo "✅ Found output at: dist/frontend/browser"
-          elif [ -d "dist/browser" ]; then
+          elif [ -f "dist/browser/index.html" ]; then
             BUILD_OUTPUT="dist/browser"
             echo "✅ Found output at: dist/browser"
           elif [ -f "dist/index.html" ]; then
@@ -232,7 +232,7 @@ jobs:
             exit 1
           fi
           
-          # Check for essential files
+          # Verify index.html exists
           if [ ! -f "$BUILD_OUTPUT/index.html" ]; then
             echo "❌ Error: index.html not found in $BUILD_OUTPUT"
             echo "Files in $BUILD_OUTPUT:"

@@ -361,7 +361,6 @@ async def update_todo(
             updated_field_names = [field_names.get(field, field) for field in changed_fields]
             
             if updated_field_names:
-                # Handle singular vs plural
                 if len(updated_field_names) == 1:
                     fields_str = updated_field_names[0]
                     message = f"{updater_username} updated the {fields_str} of todo: {todo_db.title}"

@@ -274,12 +274,10 @@ export class TodoFormComponent implements OnInit, OnDestroy {
     }
 
     private populateFormData(todo: ITodo): void {
-        // Ensure form has all controls
         if (this.isAdmin && !this.form.get('assigned_to_user_id')) {
             this.form = this._formService.initializeForm(this.fields);
         }
         
-        // Update dropdown options if admin
         if (this.isAdmin) {
             this.updateUserDropdownField();
         }
