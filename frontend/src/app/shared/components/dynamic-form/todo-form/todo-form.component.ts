@@ -322,7 +322,6 @@ export class TodoFormComponent implements OnInit, OnDestroy {
             if (this.form) {
                 this.form.patchValue(formValue, { emitEvent: false });
                 
-                // Verify values were set correctly
                 if (this.form.get('title')?.value !== formValue.title) {
                     this.form.get('title')?.setValue(formValue.title, { emitEvent: false });
                 }

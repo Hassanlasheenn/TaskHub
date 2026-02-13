@@ -396,7 +396,6 @@ async def delete_todo(
     if todo.user_id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized to delete this todo")
 
-    # Delete old notifications associated with this todo FIRST (before creating new deletion notification)
     db.query(models.Notification).filter(
         models.Notification.todo_id == todo_id
     ).delete()

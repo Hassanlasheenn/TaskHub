@@ -404,10 +404,22 @@ jobs:
           if [ -n "$DATABASE_URL" ]; then
             echo "🚀 Running database migrations..."
             export DATABASE_URL
-            # Add your migration command here
-            # Example: python -m alembic upgrade head
-            # Or: python migrations/run_all_migrations.py
-            echo "✅ Migrations completed (placeholder - add your migration command)"
+            
+            # Install dependencies first
+            echo "📦 Installing dependencies for migrations..."
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
+            
+            # Run migrations
+            echo "🔄 Executing migration scripts..."
+            cd backend
+            if [ -f "run_migrations.py" ]; then
+              python run_migrations.py
+            else
+              echo "⚠️  run_migrations.py not found, skipping migrations"
+              echo "ℹ️  Note: Tables will be created automatically by SQLAlchemy on first startup"
+            fi
+            echo "✅ Migrations completed"
           fi
 
   deploy:
