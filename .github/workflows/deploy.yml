@@ -19,6 +19,23 @@ on:
       - 'frontend/**'
       - 'backend/**'
       - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+    inputs:
+      build_frontend:
+        description: 'Build and deploy frontend'
+        required: false
+        default: 'true'
+        type: boolean
+      build_backend:
+        description: 'Build and deploy backend'
+        required: false
+        default: 'true'
+        type: boolean
+      force_build_all:
+        description: 'Force build everything (ignores change detection)'
+        required: false
+        default: 'true'
+        type: boolean
 
 jobs:
   detect-changes:
@@ -48,9 +65,11 @@ jobs:
       - name: Detect changes
         uses: dorny/paths-filter@v2
         id: filter
-        if: steps.first-push.outputs.first != 'true'
+        if: |
+          steps.first-push.outputs.first != 'true' &&
+          (github.event_name != 'workflow_dispatch' || github.event.inputs.force_build_all != 'true')
         with:
-          base: ${{ github.event.before }}
+          base: ${{ github.event.before || 'HEAD~1' }}
           filters: |
             frontend:
               - 'frontend/**'
@@ -58,10 +77,22 @@ jobs:
               - 'backend/**'
           list-files: shell
           
-      - name: Set outputs (first push or detected changes)
+      - name: Set outputs (first push, manual trigger, or detected changes)
         id: set-outputs
         run: |
-          if [ "${{ steps.first-push.outputs.first }}" == "true" ]; then
+          # Check if this is a manual workflow trigger
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.force_build_all }}" == "true" ]; then
+              # Manual trigger with force_build_all - build everything
+              echo "frontend=${{ github.event.inputs.build_frontend }}" >> $GITHUB_OUTPUT
+              echo "backend=${{ github.event.inputs.build_backend }}" >> $GITHUB_OUTPUT
+              echo "✅ Manual trigger: Building based on inputs"
+            else
+              # Manual trigger but respect change detection
+              echo "frontend=${{ steps.filter.outputs.frontend }}" >> $GITHUB_OUTPUT
+              echo "backend=${{ steps.filter.outputs.backend }}" >> $GITHUB_OUTPUT
+            fi
+          elif [ "${{ steps.first-push.outputs.first }}" == "true" ]; then
             # First push - build and deploy everything
             echo "frontend=true" >> $GITHUB_OUTPUT
             echo "backend=true" >> $GITHUB_OUTPUT
