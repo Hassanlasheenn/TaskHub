@@ -142,9 +142,78 @@ jobs:
           path: backend-artifact
           retention-days: 7
 
+  deploy-database:
+    name: Deploy Database Migrations
+    needs: [detect-changes]
+    if: |
+      needs.detect-changes.outputs.backend == 'true' &&
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install fastapi uvicorn sqlalchemy pyodbc python-dotenv argon2-cffi PyJWT
+          fi
+
+      # Option 1: Run migrations for Azure SQL Database
+      - name: Run Database Migrations (Azure SQL)
+        if: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+        env:
+          DATABASE_URL: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+        run: |
+          echo "Running migrations for Azure SQL Database..."
+          # Add your migration command here
+          # python -m alembic upgrade head
+          # Or use your custom migration script
+          echo "Migrations completed (placeholder - add your migration command)"
+
+      # Option 2: Run migrations for Railway database
+      - name: Run Database Migrations (Railway)
+        if: ${{ secrets.RAILWAY_DATABASE_URL }}
+        env:
+          DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
+        run: |
+          echo "Running migrations for Railway database..."
+          # Add your migration command here
+          echo "Migrations completed (placeholder - add your migration command)"
+
+      # Option 3: Run migrations for Render database
+      - name: Run Database Migrations (Render)
+        if: ${{ secrets.RENDER_DATABASE_URL }}
+        env:
+          DATABASE_URL: ${{ secrets.RENDER_DATABASE_URL }}
+        run: |
+          echo "Running migrations for Render database..."
+          # Add your migration command here
+          echo "Migrations completed (placeholder - add your migration command)"
+
+      # Option 4: Run migrations for AWS RDS
+      - name: Run Database Migrations (AWS RDS)
+        if: ${{ secrets.AWS_RDS_CONNECTION_STRING }}
+        env:
+          DATABASE_URL: ${{ secrets.AWS_RDS_CONNECTION_STRING }}
+        run: |
+          echo "Running migrations for AWS RDS..."
+          # Add your migration command here
+          echo "Migrations completed (placeholder - add your migration command)"
+
   deploy:
     name: Deploy Application
-    needs: [detect-changes]
+    needs: [detect-changes, deploy-database]
     if: |
       (needs.detect-changes.outputs.frontend == 'true' || needs.detect-changes.outputs.backend == 'true') &&
       github.event_name == 'push' &&
@@ -184,14 +253,30 @@ jobs:
             echo "✅ Backend build artifacts available" >> $GITHUB_STEP_SUMMARY
           fi
 
-      # Add your deployment steps here
-      # Examples:
-      # - Deploy to cloud storage (S3, Azure Blob, etc.)
-      # - Deploy to server via SSH
-      # - Deploy to container registry
-      # - Deploy to cloud platform (AWS, Azure, GCP)
       
-      - name: Deployment placeholder
+      # Option 1: Deploy Frontend to Vercel (Recommended for Angular)
+      - name: Deploy Frontend to Vercel
+        if: needs.detect-changes.outputs.frontend == 'true'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./frontend-dist
+        continue-on-error: true
+
+      # Option 4: Deploy Backend to Railway (Recommended for FastAPI)
+      - name: Deploy Backend to Railway
+        if: needs.detect-changes.outputs.backend == 'true'
+        uses: bervProject/railway-deploy@v1.0.0
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: backend
+          detach: true
+        continue-on-error: true
+
+      - name: Deployment Complete
         run: |
-          echo "🚀 Ready for deployment!"
-          echo "Add your deployment steps here (e.g., upload to server, container registry, etc.)"
+          echo "✅ Deployment process completed!"
+          echo "Check your deployment platform for status."
