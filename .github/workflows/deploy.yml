@@ -338,12 +338,36 @@ jobs:
             cp frontend/vercel.json frontend-dist/vercel.json
             echo "✅ Copied vercel.json to build output"
           else
-            echo "⚠️  vercel.json not found, creating default one"
-            echo '{"buildCommand": null, "outputDirectory": ".", "framework": null, "rewrites": [{"source": "/(.*)", "destination": "/index.html"}]}' > frontend-dist/vercel.json
+            echo "⚠️  vercel.json not found, creating one that disables build"
+            cat > frontend-dist/vercel.json << 'EOF'
+{
+  "version": 2,
+  "buildCommand": "",
+  "outputDirectory": ".",
+  "installCommand": "",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+EOF
           fi
           
           # Verify vercel.json
+          echo "📄 vercel.json contents:"
           cat frontend-dist/vercel.json
+          
+          # Remove any source files that might trigger Vercel to build
+          # Vercel might detect Angular from package.json or angular.json
+          rm -f frontend-dist/package.json frontend-dist/angular.json frontend-dist/tsconfig.json 2>/dev/null || true
+          rm -rf frontend-dist/src frontend-dist/node_modules 2>/dev/null || true
+          
+          echo "✅ Removed source files that might trigger builds"
+          echo "📁 Final deployment directory contents:"
+          ls -la frontend-dist/ | head -15
           
           echo "✅ Frontend build ready for deployment"
           echo "📦 Production API URL: ${{ secrets.PRODUCTION_API_URL || 'https://api.yourdomain.com' }}"
@@ -377,11 +401,13 @@ jobs:
           }
           
           echo "🚀 Deploying to Vercel..."
-          # Deploy as static files (no build)
-          vercel deploy --prod --yes --token $VERCEL_TOKEN --prebuilt || {
-            echo "❌ Error: Vercel deployment failed"
-            echo "Trying without --prebuilt flag..."
-            vercel deploy --prod --yes --token $VERCEL_TOKEN
+          # Deploy as static files (no build) - use --prebuilt to skip build
+          # The vercel.json in this directory should prevent any build attempts
+          vercel deploy --prod --yes --token $VERCEL_TOKEN --prebuilt --force || {
+            echo "❌ Error: Vercel deployment with --prebuilt failed"
+            echo "Attempting alternative deployment method..."
+            # Try deploying with explicit no-build configuration
+            vercel deploy --prod --yes --token $VERCEL_TOKEN --force
           }
           
           echo "✅ Deployment completed!"
