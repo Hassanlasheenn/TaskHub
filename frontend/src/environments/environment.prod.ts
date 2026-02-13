@@ -1,5 +1,7 @@
 export const environment = {
     production: true,
-    apiBaseUrl: 'https://api.yourdomain.com', //TODO: add the production URL when deployed
+    // This value is automatically replaced during build by GitHub Actions
+    // Set PRODUCTION_API_URL secret in GitHub to configure
+    apiBaseUrl: 'https://api.yourdomain.com', // Will be replaced during build
 };
 

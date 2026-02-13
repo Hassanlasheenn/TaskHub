@@ -65,7 +65,16 @@ jobs:
         working-directory: ./frontend
         run: npm run lint || echo "Linter not configured, skipping..."
 
-      - name: Build Angular application
+      - name: Replace API URL for production
+        working-directory: ./frontend
+        env:
+          API_BASE_URL: ${{ secrets.PRODUCTION_API_URL || 'https://api.yourdomain.com' }}
+        run: |
+          # Replace API URL in environment.prod.ts before building
+          node scripts/replace-api-url.js "$API_BASE_URL"
+          echo "✅ API URL set to: $API_BASE_URL"
+
+      - name: Build Angular application (Production)
         working-directory: ./frontend
         run: npm run build -- --configuration production
         env:
@@ -256,12 +265,25 @@ jobs:
       
       # Deploy Frontend to Vercel
       # This step deploys the pre-built Angular app from GitHub Actions to Vercel
-      # Method 1: Deploy pre-built artifacts (recommended)
       - name: Install Vercel CLI
         if: needs.detect-changes.outputs.frontend == 'true'
         run: npm install -g vercel@latest
 
-      - name: Deploy to Vercel (Pre-built)
+      - name: Prepare Vercel deployment
+        if: needs.detect-changes.outputs.frontend == 'true'
+        run: |
+          # Copy vercel.json to the build output directory
+          cp frontend/vercel.json frontend-dist/vercel.json || echo "vercel.json not found, will create one"
+          
+          # Create vercel.json if it doesn't exist
+          if [ ! -f frontend-dist/vercel.json ]; then
+            echo '{"buildCommand": null, "outputDirectory": ".", "framework": null, "rewrites": [{"source": "/(.*)", "destination": "/index.html"}]}' > frontend-dist/vercel.json
+          fi
+          
+          # Set production environment variables for Vercel
+          echo "✅ Frontend build ready for deployment with production API: ${{ secrets.PRODUCTION_API_URL || 'https://api.yourdomain.com' }}"
+
+      - name: Deploy to Vercel (Pre-built Static Files)
         if: needs.detect-changes.outputs.frontend == 'true'
         working-directory: ./frontend-dist
         env:
@@ -269,7 +291,11 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          vercel --prod --yes --token $VERCEL_TOKEN
+          # Link the project (only needed first time, but safe to run multiple times)
+          vercel link --yes --token $VERCEL_TOKEN --project $VERCEL_PROJECT_ID --scope $VERCEL_ORG_ID || true
+          
+          # Deploy as static files (no build)
+          vercel deploy --prod --yes --token $VERCEL_TOKEN --prebuilt
         continue-on-error: true
 
       # Alternative Method 2: Use Vercel Action (deploys from source)
@@ -285,7 +311,7 @@ jobs:
       #     working-directory: ./frontend
       #   continue-on-error: true
 
-      # Option 4: Deploy Backend to Railway (Recommended for FastAPI)
+      # Deploy Backend to Railway (Recommended for FastAPI)
       - name: Deploy Backend to Railway
         if: needs.detect-changes.outputs.backend == 'true'
         uses: bervProject/railway-deploy@v1.0.0
@@ -294,6 +320,27 @@ jobs:
           service: backend
           detach: true
         continue-on-error: true
+
+      # Alternative: Deploy Backend to Render
+      # - name: Deploy Backend to Render
+      #   if: needs.detect-changes.outputs.backend == 'true'
+      #   uses: johnbeynon/render-deploy@v0.0.7
+      #   with:
+      #     service-id: ${{ secrets.RENDER_SERVICE_ID }}
+      #     api-key: ${{ secrets.RENDER_API_KEY }}
+
+      # Alternative: Deploy Backend to Fly.io
+      # - name: Setup Fly.io
+      #   if: needs.detect-changes.outputs.backend == 'true'
+      #   uses: superfly/flyctl-actions/setup-flyctl@master
+      # 
+      # - name: Deploy Backend to Fly.io
+      #   if: needs.detect-changes.outputs.backend == 'true'
+      #   run: |
+      #     cd backend-artifact
+      #     flyctl deploy --remote-only
+      #   env:
+      #     FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deployment Complete
         run: |
