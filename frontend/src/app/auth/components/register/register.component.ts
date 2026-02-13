@@ -84,7 +84,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
     ) {}
 
     ngOnInit() {
-        // Redirect to dashboard if user is already logged in
         if (this._authService.isAuthenticated()) {
             this._router.navigate([LayoutPaths.DASHBOARD]);
             return;
