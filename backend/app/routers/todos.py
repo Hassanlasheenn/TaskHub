@@ -404,7 +404,6 @@ async def delete_todo(
     deleter = db.query(models.User).filter(models.User.id == user_id).first()
     deleter_username = deleter.username if deleter else "Admin"
     
-    # Store todo info before deletion
     todo_title = todo.title
     deleted_index = todo.order_index
     

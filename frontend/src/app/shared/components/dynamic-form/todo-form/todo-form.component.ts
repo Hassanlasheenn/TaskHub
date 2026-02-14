@@ -257,7 +257,6 @@ export class TodoFormComponent implements OnInit, OnDestroy {
         this.editingTodo = todo;
         this.selectedUserId = todo.assigned_to_user_id || null;
         
-        // Ensure form is initialized
         if (!this.form || Object.keys(this.form.controls).length === 0) {
             this.form = this._formService.initializeForm(this.fields);
         }
