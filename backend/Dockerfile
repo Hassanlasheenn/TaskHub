@@ -1,22 +1,6 @@
 # Use Python 3.11 slim image
 FROM python:3.11-slim
 
-# Install system dependencies for pyodbc and SQL Server
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    curl \
-    gnupg \
-    ca-certificates \
-    unixodbc \
-    unixodbc-dev \
-    lsb-release && \
-    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg && \
-    echo "deb [arch=amd64,armhf,arm64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list && \
-    apt-get update && \
-    ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql18 && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/*
-
 # Set working directory
 WORKDIR /app
 
@@ -27,7 +11,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Expose port (EXPOSE is just documentation, doesn't expand variables)
+# Expose port (Documentation only)
 EXPOSE 8000
 
+# Start command (Railway sets PORT environment variable)
 CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]

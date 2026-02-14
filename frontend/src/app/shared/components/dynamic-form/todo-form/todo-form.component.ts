@@ -207,7 +207,7 @@ export class TodoFormComponent implements OnInit, OnDestroy {
         const todoData: ITodoCreate = {
             title: this.form.get('title')?.value,
             description: this.form.get('description')?.value || undefined,
-            priority: this.selectedPriority || 'medium', // Default to medium if not selected
+            priority: this.selectedPriority || 'medium',
             category: categoryToUse,
             assigned_to_user_id: assignedUserId
         };

@@ -413,7 +413,6 @@ async def delete_todo(
         ).first()
         if assigned_user and assigned_user.id != user_id and assigned_user.role != models.UserRole.ADMIN.value:
             message = f"{deleter_username} deleted the todo: {todo_title}"
-            # Create notification with todo_id, then set it to NULL before deleting todo
             notification = models.Notification(
                 user_id=assigned_user.id,
                 todo_id=todo_id,
