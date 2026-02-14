@@ -399,7 +399,7 @@ async def delete_todo(
     db.query(models.Notification).filter(
         models.Notification.todo_id == todo_id
     ).delete()
-    db.flush()  # Flush to ensure deletion is processed before creating new notification
+    db.flush()
     
     # Get creator/deleter info for notification
     deleter = db.query(models.User).filter(models.User.id == user_id).first()
