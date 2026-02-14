@@ -216,7 +216,7 @@ export class TodoFormComponent implements OnInit, OnDestroy {
             const updateData: ITodoUpdate = {
                 title: todoData.title,
                 description: todoData.description,
-                priority: this.selectedPriority || undefined, // Only include if selected
+                priority: this.selectedPriority || undefined,
                 category: todoData.category,
                 completed: this.isCompleted,
                 assigned_to_user_id: assignedUserId ?? null

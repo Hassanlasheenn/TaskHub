@@ -411,7 +411,6 @@ async def delete_todo(
         assigned_user = db.query(models.User).filter(
             models.User.id == todo.assigned_to_user_id
         ).first()
-        # Only notify if: assigned user exists, not the deleter, and not an admin
         if assigned_user and assigned_user.id != user_id and assigned_user.role != models.UserRole.ADMIN.value:
             message = f"{deleter_username} deleted the todo: {todo_title}"
             # Create notification with todo_id, then set it to NULL before deleting todo
