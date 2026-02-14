@@ -407,7 +407,6 @@ async def delete_todo(
     todo_title = todo.title
     deleted_index = todo.order_index
     
-    # Notify assigned user if todo is deleted (only if assigned user exists and is not an admin)
     if todo.assigned_to_user_id:
         assigned_user = db.query(models.User).filter(
             models.User.id == todo.assigned_to_user_id

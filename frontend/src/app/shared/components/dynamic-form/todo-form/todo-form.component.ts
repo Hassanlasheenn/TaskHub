@@ -261,7 +261,6 @@ export class TodoFormComponent implements OnInit, OnDestroy {
             this.form = this._formService.initializeForm(this.fields);
         }
         
-        // Ensure users are loaded before populating form (for admin)
         if (this.isAdmin && this.users.length === 0) {
             this.loadUsers();
             return;
