@@ -28,7 +28,7 @@
                     </div>
                     <div class="stat-item">
                         <i class="bi bi-check-circle"></i>
-                        <span class="stat-value">{{ getCompletedCount(userData.todos) }}</span>
+                        <span class="stat-value">{{ getCompletedCount(userData.user.id) }}</span>
                         <span class="stat-label">Completed</span>
                     </div>
                 </div>
@@ -39,7 +39,7 @@
 
             <div class="user-todos" *ngIf="isUserExpanded(userData.user.id) && userData.todos.length > 0">
                 <div class="todos-list">
-                    <div *ngFor="let todo of userData.todos" class="todo-item" [class.completed]="todo.completed">
+                    <div *ngFor="let todo of userData.todos" class="todo-item" [class.completed]="todo.status === 'done'">
                         <div class="todo-priority" [class]="getPriorityClass(todo.priority)"></div>
                         <div class="todo-content">
                             <div class="todo-header">
@@ -53,9 +53,9 @@
                                 <span *ngIf="todo.category" class="todo-category">
                                     <i class="bi bi-tag"></i> {{ todo.category }}
                                 </span>
-                                <span class="todo-status" [class.completed]="todo.completed">
-                                    <i [class]="todo.completed ? 'bi bi-check-circle-fill' : 'bi bi-circle'"></i>
-                                    {{ todo.completed ? 'Completed' : 'Not Completed' }}
+                                <span class="todo-status" [class.completed]="todo.status === 'done'">
+                                    <i [class]="todo.status === 'done' ? 'bi bi-check-circle-fill' : 'bi bi-circle'"></i>
+                                    {{ todo.status === 'done' ? 'Completed' : 'Not Completed' }}
                                 </span>
                             </div>
                         </div>

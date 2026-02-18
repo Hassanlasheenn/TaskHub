@@ -34,7 +34,7 @@
     </fieldset>
 
     <!-- Priority Selection -->
-    <fieldset class="priority-section">
+    <fieldset class="priority-section" [class.readonly]="isEditMode && !isAdmin">
         <legend class="priority-label">Priority</legend>
         <div class="d-flex flex-column flex-sm-row gap-2">
             <button
@@ -42,7 +42,9 @@
                 type="button"
                 class="priority-btn flex-grow-1"
                 [class.selected]="selectedPriority === priority.value"
+                [class.disabled]="isEditMode && !isAdmin"
                 [style.--priority-color]="priority.color"
+                [disabled]="isEditMode && !isAdmin"
                 (click)="selectPriority(priority.value)"
             >
                 <i [class]="'bi ' + priority.icon"></i>
@@ -51,15 +53,26 @@
         </div>
     </fieldset>
 
-    <!-- Completed Toggle - Only in Edit Mode -->
-    <div *ngIf="isEditMode" class="completed-section">
-        <label class="completed-toggle-label">
-            <span class="toggle-label-text">Completed</span>
-            <div class="toggle-switch" [class.active]="isCompleted" (click)="toggleCompleted()">
-                <div class="toggle-slider"></div>
-            </div>
-        </label>
-    </div>
+    <!-- Status Selection - Only in Edit Mode -->
+    <fieldset *ngIf="isEditMode" class="status-section">
+        <legend class="status-label">Status</legend>
+        <div class="status-select-wrapper">
+            <select 
+                class="status-select" 
+                [(ngModel)]="selectedStatus"
+                [ngModelOptions]="{standalone: true}"
+            >
+                <option *ngFor="let status of statuses" [value]="status.value">
+                    {{ status.label }}
+                </option>
+            </select>
+            <span class="select-arrow">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </span>
+        </div>
+    </fieldset>
 
     <!-- Form Actions -->
     <div class="form-actions d-flex flex-column flex-sm-row gap-2">
@@ -67,8 +80,7 @@
             Cancel
         </button>
         <button type="button" class="btn-submit flex-grow-1 order-1 order-sm-2" [disabled]="form.invalid" (click)="onSubmit()">
-            <i [class]="isEditMode ? 'bi bi-check-lg me-2' : 'bi bi-plus-lg me-2'"></i>
-            {{ isEditMode ? 'Update Todo' : 'Create Todo' }}
+            {{ isEditMode ? 'Save' : 'Create' }}
         </button>
     </div>
 </div>

@@ -1,14 +1,12 @@
 import { Component, Output, EventEmitter, OnInit, Input, OnDestroy } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { FormsModule } from "@angular/forms";
-import { FormGroup } from "@angular/forms";
+import { FormsModule, FormGroup } from "@angular/forms";
 import { DynamicFormComponent } from "../dynamic-form.component";
 import { ReactiveFormService } from "../../../services/reactive-form.service";
 import { IFieldControl } from "../../../interfaces/IFieldControl.interface";
 import { InputTypes } from "../../../enums/input-types.enum";
 import { ValidatorTypes } from "../../../enums/validator-types.enum";
-import { ITodoCreate, ITodoUpdate } from "../../../../core/interfaces/todo.interface";
-import { ITodo } from "../../../../layouts/components/todo-list/todo-list.component";
+import { ITodo, ITodoCreate, ITodoUpdate, TodoStatus } from "../../../../core/interfaces/todo.interface";
 import { UserService } from "../../../../core/services/user.service";
 import { IUserListResponse } from "../../../../auth/interfaces";
 import { Subject, takeUntil } from "rxjs";
@@ -78,11 +76,18 @@ export class TodoFormComponent implements OnInit, OnDestroy {
         { value: 'high', label: 'High', icon: 'bi-arrow-up', color: '#dc3545' },
     ];
 
+    statuses: { value: TodoStatus; label: string }[] = [
+        { value: 'new', label: 'New' },
+        { value: 'inProgress', label: 'In Progress' },
+        { value: 'paused', label: 'Paused' },
+        { value: 'done', label: 'Done' }
+    ];
+
     selectedPriority: PriorityLevel | null = null;
+    selectedStatus: TodoStatus = 'new';
     selectedCategory: string = '';
     customCategory: string = '';
     isOtherCategory: boolean = false;
-    isCompleted: boolean = false;
     availableCategories: string[] = ['Work', 'Personal', 'Shopping', 'Health', 'Learning', 'Other'];
 
     constructor(
@@ -148,6 +153,10 @@ export class TodoFormComponent implements OnInit, OnDestroy {
     }
 
     selectPriority(priority: PriorityLevel): void {
+        // Non-admin users cannot change priority when editing
+        if (this.isEditMode && !this.isAdmin) {
+            return;
+        }
         // Toggle: if same priority is clicked, deselect it
         this.selectedPriority = this.selectedPriority === priority ? null : priority;
     }
@@ -216,11 +225,17 @@ export class TodoFormComponent implements OnInit, OnDestroy {
             const updateData: ITodoUpdate = {
                 title: todoData.title,
                 description: todoData.description,
-                priority: this.selectedPriority || undefined,
                 category: todoData.category,
-                completed: this.isCompleted,
-                assigned_to_user_id: assignedUserId ?? null
+                status: this.selectedStatus
             };
+            
+            // Only include priority if user is admin (non-admin users cannot change priority)
+            if (this.isAdmin) {
+                updateData.priority = this.selectedPriority || undefined;
+                // Only include assigned_to_user_id if user is admin (non-admin users cannot change assignment)
+                updateData.assigned_to_user_id = assignedUserId ?? null;
+            }
+            
             this.updateTodo.emit({ 
                 id: this.editingTodo.id, 
                 data: updateData
@@ -240,10 +255,10 @@ export class TodoFormComponent implements OnInit, OnDestroy {
             this.form.patchValue({ assigned_to_user_id: 0 });
         }
         this.selectedPriority = null;
+        this.selectedStatus = 'new';
         this.selectedCategory = '';
         this.customCategory = '';
         this.isOtherCategory = false;
-        this.isCompleted = false;
         this.isSubmitted = false;
         this.errorSummary = null;
         this.isEditMode = false;
@@ -278,6 +293,7 @@ export class TodoFormComponent implements OnInit, OnDestroy {
         }
         
         this.selectedPriority = (todo.priority || null) as PriorityLevel | null;
+        this.selectedStatus = (todo.status || 'new') as TodoStatus;
         
         if (todo.category) {
             if (this.availableCategories.includes(todo.category)) {
@@ -294,8 +310,6 @@ export class TodoFormComponent implements OnInit, OnDestroy {
             this.isOtherCategory = false;
             this.customCategory = '';
         }
-        
-        this.isCompleted = todo.completed || false;
         
         const formValue: any = {
             title: todo.title || '',
@@ -333,8 +347,5 @@ export class TodoFormComponent implements OnInit, OnDestroy {
         }, 100);
     }
 
-    toggleCompleted(): void {
-        this.isCompleted = !this.isCompleted;
-    }
 }
 

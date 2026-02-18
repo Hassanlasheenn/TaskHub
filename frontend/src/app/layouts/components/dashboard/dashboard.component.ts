@@ -1,19 +1,19 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, OnDestroy, ViewChild } from "@angular/core";
-import { Subject, takeUntil } from "rxjs";
+import { Subject, takeUntil, debounceTime } from "rxjs";
 import { AuthService } from "../../../auth/services";
 import { TodoService } from "../../../core/services/todo.service";
 import { NotificationService } from "../../../core/services/notification.service";
-import { ITodoCreate, ITodoUpdate } from "../../../core/interfaces/todo.interface";
+import { ITodo, ITodoCreate, ITodoUpdate } from "../../../core/interfaces/todo.interface";
 import { LoaderService } from "../../../core/services/loader.service";
 import { ToastService } from "../../../core/services/toast.service";
 import { ConfirmationDialogService } from "../../../core/services/confirmation-dialog.service";
-import { TodoListComponent, ITodo } from "../todo-list/todo-list.component";
+import { TodoListComponent } from "../todo-list/todo-list.component";
 import { SidebarComponent } from "../../../shared/components/sidebar/sidebar.component";
 import { DashboardSideNavComponent } from "./components/dashboard-side-nav/dashboard-side-nav.component";
 import { CalendarComponent } from "./components/calendar/calendar.component";
 import { SearchBarComponent } from "./components/search-bar/search-bar.component";
-import { QuickFiltersComponent, QuickFilterType } from "./components/quick-filters/quick-filters.component";
+import { StatusFilterComponent, TodoStatus as FilterStatus } from "./components/status-filter/status-filter.component";
 import { AdminPanelComponent } from "./components/admin-panel/admin-panel.component";
 import { DashboardSections } from "../../enums/dashboard-sections.enum";
 import { TodoFormComponent } from "../../../shared/components/dynamic-form/todo-form/todo-form.component";
@@ -30,7 +30,7 @@ import { TodoFormComponent } from "../../../shared/components/dynamic-form/todo-
         DashboardSideNavComponent, 
         CalendarComponent, 
         SearchBarComponent, 
-        QuickFiltersComponent, 
+        StatusFilterComponent, 
         AdminPanelComponent,
         TodoFormComponent
     ],
@@ -47,7 +47,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     activeSection: DashboardSections = DashboardSections.DASHBOARD;
     DashboardSections = DashboardSections;
     searchQuery: string = '';
-    activeFilter: QuickFilterType = 'all';
+    activeStatus: FilterStatus = 'all';
     selectedCategory: string | null = null;
 
     constructor(
@@ -64,9 +64,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.loadTodos();
 
         this._notificationService.notificationEvents$
-            .pipe(takeUntil(this._destroy$))
+            .pipe(
+                debounceTime(300),
+                takeUntil(this._destroy$)
+            )
             .subscribe((notification) => {
-                this.loadTodos(false);
+                if (notification.todo_id) {
+                    this.loadTodos(false);
+                }
             });
     }
 
@@ -80,7 +85,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         
         this._todoService.getTodos(userId).subscribe({
             next: (response) => {
-                this.todos = response.todos as ITodo[];
+                this.todos = [...(response.todos as ITodo[])];
                 this.totalTodos = response.total;
                 if (showLoader) {
                     this._loaderService.hide();
@@ -152,7 +157,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     onToggleTodo(todo: ITodo): void {
         const index = this.todos.findIndex(t => t.id === todo.id);
         if (index !== -1) {
-            this.todos[index] = { ...todo, completed: !todo.completed };
+            const newStatus = todo.status === 'done' ? 'new' : 'done';
+            this.todos[index] = { ...todo, status: newStatus as ITodo['status'] };
             this.todos = [...this.todos];
         }
     }
@@ -231,7 +237,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     onSectionChange(section: DashboardSections): void {
         this.activeSection = section;
         this.searchQuery = '';
-        this.activeFilter = 'all';
+        this.activeStatus = 'all';
         this.selectedCategory = null;
     }
 
@@ -239,23 +245,32 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.searchQuery = query.toLowerCase().trim();
     }
 
-    onFilterChange(filter: QuickFilterType): void {
-        this.activeFilter = filter;
+    onStatusChange(status: FilterStatus): void {
+        this.activeStatus = status;
     }
 
     get filteredTodos(): ITodo[] {
         let filtered = this.todos;
+        const isAdmin = this._authService.isAdmin();
 
         switch (this.activeSection) {
             case DashboardSections.COMPLETED:
-                filtered = filtered.filter(todo => todo.completed);
+                filtered = filtered.filter(todo => todo.status === 'done');
+                break;
+            case DashboardSections.DASHBOARD:
+                if (isAdmin) {
+                    filtered = filtered.filter(todo => 
+                        todo.status !== 'done' && 
+                        (!todo.assigned_to_user_id || todo.assigned_to_user_id === null)
+                    );
+                }
                 break;
             default:
                 break;
         }
 
         if (this.activeSection === DashboardSections.DASHBOARD) {
-            filtered = this.applyQuickFilter(filtered);
+            filtered = this.applyStatusFilter(filtered);
         }
 
         if (this.searchQuery) {
@@ -277,49 +292,72 @@ export class DashboardComponent implements OnInit, OnDestroy {
                 return categoryA.localeCompare(categoryB);
             }
 
-            if (a.completed !== b.completed) {
-                return a.completed ? 1 : -1;
+            if (a.status === 'done' && b.status !== 'done') {
+                return 1;
+            }
+            if (a.status !== 'done' && b.status === 'done') {
+                return -1;
             }
 
             return (a.order_index || 0) - (b.order_index || 0);
         });
     }
 
-    private applyQuickFilter(todos: ITodo[]): ITodo[] {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const startOfWeek = new Date(today);
-        const dayOfWeek = today.getDay();
-        startOfWeek.setDate(today.getDate() - dayOfWeek);
-        startOfWeek.setHours(0, 0, 0, 0);
-
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
-        endOfWeek.setHours(23, 59, 59, 999);
-
-        switch (this.activeFilter) {
-            case 'today':
-                return todos.filter(todo => {
-                    if (!todo.created_at) return false;
-                    const todoDate = new Date(todo.created_at);
-                    todoDate.setHours(0, 0, 0, 0);
-                    return todoDate.getTime() === today.getTime();
-                });
-            case 'thisWeek':
-                return todos.filter(todo => {
-                    if (!todo.created_at) return false;
-                    const todoDate = new Date(todo.created_at);
-                    return todoDate >= startOfWeek && todoDate <= endOfWeek;
-                });
+    private applyStatusFilter(todos: ITodo[]): ITodo[] {
+        switch (this.activeStatus) {
+            case 'done':
+                return todos.filter(todo => todo.status === 'done');
+            case 'new':
+                return todos.filter(todo => todo.status === 'new');
+            case 'inProgress':
+                return todos.filter(todo => todo.status === 'inProgress');
+            case 'paused':
+                return todos.filter(todo => todo.status === 'paused');
+            case 'all':
             default:
                 return todos;
         }
     }
 
     get categories(): string[] {
+        // Get categories from filtered todos (after status and search filters, but not category filter)
+        let filtered = this.todos;
+        const isAdmin = this._authService.isAdmin();
+
+        // Apply section filter
+        switch (this.activeSection) {
+            case DashboardSections.COMPLETED:
+                filtered = filtered.filter(todo => todo.status === 'done');
+                break;
+            case DashboardSections.DASHBOARD:
+                if (isAdmin) {
+                    filtered = filtered.filter(todo => 
+                        todo.status !== 'done' && 
+                        (!todo.assigned_to_user_id || todo.assigned_to_user_id === null)
+                    );
+                }
+                break;
+            default:
+                break;
+        }
+
+        // Apply status filter
+        if (this.activeSection === DashboardSections.DASHBOARD) {
+            filtered = this.applyStatusFilter(filtered);
+        }
+
+        // Apply search filter
+        if (this.searchQuery) {
+            filtered = filtered.filter(todo => {
+                const titleMatch = todo.title.toLowerCase().includes(this.searchQuery);
+                const descMatch = todo.description?.toLowerCase().includes(this.searchQuery);
+                return titleMatch || descMatch;
+            });
+        }
+
+        // Extract unique categories (don't apply category filter here)
         const cats = new Set<string>();
-        this.todos.forEach(todo => {
+        filtered.forEach(todo => {
             if (todo.category) {
                 cats.add(todo.category);
             }

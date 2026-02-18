@@ -11,6 +11,13 @@ class PriorityLevel(str, enum.Enum):
     HIGH = "high"
 
 
+class TodoStatus(str, enum.Enum):
+    NEW = "new"
+    IN_PROGRESS = "inProgress"
+    PAUSED = "paused"
+    DONE = "done"
+
+
 class UserRole(str, enum.Enum):
     USER = "user"
     ADMIN = "admin"
@@ -35,7 +42,7 @@ class Todo(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    completed = Column(Boolean, default=False)
+    status = Column(String(20), default=TodoStatus.NEW.value)
     priority = Column(String(20), default=PriorityLevel.MEDIUM.value)
     category = Column(String(100), nullable=True)
     order_index = Column(Integer, default=0)

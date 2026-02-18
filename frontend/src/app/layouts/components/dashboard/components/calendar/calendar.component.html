@@ -79,7 +79,7 @@
                                     <div class="todo-content">
                                         <div class="todo-header-row">
                                             <h4 class="todo-title">{{ todo.title }}</h4>
-                                            <span *ngIf="todo.completed" class="done-badge-small">Done</span>
+                                            <span *ngIf="todo.status === 'done'" class="done-badge-small">Done</span>
                                         </div>
                                         <p *ngIf="todo.description" class="todo-description">{{ todo.description }}</p>
                                         <span class="todo-priority-badge" [ngClass]="getPriorityClass(todo.priority)">

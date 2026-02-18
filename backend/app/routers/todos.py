@@ -48,7 +48,7 @@ def get_todos(
             "id": todo.id,
             "title": todo.title,
             "description": todo.description,
-            "completed": todo.completed,
+            "status": todo.status or models.TodoStatus.NEW.value,
             "priority": todo.priority,
             "category": todo.category,
             "order_index": todo.order_index,
@@ -98,6 +98,7 @@ async def create_todo(
         title=todo.title,
         description=todo.description,
         priority=todo.priority.value,
+        status=todo.status.value if todo.status else models.TodoStatus.NEW.value,
         category=todo.category,
         order_index=next_index,
         user_id=user_id,
@@ -145,7 +146,7 @@ async def create_todo(
         "id": db_todo.id,
         "title": db_todo.title,
         "description": db_todo.description,
-        "completed": db_todo.completed,
+        "status": db_todo.status or models.TodoStatus.NEW.value,
         "priority": db_todo.priority,
         "category": db_todo.category,
         "order_index": db_todo.order_index,
@@ -184,7 +185,7 @@ def _build_todo_response(todo_db: models.Todo, db: Session) -> schemas.TodoRespo
         "id": todo_db.id,
         "title": todo_db.title,
         "description": todo_db.description,
-        "completed": todo_db.completed,
+        "status": todo_db.status or models.TodoStatus.NEW.value,
         "priority": todo_db.priority,
         "category": todo_db.category,
         "order_index": todo_db.order_index,
@@ -209,7 +210,11 @@ async def update_todo(
     todo_db = db.query(models.Todo).filter(models.Todo.id == todo_id).first()
     if not todo_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Todo not found")
-    if todo_db.user_id != user_id:
+    
+    # Allow update if user is the creator OR if user is assigned to the todo
+    # (assigned users can update, especially completion status)
+    can_update = todo_db.user_id == user_id or todo_db.assigned_to_user_id == user_id
+    if not can_update:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized to update this todo")
     
     # Track which fields actually changed (for notification)
@@ -228,23 +233,28 @@ async def update_todo(
         if todo_db.priority != todo.priority.value:
             changed_fields.append('priority')
         todo_db.priority = todo.priority.value
-    if todo.completed is not None:
-        if todo_db.completed != todo.completed:
-            changed_fields.append('completed')
-        todo_db.completed = todo.completed
     if todo.category is not None:
         if todo_db.category != todo.category:
             changed_fields.append('category')
         todo_db.category = todo.category
+    status_changed = False
+    old_status = todo_db.status
+    was_done = todo_db.status == models.TodoStatus.DONE.value
+    if todo.status:
+        if todo_db.status != todo.status.value:
+            changed_fields.append('status')
+            status_changed = True
+        todo_db.status = todo.status.value
     
     # Get updater info early
     updater = db.query(models.User).filter(models.User.id == user_id).first()
-    updater_username = updater.username if updater else "Admin"
+    updater_username = updater.username if updater else "User"
     is_admin_updater = updater and updater.role == models.UserRole.ADMIN.value
     
     # Track if assignment changed
     assignment_changed = False
     old_assigned_user_id = todo_db.assigned_to_user_id
+    original_assigned_user_id = todo_db.assigned_to_user_id
     
     # Handle assigned user update
     provided_fields = todo.model_dump(exclude_unset=True)
@@ -336,6 +346,42 @@ async def update_todo(
     
     final_assigned_user_id = todo_db.assigned_to_user_id
     
+    if status_changed:
+        creator = db.query(models.User).filter(models.User.id == todo_db.user_id).first()
+        status_labels = {
+            models.TodoStatus.NEW.value: "New",
+            models.TodoStatus.IN_PROGRESS.value: "In Progress",
+            models.TodoStatus.PAUSED.value: "Paused",
+            models.TodoStatus.DONE.value: "Done"
+        }
+        new_status_label = status_labels.get(todo_db.status, todo_db.status)
+        
+        should_notify_admin = (
+            not is_admin_updater and
+            original_assigned_user_id and
+            original_assigned_user_id == user_id and
+            creator and
+            creator.role == models.UserRole.ADMIN.value and
+            creator.id != user_id
+        )
+        
+        if should_notify_admin:
+            message = f"{updater_username} changed the status of todo '{todo_db.title}' to '{new_status_label}'"
+            try:
+                await create_notification(
+                    db,
+                    creator.id,
+                    todo_db.id,
+                    message,
+                    updater_username,
+                    creator.email,
+                    todo_db.title
+                )
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to send status change notification to admin {creator.id}: {e}")
+    
     # Only notify if there are actual field changes (not just assignment)
     has_other_updates = len(changed_fields) > 0
     
@@ -354,7 +400,7 @@ async def update_todo(
                 'description': 'description',
                 'priority': 'priority',
                 'category': 'category',
-                'completed': 'completion status'
+                'status': 'status'
             }
             
             updated_field_names = [field_names.get(field, field) for field in changed_fields]

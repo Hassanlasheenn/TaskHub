@@ -27,12 +27,7 @@
                         placeholder="Search todos by title or description..."
                         (searchChange)="onSearchChange($event)"
                     />
-                    <app-quick-filters
-                        *ngIf="!searchQuery || filteredTodos.length > 0"
-                        [activeFilter]="activeFilter"
-                        (filterChange)="onFilterChange($event)"
-                    />
-                    <div *ngIf="categories.length > 0 && (!searchQuery || filteredTodos.length > 0)" class="category-filters">
+                    <div *ngIf="todos.length > 0 && filteredTodos.length > 0" class="category-filters">
                         <button
                             type="button"
                             class="category-filter-btn"
@@ -62,10 +57,13 @@
                     [groupByCategory]="activeSection === DashboardSections.DASHBOARD && selectedCategory === null && !searchQuery"
                     [showUsername]="true"
                     [username]="userData?.username || null"
+                    [showStatusFilter]="activeSection === DashboardSections.DASHBOARD"
+                    [activeStatus]="activeStatus"
                     (addTodo)="onAddTodo()"
                     (toggleTodo)="onToggleTodo($event)"
                     (deleteTodo)="onDeleteTodo($event)"
                     (editTodo)="onEditTodo($event)"
+                    (statusChange)="onStatusChange($event)"
                 />
             </div>
         </div>

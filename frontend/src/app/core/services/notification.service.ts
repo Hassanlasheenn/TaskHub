@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy } from "@angular/core";
+import { Injectable, OnDestroy, NgZone } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Observable, Subject, takeUntil, BehaviorSubject, interval } from "rxjs";
 import { API_URLS } from "../../api.global";
@@ -11,10 +11,14 @@ import { AuthService } from "../../auth/services/auth.service";
 export class NotificationService implements OnDestroy {
     private readonly _destroy$ = new Subject<void>();
     private ws: WebSocket | null = null;
-    private reconnectTimeout: any = null;
+    
+    private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    private connectionTimeoutRef: ReturnType<typeof setTimeout> | null = null;
+    private pollingInterval: ReturnType<typeof setInterval> | null = null;
+    private intervalValue: ReturnType<typeof setInterval> | null = null;
+
     private isConnecting: boolean = false;
-    private pollingInterval: any = null;
-    private intervalValue: any = null;
+    private retryCount: number = 0;
 
     private readonly _notifications$ = new BehaviorSubject<INotificationResponse[]>([]);
     private readonly _unreadCount$ = new BehaviorSubject<number>(0);
@@ -26,7 +30,8 @@ export class NotificationService implements OnDestroy {
 
     constructor(
         private readonly _http: HttpClient,
-        private readonly _authService: AuthService
+        private readonly _authService: AuthService,
+        private readonly _ngZone: NgZone
     ) {
         this.checkAndConnect();
     }
@@ -34,42 +39,31 @@ export class NotificationService implements OnDestroy {
     ngOnDestroy(): void {
         this._destroy$.next();
         this._destroy$.complete();
-        this.disconnect();
+        this.disconnect(true);
     }
 
     private checkAndConnect(): void {
         let lastUserId: number | null = null;
         
-        interval(1000).pipe(takeUntil(this._destroy$)).subscribe(() => {
-            const userId = this._authService.getCurrentUserId();
-            const isAuthenticated = this._authService.isAuthenticated();
-            
-            // If user changed, disconnect and clear notifications
-            if (lastUserId !== null && userId !== lastUserId && this.ws) {
-                this.disconnect();
-                this._notifications$.next([]);
-                this._unreadCount$.next(0);
-            }
-            
-            if (isAuthenticated && userId && !this.ws && !this.isConnecting) {
-                this.initializeWebSocket();
-                lastUserId = userId;
-            } else if (!isAuthenticated && this.ws) {
-                this.disconnect();
-                // Clear notifications when user logs out
-                this._notifications$.next([]);
-                this._unreadCount$.next(0);
-                lastUserId = null;
-            } else if (isAuthenticated && userId) {
-                lastUserId = userId;
-            }
-        });
-        
-        interval(10000).pipe(takeUntil(this._destroy$)).subscribe(() => {
-            const isAuthenticated = this._authService.isAuthenticated();
-            if (isAuthenticated && (!this.ws || this.ws.readyState !== WebSocket.OPEN)) {
-                this.loadNotifications();
-            }
+        this._ngZone.runOutsideAngular(() => {
+            interval(1000).pipe(takeUntil(this._destroy$)).subscribe(() => {
+                const userId = this._authService.getCurrentUserId();
+                const isAuthenticated = this._authService.isAuthenticated();
+                
+                if (lastUserId !== null && userId !== lastUserId && this.ws) {
+                    this.disconnect(true);
+                }
+                
+                if (isAuthenticated && userId && !this.ws && !this.isConnecting) {
+                    this.initializeWebSocket();
+                    lastUserId = userId;
+                } else if (!isAuthenticated && this.ws) {
+                    this.disconnect(true);
+                    lastUserId = null;
+                } else if (isAuthenticated && userId) {
+                    lastUserId = userId;
+                }
+            });
         });
     }
 
@@ -88,7 +82,7 @@ export class NotificationService implements OnDestroy {
         try {
             this.ws = new WebSocket(wsTokenUrl);
             
-            const connectionTimeout = setTimeout(() => {
+            this.connectionTimeoutRef = setTimeout(() => {
                 if (this.ws && this.ws.readyState === WebSocket.CONNECTING) {
                     this.ws.close();
                     this.isConnecting = false;
@@ -98,67 +92,59 @@ export class NotificationService implements OnDestroy {
                 }
             }, 5000);
             
-            // Store timeout reference for cleanup
-            (this.ws as any)._connectionTimeout = connectionTimeout;
-            
             this.ws.onopen = () => {
-                clearTimeout(connectionTimeout);
+                if (this.connectionTimeoutRef) clearTimeout(this.connectionTimeoutRef);
                 this.isConnecting = false;
+                this.retryCount = 0;
+                
                 this.stopPolling();
-                this.loadNotifications();
+                this._ngZone.run(() => this.loadNotifications(true));
                 this.startInterval();
             };
             
-            this.ws.onmessage = (event) => {
-                if(event.data === "pong") {
-                    return;
-                }
+            this.ws.onmessage = (event: MessageEvent) => {
+                if(event.data === "pong") return;
                 
                 try {
                     const notification: INotificationResponse = JSON.parse(event.data);
-                    this.addNotification(notification);
+                    this._ngZone.run(() => this.addNotification(notification));
                 } catch (error) {
-                    console.error('Error parsing WebSocket message:', error);
+                    // Silently ignore JSON parse errors to keep console clean
                 }
             };
             
-            this.ws.onerror = (error) => {
-                clearTimeout(connectionTimeout);
+            this.ws.onerror = (event: Event) => {
+                if (this.connectionTimeoutRef) clearTimeout(this.connectionTimeoutRef);
                 this.isConnecting = false;
-                // Don't log WebSocket errors to console as they're expected during connection attempts
                 if (!this.pollingInterval) {
                     this.startPolling();
                 }
             };
             
-            this.ws.onclose = (event) => {
-                clearTimeout(connectionTimeout);
+            this.ws.onclose = (event: CloseEvent) => {
+                if (this.connectionTimeoutRef) clearTimeout(this.connectionTimeoutRef);
                 this.stopInterval();
                 this.ws = null;
                 this.isConnecting = false;
                 
-                // Start polling as fallback if WebSocket is not available
                 if (!this.pollingInterval) {
                     this.startPolling();
                 }
                 
-                // Don't reconnect for policy violations (1008) - these are authentication failures
-                // Don't reconnect for normal closures (1000) or going away (1001)
-                // Only reconnect for unexpected closures
                 const shouldReconnect = this._authService.isAuthenticated() && 
-                    event.code !== 1000 && // Normal closure
-                    event.code !== 1001 && // Going away
-                    event.code !== 1008 && // Policy violation (auth failure)
-                    event.code !== 4001 && // Custom: user logged out
-                    event.code !== 4003 && // Custom: session expired
-                    event.code !== 4004;   // Custom: invalid token
+                    event.code !== 1000 && 
+                    event.code !== 1001 && 
+                    event.code !== 1008 && 
+                    event.code !== 4001 && 
+                    event.code !== 4003 && 
+                    event.code !== 4004;
                 
                 if (shouldReconnect) {
-                    if (this.reconnectTimeout) {
-                        clearTimeout(this.reconnectTimeout);
-                    }
-                    // Exponential backoff: wait longer on each retry
-                    const delay = Math.min(30000, 10000 * Math.pow(2, 0)); // Start with 10s, max 30s
+                    if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+                    
+                    const delay = Math.min(30000, 1000 * Math.pow(2, this.retryCount));
+                    this.retryCount++; 
+                    
                     this.reconnectTimeout = setTimeout(() => {
                         if (this._authService.isAuthenticated() && !this.ws && !this.isConnecting) {
                             this.initializeWebSocket();
@@ -168,7 +154,6 @@ export class NotificationService implements OnDestroy {
             };
         } catch (error) {
             this.isConnecting = false;
-            // If WebSocket creation fails, fall back to polling
             if (!this.pollingInterval) {
                 this.startPolling();
             }
@@ -176,14 +161,14 @@ export class NotificationService implements OnDestroy {
     }
 
     private addNotification(notification: INotificationResponse): void {
-        // Only add notification if it belongs to the current logged-in user
         const currentUserId = this._authService.getCurrentUserId();
         if (!currentUserId || notification.user_id !== currentUserId) {
-            return; // Ignore notifications for other users
+            return; 
         }
         
         const current = this._notifications$.value;
         const exists = current.some(n => n.id === notification.id);
+        
         if (!exists) {
             this._notifications$.next([notification, ...current]);
             
@@ -231,10 +216,9 @@ export class NotificationService implements OnDestroy {
             .pipe(takeUntil(this._destroy$));
     }
 
-    loadNotifications(): void {
+    loadNotifications(silent: boolean = false): void {
         const currentUserId = this._authService.getCurrentUserId();
         if (!currentUserId) {
-            // Clear notifications if user is not authenticated
             this._notifications$.next([]);
             this._unreadCount$.next(0);
             return;
@@ -242,7 +226,6 @@ export class NotificationService implements OnDestroy {
         
         this.getNotifications().subscribe({
             next: (response) => {
-                // Double-check: filter notifications by current user ID (backend should already do this, but extra safety)
                 const currentUserId = this._authService.getCurrentUserId();
                 const filteredNotifications = response.notifications.filter(
                     n => n.user_id === currentUserId
@@ -250,23 +233,19 @@ export class NotificationService implements OnDestroy {
                 
                 const currentNotifications = this._notifications$.value;
                 const currentIds = new Set(currentNotifications.map(n => n.id));
-                const newIds = new Set(filteredNotifications.map(n => n.id));
                 
-                // Find new notifications that weren't in the current list
                 const newlyAddedNotifications = filteredNotifications.filter(n => !currentIds.has(n.id));
                 
-                // Emit events for newly added notifications
-                newlyAddedNotifications.forEach(notification => {
-                    this._notificationEvents$.next(notification);
-                });
+                if (!silent) {
+                    newlyAddedNotifications.forEach(notification => {
+                        this._notificationEvents$.next(notification);
+                    });
+                }
                 
                 this._notifications$.next(filteredNotifications);
                 this._unreadCount$.next(response.unread_count);
             },
-            error: (error) => {
-                // Silently fail - polling will retry on next interval
-                // WebSocket will handle real-time updates when available
-            }
+            error: () => {}
         });
     }
 
@@ -278,11 +257,13 @@ export class NotificationService implements OnDestroy {
 
     private startInterval(): void {
         this.stopInterval();
-        this.intervalValue = setInterval(() => {
-            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                this.ws.send("ping");
-            }
-        }, 30000);
+        this._ngZone.runOutsideAngular(() => {
+            this.intervalValue = setInterval(() => {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send("ping");
+                }
+            }, 30000);
+        });
     }
 
     private stopInterval(): void {
@@ -292,10 +273,14 @@ export class NotificationService implements OnDestroy {
         }
     }
 
-    disconnect(): void {
+    disconnect(isLogout: boolean = false): void {
         if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
             this.reconnectTimeout = null;
+        }
+        if (this.connectionTimeoutRef) {
+            clearTimeout(this.connectionTimeoutRef);
+            this.connectionTimeoutRef = null;
         }
         if (this.ws) {
             this.ws.close();
@@ -304,22 +289,27 @@ export class NotificationService implements OnDestroy {
         this.isConnecting = false;
         this.stopPolling();
         this.stopInterval();
-        // Clear notifications when disconnecting
-        this._notifications$.next([]);
-        this._unreadCount$.next(0);
+        
+        if (isLogout) {
+            this._notifications$.next([]);
+            this._unreadCount$.next(0);
+            this.retryCount = 0;
+        }
     }
 
     private startPolling(): void {
         if (this.pollingInterval) {
             return;
         }
-        this.pollingInterval = setInterval(() => {
-            if (this._authService.isAuthenticated()) {
-                this.loadNotifications();
-            } else {
-                this.stopPolling();
-            }
-        }, 10000);
+        this._ngZone.runOutsideAngular(() => {
+            this.pollingInterval = setInterval(() => {
+                if (this._authService.isAuthenticated()) {
+                    this._ngZone.run(() => this.loadNotifications(true));
+                } else {
+                    this.stopPolling();
+                }
+            }, 10000);
+        });
     }
 
     private stopPolling(): void {

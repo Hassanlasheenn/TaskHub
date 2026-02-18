@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, OnChanges, SimpleChanges } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { ITodo } from "../../../todo-list/todo-list.component";
+import { ITodo } from "../../../../../core/interfaces/todo.interface";
 
 @Component({
     selector: 'app-calendar',

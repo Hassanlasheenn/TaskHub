@@ -1,0 +1,12 @@
+<div class="status-filter-container">
+    <select
+        id="status-select"
+        class="status-select"
+        [value]="activeStatus"
+        (change)="onStatusChange($event)"
+    >
+        <option *ngFor="let status of statuses" [value]="status.value">
+            {{ status.label }}
+        </option>
+    </select>
+</div>

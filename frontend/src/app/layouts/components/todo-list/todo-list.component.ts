@@ -1,28 +1,15 @@
 import { CommonModule } from "@angular/common";
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges } from "@angular/core";
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, ChangeDetectorRef } from "@angular/core";
 import { AuthService } from "../../../auth/services";
-
-export interface ITodo {
-    id: number;
-    title: string;
-    description?: string;
-    completed: boolean;
-    priority: 'low' | 'medium' | 'high';
-    category?: string;
-    order_index: number;
-    created_at?: string;
-    updated_at?: string;
-    user_id?: number;
-    assigned_to_user_id?: number | null;
-    assigned_to_username?: string | null;
-}
+import { ITodo } from "../../../core/interfaces/todo.interface";
+import { StatusFilterComponent, TodoStatus as FilterStatus } from "../dashboard/components/status-filter/status-filter.component";
 
 @Component({
     selector: 'app-todo-list',
     templateUrl: './todo-list.component.html',
     styleUrls: ['./todo-list.component.scss'],
     standalone: true,
-    imports: [CommonModule],
+    imports: [CommonModule, StatusFilterComponent],
 })
 export class TodoListComponent implements OnInit, OnChanges {
     @Input() todos: ITodo[] = [];
@@ -33,14 +20,21 @@ export class TodoListComponent implements OnInit, OnChanges {
     @Input() groupByCategory: boolean = false;
     @Input() showUsername: boolean = false;
     @Input() username: string | null = null;
+    @Input() showStatusFilter: boolean = false;
+    @Input() activeStatus: FilterStatus = 'all';
     @Output() addTodo = new EventEmitter<void>();
     @Output() toggleTodo = new EventEmitter<ITodo>();
     @Output() deleteTodo = new EventEmitter<ITodo>();
     @Output() editTodo = new EventEmitter<ITodo>();
+    @Output() statusChange = new EventEmitter<FilterStatus>();
 
-    expandedCategories: Set<string | null> = new Set();
+    expandedCategories: { [key: string]: boolean } = {};
+    viewMode: 'grid' | 'list' = 'grid';
 
-    constructor(private readonly _authService: AuthService) {}
+    constructor(
+        private readonly _authService: AuthService,
+        private readonly _cdr: ChangeDetectorRef
+    ) {}
 
     get isAdmin(): boolean {
         return this._authService.isAdmin();
@@ -48,7 +42,7 @@ export class TodoListComponent implements OnInit, OnChanges {
 
     get groupedTodos(): { category: string | null; todos: ITodo[] }[] {
         if (!this.groupByCategory) {
-            return [{ category: null, todos: this.todos }];
+            return this.todos.length > 0 ? [{ category: null, todos: this.todos }] : [];
         }
 
         const grouped = new Map<string | null, ITodo[]>();
@@ -61,11 +55,13 @@ export class TodoListComponent implements OnInit, OnChanges {
             grouped.get(category)!.push(todo);
         });
 
-        const sorted = Array.from(grouped.entries()).sort((a, b) => {
-            if (a[0] === null) return -1;
-            if (b[0] === null) return 1;
-            return (a[0] || '').localeCompare(b[0] || '');
-        });
+        const sorted = Array.from(grouped.entries())
+            .filter(([_, todos]) => todos.length > 0) // Only include categories with todos
+            .sort((a, b) => {
+                if (a[0] === null) return -1;
+                if (b[0] === null) return 1;
+                return (a[0] || '').localeCompare(b[0] || '');
+            });
 
         return sorted.map(([category, todos]) => ({ category, todos }));
     }
@@ -86,6 +82,10 @@ export class TodoListComponent implements OnInit, OnChanges {
         this.deleteTodo.emit(todo);
     }
 
+    onClearStatusFilter(): void {
+        this.statusChange.emit('all');
+    }
+
     trackById(index: number, item: ITodo): number {
         return item.id;
     }
@@ -100,6 +100,20 @@ export class TodoListComponent implements OnInit, OnChanges {
             case 'low': return 'bi-arrow-down';
             default: return 'bi-dash';
         }
+    }
+
+    getStatusLabel(status: string): string {
+        const statusMap: { [key: string]: string } = {
+            'new': 'New',
+            'inProgress': 'In Progress',
+            'paused': 'Paused',
+            'done': 'Done'
+        };
+        return statusMap[status] || status;
+    }
+
+    getStatusClass(status: string): string {
+        return `status-${status}`;
     }
 
     formatDate(dateString?: string): { date: string; day: string; time: string } | null {
@@ -134,15 +148,25 @@ export class TodoListComponent implements OnInit, OnChanges {
     }
 
     toggleCategory(category: string | null): void {
-        if (this.expandedCategories.has(category)) {
-            this.expandedCategories.delete(category);
-        } else {
-            this.expandedCategories.add(category);
-        }
+        const categoryKey = category ?? 'null';
+        // Toggle the expanded state (default to true if undefined)
+        const currentState = this.expandedCategories[categoryKey] ?? true;
+        // Create a new object reference to trigger change detection in Chrome
+        this.expandedCategories = { 
+            ...this.expandedCategories,
+            [categoryKey]: !currentState
+        };
+        // Mark for check to ensure Chrome updates the view
+        this._cdr.markForCheck();
     }
 
     isCategoryExpanded(category: string | null): boolean {
-        return this.expandedCategories.has(category);
+        const categoryKey = category ?? 'null';
+        return this.expandedCategories[categoryKey] === true;
+    }
+
+    toggleViewMode(): void {
+        this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid';
     }
 
     ngOnInit(): void {
@@ -151,17 +175,45 @@ export class TodoListComponent implements OnInit, OnChanges {
 
     private initializeExpandedCategories(): void {
         if (this.groupByCategory && this.todos.length > 0) {
+            // Create new object with only current categories, preserving existing expanded state
+            const newExpandedCategories: { [key: string]: boolean } = {};
+            
+            // Add new categories (default to expanded) and preserve existing ones
             this.groupedTodos.forEach(group => {
-                if (!this.expandedCategories.has(group.category)) {
-                    this.expandedCategories.add(group.category);
-                }
+                const categoryKey = group.category ?? 'null';
+                // Preserve existing state if it exists, otherwise default to expanded (true)
+                newExpandedCategories[categoryKey] = this.expandedCategories[categoryKey] ?? true;
             });
+            
+            this.expandedCategories = newExpandedCategories;
+        } else {
+            // Clear expanded categories if not grouping by category
+            this.expandedCategories = {};
         }
     }
 
     ngOnChanges(): void {
-        if (this.groupByCategory) {
-            this.initializeExpandedCategories();
+        if (this.groupByCategory && this.todos.length > 0) {
+            // Only add new categories, don't reset existing expanded state
+            const newExpandedCategories = { ...this.expandedCategories };
+            
+            this.groupedTodos.forEach(group => {
+                const categoryKey = group.category ?? 'null';
+                // Only add if it doesn't exist (preserve user's expanded/collapsed state)
+                newExpandedCategories[categoryKey] ??= true; // Default to expanded
+            });
+            
+            // Remove categories that no longer exist
+            const currentCategoryKeys = new Set(this.groupedTodos.map(group => (group.category ?? 'null')));
+            Object.keys(newExpandedCategories).forEach(key => {
+                if (!currentCategoryKeys.has(key)) {
+                    delete newExpandedCategories[key];
+                }
+            });
+            
+            this.expandedCategories = newExpandedCategories;
+        } else if (!this.groupByCategory) {
+            this.expandedCategories = {};
         }
     }
 }

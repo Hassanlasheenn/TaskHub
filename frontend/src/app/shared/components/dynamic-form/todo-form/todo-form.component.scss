@@ -128,7 +128,7 @@
             font-weight: 500;
         }
 
-        &:hover {
+        &:hover:not(:disabled) {
             border-color: var(--priority-color);
             background: rgba(255, 255, 255, 0.8);
         }
@@ -141,6 +141,85 @@
             i {
                 color: var(--priority-color);
             }
+        }
+
+        &:disabled,
+        &.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+    }
+
+    &.readonly {
+        opacity: 0.8;
+        
+        .priority-label {
+            opacity: 0.7;
+        }
+    }
+}
+
+.status-section {
+    border: none;
+    padding: 0;
+    margin: 0;
+
+    .status-label {
+        display: block;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.75rem;
+        padding: 0;
+    }
+
+    .status-select-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .status-select {
+        width: 100%;
+        padding: 0.75rem 2.5rem 0.75rem 1rem;
+        border: 2px solid var(--card-border-color);
+        border-radius: 10px;
+        background: var(--input-bg);
+        color: var(--text-primary);
+        font-size: 0.9375rem;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        transition: all 0.2s ease;
+
+        &:hover {
+            border-color: var(--primary-gradient-start);
+            background: var(--btn-secondary-hover-bg);
+        }
+
+        &:focus {
+            outline: none;
+            border-color: var(--primary-gradient-start);
+            box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1);
+        }
+
+        option {
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+    }
+
+    .select-arrow {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        color: var(--text-secondary);
+
+        svg {
+            display: block;
         }
     }
 }

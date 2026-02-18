@@ -1,9 +1,10 @@
 import { Component, OnInit, OnDestroy } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { Subject, takeUntil } from "rxjs";
+import { Subject, takeUntil, debounceTime } from "rxjs";
 import { AdminService, IUserWithTodos } from "../../../../../core/services/admin.service";
 import { LoaderService } from "../../../../../core/services/loader.service";
 import { ToastService } from "../../../../../core/services/toast.service";
+import { NotificationService } from "../../../../../core/services/notification.service";
 import { ITodoResponse } from "../../../../../core/interfaces/todo.interface";
 
 @Component({
@@ -16,16 +17,29 @@ import { ITodoResponse } from "../../../../../core/interfaces/todo.interface";
 export class AdminPanelComponent implements OnInit, OnDestroy {
     private readonly _destroy$ = new Subject<void>();
     usersWithTodos: IUserWithTodos[] = [];
+    private originalTodosMap: Map<number, ITodoResponse[]> = new Map();
     expandedUsers: Set<number> = new Set();
 
     constructor(
         private readonly _adminService: AdminService,
         private readonly _loaderService: LoaderService,
-        private readonly _toastService: ToastService
+        private readonly _toastService: ToastService,
+        private readonly _notificationService: NotificationService
     ) {}
 
     ngOnInit(): void {
         this.loadUsersWithTodos();
+        
+        this._notificationService.notificationEvents$
+            .pipe(
+                debounceTime(300),
+                takeUntil(this._destroy$)
+            )
+            .subscribe((notification) => {
+                if (notification.todo_id) {
+                    this.loadUsersWithTodos();
+                }
+            });
     }
 
     loadUsersWithTodos(): void {
@@ -34,7 +48,16 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this._destroy$))
             .subscribe({
                 next: (data) => {
-                    this.usersWithTodos = data;
+                    this.originalTodosMap.clear();
+                    data.forEach(userData => {
+                        this.originalTodosMap.set(userData.user.id, userData.todos);
+                    });
+                    
+                    this.usersWithTodos = data.map(userData => ({
+                        ...userData,
+                        todos: userData.todos.filter(todo => todo.status !== 'done'),
+                        todo_count: userData.todos.filter(todo => todo.status !== 'done').length
+                    }));
                     this._loaderService.hide();
                 },
                 error: (error) => {
@@ -62,8 +85,10 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
         return this.expandedUsers.has(userId);
     }
 
-    getCompletedCount(todos: ITodoResponse[]): number {
-        return todos.filter(t => t.completed).length;
+    getCompletedCount(userId: number): number {
+        const originalTodos = this.originalTodosMap.get(userId);
+        if (!originalTodos) return 0;
+        return originalTodos.filter(t => t.status === 'done').length;
     }
 
     getPriorityClass(priority: string): string {

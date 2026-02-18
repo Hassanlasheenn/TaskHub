@@ -130,7 +130,7 @@ def get_users_with_todos(
                 "id": todo.id,
                 "title": todo.title,
                 "description": todo.description,
-                "completed": todo.completed,
+                "status": todo.status or "new",
                 "priority": todo.priority,
                 "category": todo.category,
                 "order_index": todo.order_index,

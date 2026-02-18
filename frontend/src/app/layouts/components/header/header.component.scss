@@ -57,6 +57,9 @@
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
+        font-family: 'Caveat', 'Montserrat', cursive;
+        font-weight: 400;
+        letter-spacing: 0.05em;
     }
 
     &:hover {

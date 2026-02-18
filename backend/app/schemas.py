@@ -10,6 +10,13 @@ class PriorityLevel(str, Enum):
     HIGH = "high"
 
 
+class TodoStatus(str, Enum):
+    NEW = "new"
+    IN_PROGRESS = "inProgress"
+    PAUSED = "paused"
+    DONE = "done"
+
+
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
@@ -52,13 +59,14 @@ class TodoCreate(BaseModel):
     title: str
     description: Optional[str] = None
     priority: PriorityLevel = PriorityLevel.MEDIUM
+    status: Optional[TodoStatus] = TodoStatus.NEW
     category: Optional[str] = None
     assigned_to_user_id: Optional[int] = None
 
 class TodoUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    completed: Optional[bool] = None
+    status: Optional[TodoStatus] = None
     priority: Optional[PriorityLevel] = None
     category: Optional[str] = None
     assigned_to_user_id: Optional[int] = None
@@ -67,7 +75,7 @@ class TodoResponse(BaseModel):
     id: int
     title: str
     description: Optional[str] = None
-    completed: bool
+    status: str
     priority: str
     category: Optional[str] = None
     order_index: int = 0
