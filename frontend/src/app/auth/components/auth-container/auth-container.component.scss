@@ -1,4 +1,5 @@
 @use '../../../assets/components/auth' as *;
+@use '../../../assets/components/scrollbar' as *;
 
 .auth-wrapper {
     width: 100%;
@@ -71,6 +72,7 @@
     overflow-x: hidden;
     box-sizing: border-box;
     -webkit-overflow-scrolling: touch;
+    @include custom-scrollbar;
 
     &.active {
         opacity: 1;
@@ -162,6 +164,7 @@
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
+        @include custom-scrollbar;
     }
 
     .forms-panel {
@@ -170,6 +173,7 @@
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
+        @include custom-scrollbar;
 
         .login-mode & {
             left: 0;

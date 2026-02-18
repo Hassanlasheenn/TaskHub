@@ -1,3 +1,5 @@
+@use '../../../../../assets/components/scrollbar' as *;
+
 .calendar-container {
     background: transparent;
     backdrop-filter: none;
@@ -466,6 +468,7 @@
     margin-top: -0.5rem;
     width: 100%;
     box-sizing: border-box;
+    @include custom-scrollbar-thin;
 
     @media (max-width: 768px) {
         max-height: calc(100vh - 250px);

@@ -1,3 +1,5 @@
+@use '../../../assets/components/scrollbar' as *;
+
 .notifications-container {
     position: relative;
 }
@@ -86,6 +88,7 @@
 .notifications-list {
     overflow-y: auto;
     max-height: 400px;
+    @include custom-scrollbar-thin;
 }
 
 .no-notifications {

@@ -1,3 +1,5 @@
+@use '../../../assets/components/scrollbar' as *;
+
 .dialog-backdrop {
     position: fixed;
     top: 0;
@@ -96,6 +98,7 @@
     padding: 1.5rem;
     flex: 1;
     overflow-y: auto;
+    @include custom-scrollbar-thin;
 
     .dialog-message {
         font-size: 1rem;

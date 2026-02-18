@@ -1,3 +1,5 @@
+@use '../../../assets/components/scrollbar' as *;
+
 .sidebar-backdrop {
     position: fixed;
     top: 0;
@@ -68,17 +70,5 @@
     flex: 1;
     overflow-y: auto;
     padding: 1.5rem;
-
-    &::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    &::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-        background: var(--card-border-color);
-        border-radius: 3px;
-    }
+    @include custom-scrollbar-thin;
 }

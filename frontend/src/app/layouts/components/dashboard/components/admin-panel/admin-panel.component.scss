@@ -1,3 +1,5 @@
+@use '../../../../../assets/components/scrollbar' as *;
+
 .admin-panel-container {
     width: 100%;
     padding: 1.5rem;
@@ -260,6 +262,7 @@
             max-height: 500px;
             overflow-y: auto;
             min-height: auto;
+            @include custom-scrollbar-thin;
 
             .no-todos {
                 text-align: center;
