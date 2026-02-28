@@ -11,9 +11,7 @@
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  
+
   @include custom-scrollbar;
 
   @media (max-width: 767.98px) {
