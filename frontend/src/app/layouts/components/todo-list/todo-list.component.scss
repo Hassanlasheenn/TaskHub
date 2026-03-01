@@ -718,7 +718,7 @@
     border: 1px solid var(--card-border-color);
     border-radius: 10px;
     box-shadow: var(--card-shadow);
-    z-index: 100;
+    z-index: 1000;
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
@@ -775,7 +775,7 @@
     transition: all 0.2s ease;
 
     &.actions-dropdown-open {
-        z-index: 20;
+        z-index: 100;
     }
 
     &.completed {
