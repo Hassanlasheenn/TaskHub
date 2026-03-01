@@ -28,7 +28,7 @@
                 </div>
                 <div class="todo-view-header-actions">
                     <div class="todo-view-badges">
-                        <div *ngIf="isAdmin" class="todo-view-dropdown-wrap">
+                        <div class="todo-view-dropdown-wrap">
                             <select
                                 class="todo-view-select assigned-select"
                                 [(ngModel)]="todo.assigned_to_user_id"
@@ -36,10 +36,10 @@
                             >
                                 <option [ngValue]="null">Unassigned</option>
                                 <option
-                                    *ngIf="todo.assigned_to_user_id && !userInList(todo.assigned_to_user_id)"
+                                    *ngIf="todo.assigned_to_user_id && !assigneeInList(todo.assigned_to_user_id)"
                                     [ngValue]="todo.assigned_to_user_id"
                                 >{{ todo.assigned_to_username || ('User #' + todo.assigned_to_user_id) }}</option>
-                                <option *ngFor="let u of users" [ngValue]="u.id">{{ u.username }}</option>
+                                <option *ngFor="let u of mentionableUsers" [ngValue]="u.id">{{ u.username }}</option>
                             </select>
                         </div>
                         <div class="todo-view-dropdown-wrap">

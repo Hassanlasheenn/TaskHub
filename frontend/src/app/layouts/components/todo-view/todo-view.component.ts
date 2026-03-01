@@ -48,7 +48,6 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
     initialPriority: 'low' | 'medium' | 'high' | null = null;
     initialDescription: string | null = null;
     initialAssignedToUserId: number | null = null;
-    users: IUserListResponse[] = [];
     mentionableUsers: IUserListResponse[] = [];
     comments: ITodoComment[] = [];
     newCommentText = '';
@@ -142,7 +141,6 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
                 this.initialPriority = this.todo.priority;
                 this.initialDescription = this.todo.description ?? null;
                 this.initialAssignedToUserId = this.todo.assigned_to_user_id ?? null;
-                if (this.isAdmin) this._loadUsers();
                 this._loadMentionableUsers();
                 this._loadComments();
                 this._loaderService.hide();
@@ -160,13 +158,6 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
         this._destroy$.complete();
     }
 
-    private _loadUsers(): void {
-        this._userService.getUsersWithRoleUser().subscribe({
-            next: (list) => { this.users = list; },
-            error: () => { this.users = []; },
-        });
-    }
-
     private _loadMentionableUsers(): void {
         this._userService.getMentionableUsers().subscribe({
             next: (list) => { this.mentionableUsers = list; },
@@ -174,8 +165,8 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
         });
     }
 
-    userInList(userId: number): boolean {
-        return this.users.some((u) => u.id === userId);
+    assigneeInList(userId: number): boolean {
+        return this.mentionableUsers.some((u) => u.id === userId);
     }
 
     private _loadComments(): void {
