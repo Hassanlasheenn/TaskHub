@@ -4,6 +4,16 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from .. import database, models, schemas
 from ..dependencies import get_current_user
+from ..cache import (
+    cache_get,
+    cache_set,
+    invalidate_user_list_caches,
+    invalidate_user_profile,
+    PREFIX_USERS_MENTIONABLE,
+    PREFIX_USERS_ROLE_USER,
+    PREFIX_USER_PROFILE,
+)
+from ..config import CACHE_TTL_USER_LISTS, CACHE_TTL_USER_PROFILE
 
 
 router = APIRouter(tags=["users"])
@@ -21,8 +31,12 @@ def get_mentionable_users(
     current_user: models.User = Depends(get_current_user)
 ):
     """Return all users except the current user, for @mentions (includes admins)."""
+    cache_key = f"{PREFIX_USERS_MENTIONABLE}{current_user.id}"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return [schemas.UserListResponse(**item) for item in cached]
     users = db.query(models.User).filter(models.User.id != current_user.id).all()
-    return [
+    result = [
         schemas.UserListResponse(
             id=user.id,
             username=user.username,
@@ -32,14 +46,19 @@ def get_mentionable_users(
         )
         for user in users
     ]
+    cache_set(cache_key, [r.model_dump(mode="json") for r in result], CACHE_TTL_USER_LISTS)
+    return result
 
 
 @router.get("/{user_id}", response_model=schemas.UserResponse)
 def get_user_data(user_id: int, db: Session = Depends(database.get_db)):
+    cache_key = f"{PREFIX_USER_PROFILE}{user_id}"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return schemas.UserResponse(**cached)
     user_db = db.query(models.User).filter(models.User.id == user_id).first()
     if user_db is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    
     user_dict = {
         "id": user_db.id,
         "username": user_db.username,
@@ -47,6 +66,7 @@ def get_user_data(user_id: int, db: Session = Depends(database.get_db)):
         "photo": getattr(user_db, 'profile_pic', None),
         "role": getattr(user_db, 'role', 'user')
     }
+    cache_set(cache_key, user_dict, CACHE_TTL_USER_PROFILE)
     return schemas.UserResponse(**user_dict)
 
 
@@ -90,7 +110,8 @@ async def update_user_data(
     
     db.commit()
     db.refresh(user_db)
-    
+    invalidate_user_profile(user_id)
+    invalidate_user_list_caches()
     user_dict = {
         "id": user_db.id,
         "username": user_db.username,
@@ -106,11 +127,14 @@ def get_users_with_role_user(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_current_user)
 ):
+    cache_key = PREFIX_USERS_ROLE_USER
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return [schemas.UserListResponse(**item) for item in cached]
     users = db.query(models.User).filter(
         models.User.role == models.UserRole.USER.value
     ).all()
-    
-    return [
+    result = [
         schemas.UserListResponse(
             id=user.id,
             username=user.username,
@@ -120,3 +144,5 @@ def get_users_with_role_user(
         )
         for user in users
     ]
+    cache_set(cache_key, [r.model_dump(mode="json") for r in result], CACHE_TTL_USER_LISTS)
+    return result

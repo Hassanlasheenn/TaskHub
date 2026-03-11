@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 from . import models, schemas, database
 from .config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from .cache import invalidate_user_list_caches
 
 ph = PasswordHasher()
 
@@ -47,7 +48,7 @@ def register(user: schemas.UserCreate, response: Response, db: Session = Depends
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    
+    invalidate_user_list_caches()
     user_role = getattr(new_user, 'role', 'user')
     access_token = create_access_token(data={"sub": new_user.email, "role": user_role})
     

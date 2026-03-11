@@ -1,12 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.routers import register_routers
+from app.cache import get_redis_status
 import os
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+INSTANCE_ID = os.getenv("INSTANCE_ID", "single")
+
+app = FastAPI(root_path=os.getenv("ROOT_PATH", ""))
 
 # CORS configuration based on environment
 environment = os.getenv("ENVIRONMENT", "development").lower()
@@ -41,3 +44,20 @@ app.add_middleware(
 
 # Register all routers
 register_routers(app)
+
+
+@app.middleware("http")
+async def add_instance_header(request: Request, call_next):
+    response: Response = await call_next(request)
+    response.headers["X-Served-By"] = INSTANCE_ID
+    return response
+
+
+@app.get("/health")
+def health():
+    redis_status = get_redis_status()
+    return {
+        "status": "ok",
+        "instance": INSTANCE_ID,
+        "redis": redis_status,
+    }

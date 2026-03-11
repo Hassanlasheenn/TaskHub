@@ -1,9 +1,11 @@
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Dict
 from .. import database, models, schemas
 from ..dependencies import get_current_admin_user
+from ..cache import cache_get, cache_set, invalidate_user_list_caches
+from ..cache import PREFIX_ADMIN_USERS, PREFIX_ADMIN_USERS_WITH_TODOS
+from ..config import CACHE_TTL_USER_LISTS
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -13,8 +15,11 @@ def list_users(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_current_admin_user)
 ):
+    cached = cache_get(PREFIX_ADMIN_USERS)
+    if cached is not None:
+        return [schemas.UserListResponse(**item) for item in cached]
     users = db.query(models.User).all()
-    return [
+    result = [
         schemas.UserListResponse(
             id=user.id,
             username=user.username,
@@ -24,6 +29,8 @@ def list_users(
         )
         for user in users
     ]
+    cache_set(PREFIX_ADMIN_USERS, [r.model_dump(mode="json") for r in result], CACHE_TTL_USER_LISTS)
+    return result
 
 
 @router.delete("/users/{user_id}")
@@ -54,7 +61,7 @@ def delete_user(
     # Delete the user (todos owned by user will be cascade deleted via relationship)
     db.delete(user)
     db.commit()
-    
+    invalidate_user_list_caches()
     return {"message": "User deleted successfully"}
 
 
@@ -81,7 +88,7 @@ def update_user_role(
     user.role = role_update.role
     db.commit()
     db.refresh(user)
-    
+    invalidate_user_list_caches()
     return schemas.UserListResponse(
         id=user.id,
         username=user.username,
@@ -97,8 +104,17 @@ def get_users_with_todos(
     current_user: models.User = Depends(get_current_admin_user)
 ):
     """Get all users with their todos (admin only) - shows todos owned by or assigned to each user"""
+    cached = cache_get(PREFIX_ADMIN_USERS_WITH_TODOS)
+    if cached is not None:
+        return [
+            {
+                "user": schemas.UserListResponse(**item["user"]),
+                "todos": [schemas.TodoResponse(**t) for t in item["todos"]],
+                "todo_count": item["todo_count"],
+            }
+            for item in cached
+        ]
     from sqlalchemy import or_
-    
     users = db.query(models.User).all()
     
     result = []
@@ -153,5 +169,13 @@ def get_users_with_todos(
             "todos": todo_responses,
             "todo_count": len(todos)
         })
-    
+    # Serialize for cache (Pydantic models -> dicts)
+    cacheable = []
+    for item in result:
+        cacheable.append({
+            "user": item["user"].model_dump(mode="json"),
+            "todos": [t.model_dump(mode="json") for t in item["todos"]],
+            "todo_count": item["todo_count"],
+        })
+    cache_set(PREFIX_ADMIN_USERS_WITH_TODOS, cacheable, CACHE_TTL_USER_LISTS)
     return result

@@ -48,18 +48,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch full history for better change detection
+          fetch-depth: 0
 
       - name: Check if first push
         id: first-push
         run: |
-          # Check if this is the first push (no previous commit)
           if [ -z "${{ github.event.before }}" ] || [ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]; then
             echo "first=true" >> $GITHUB_OUTPUT
-            echo "🚀 First push detected - will build and deploy everything"
           else
             echo "first=false" >> $GITHUB_OUTPUT
-            echo "📝 Comparing against commit: ${{ github.event.before }}"
           fi
 
       - name: Detect changes
@@ -77,48 +74,23 @@ jobs:
               - 'backend/**'
           list-files: shell
           
-      - name: Set outputs (first push, manual trigger, or detected changes)
+      - name: Set outputs
         id: set-outputs
         run: |
-          # Check if this is a manual workflow trigger
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             if [ "${{ github.event.inputs.force_build_all }}" == "true" ]; then
-              # Manual trigger with force_build_all - build everything
               echo "frontend=${{ github.event.inputs.build_frontend }}" >> $GITHUB_OUTPUT
               echo "backend=${{ github.event.inputs.build_backend }}" >> $GITHUB_OUTPUT
-              echo "✅ Manual trigger: Building based on inputs"
             else
-              # Manual trigger but respect change detection
               echo "frontend=${{ steps.filter.outputs.frontend }}" >> $GITHUB_OUTPUT
               echo "backend=${{ steps.filter.outputs.backend }}" >> $GITHUB_OUTPUT
             fi
           elif [ "${{ steps.first-push.outputs.first }}" == "true" ]; then
-            # First push - build and deploy everything
             echo "frontend=true" >> $GITHUB_OUTPUT
             echo "backend=true" >> $GITHUB_OUTPUT
-            echo "✅ First deployment: Building frontend and backend"
           else
-            # Use detected changes
             echo "frontend=${{ steps.filter.outputs.frontend }}" >> $GITHUB_OUTPUT
             echo "backend=${{ steps.filter.outputs.backend }}" >> $GITHUB_OUTPUT
-          fi
-          
-      - name: Debug - Show detected changes
-        run: |
-          echo "🔍 Change Detection Results:"
-          echo "Is first push: ${{ steps.first-push.outputs.first }}"
-          echo "Frontend changes detected: ${{ steps.set-outputs.outputs.frontend }}"
-          echo "Backend changes detected: ${{ steps.set-outputs.outputs.backend }}"
-          if [ "${{ steps.first-push.outputs.first }}" != "true" ]; then
-            echo ""
-            echo "Frontend files changed:"
-            echo "${{ steps.filter.outputs.frontend_files }}"
-            echo ""
-            echo "Backend files changed:"
-            echo "${{ steps.filter.outputs.backend_files }}"
-            echo ""
-            echo "All changed files:"
-            git diff --name-only ${{ github.event.before }} HEAD || echo "No previous commit to compare"
           fi
 
   build-frontend:
@@ -134,15 +106,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          # Cache disabled - package-lock.json might not exist
-          # Will cache during npm install instead
 
       - name: Install dependencies
         working-directory: ./frontend
-        run: |
-          # Use npm install since package-lock.json might not exist
-          # npm ci requires package-lock.json, npm install will create it
-          npm install
+        run: npm install
 
       - name: Run linter (if configured)
         working-directory: ./frontend
@@ -153,47 +120,15 @@ jobs:
         env:
           API_BASE_URL: ${{ secrets.PRODUCTION_API_URL || 'https://api.yourdomain.com' }}
         run: |
-          echo "🔧 Preparing to set API URL: $API_BASE_URL"
-          
-          # Check if environment file exists
           if [ ! -f src/environments/environment.prod.ts ]; then
-            echo "❌ Error: environment.prod.ts not found"
-            exit 1
+            echo "environment.prod.ts not found" && exit 1
           fi
-          
-          # Show current API URL before replacement
-          echo "📄 Current API URL in environment.prod.ts:"
-          grep "apiBaseUrl" src/environments/environment.prod.ts || echo "apiBaseUrl not found"
-          
-          # Try to use the script if it exists, otherwise do manual replacement
           if [ -f scripts/replace-api-url.js ]; then
-            echo "📜 Using replace-api-url.js script"
-            if node scripts/replace-api-url.js "$API_BASE_URL"; then
-              echo "✅ Script executed successfully"
-            else
-              echo "⚠️  Script failed, trying manual replacement..."
-              # Fallback: manual replacement using sed
-              sed -i "s|apiBaseUrl: '.*'|apiBaseUrl: '$API_BASE_URL'|g" src/environments/environment.prod.ts || \
-              sed -i "s|apiBaseUrl: \".*\"|apiBaseUrl: '$API_BASE_URL'|g" src/environments/environment.prod.ts
-              echo "✅ Manual replacement completed"
-            fi
-          else
-            echo "⚠️  Script not found, using manual replacement"
-            # Manual replacement using sed
-            sed -i "s|apiBaseUrl: '.*'|apiBaseUrl: '$API_BASE_URL'|g" src/environments/environment.prod.ts || \
-            sed -i "s|apiBaseUrl: \".*\"|apiBaseUrl: '$API_BASE_URL'|g" src/environments/environment.prod.ts
-            echo "✅ Manual replacement completed"
+            node scripts/replace-api-url.js "$API_BASE_URL" || true
           fi
-          
-          # Verify the replacement
-          echo "📄 Verifying replacement..."
-          if grep -q "apiBaseUrl:" src/environments/environment.prod.ts; then
-            echo "✅ API URL found in environment.prod.ts:"
-            grep "apiBaseUrl" src/environments/environment.prod.ts
-          else
-            echo "❌ Error: apiBaseUrl not found after replacement"
-            exit 1
-          fi
+          sed -i "s|apiBaseUrl: '.*'|apiBaseUrl: '$API_BASE_URL'|g" src/environments/environment.prod.ts 2>/dev/null || \
+          sed -i "s|apiBaseUrl: \".*\"|apiBaseUrl: '$API_BASE_URL'|g" src/environments/environment.prod.ts
+          grep -q "apiBaseUrl:" src/environments/environment.prod.ts || (echo "apiBaseUrl not found after replacement" && exit 1)
 
       - name: Build Angular application (Production)
         working-directory: ./frontend
@@ -204,87 +139,46 @@ jobs:
       - name: Verify build output
         working-directory: ./frontend
         run: |
-          echo "🔍 Checking build output structure..."
-          echo "📁 Contents of dist directory:"
-          ls -la dist/ 2>/dev/null || echo "dist directory not found"
-          
-          # Check multiple possible output locations (Angular 19 uses browser subdirectory)
           BUILD_OUTPUT=""
-          if [ -f "dist/frontend/browser/index.html" ]; then
-            BUILD_OUTPUT="dist/frontend/browser"
-            echo "✅ Found output at: dist/frontend/browser (Angular 19 structure)"
-          elif [ -f "dist/frontend/index.html" ]; then
-            BUILD_OUTPUT="dist/frontend"
-            echo "✅ Found output at: dist/frontend"
-          elif [ -f "dist/browser/index.html" ]; then
-            BUILD_OUTPUT="dist/browser"
-            echo "✅ Found output at: dist/browser"
-          elif [ -f "dist/index.html" ]; then
-            BUILD_OUTPUT="dist"
-            echo "✅ Found output at: dist"
-          else
-            echo "❌ Error: Build output not found in expected locations"
-            echo "Searching for index.html..."
-            find dist -name "index.html" -type f 2>/dev/null || echo "No index.html found"
-            echo ""
-            echo "Full dist structure:"
-            find dist -type f -o -type d | head -30
-            exit 1
+          for path in dist/frontend/browser dist/frontend dist/browser dist; do
+            [ -f "$path/index.html" ] && BUILD_OUTPUT="$path" && break
+          done
+          if [ -z "$BUILD_OUTPUT" ]; then
+            find dist -name "index.html" 2>/dev/null; exit 1
           fi
-          
-          # Verify index.html exists
-          if [ ! -f "$BUILD_OUTPUT/index.html" ]; then
-            echo "❌ Error: index.html not found in $BUILD_OUTPUT"
-            echo "Files in $BUILD_OUTPUT:"
-            ls -la "$BUILD_OUTPUT/" | head -20
-            exit 1
-          fi
-          
-          echo "✅ Build output verified at: $BUILD_OUTPUT"
-          echo "📁 Files in $BUILD_OUTPUT:"
-          ls -la "$BUILD_OUTPUT/" | head -20
-          
-          # Check file sizes
-          echo "📊 Build output size:"
-          du -sh "$BUILD_OUTPUT/"
-          
-          # Save the output path for later steps
           echo "BUILD_OUTPUT_PATH=$BUILD_OUTPUT" >> $GITHUB_ENV
 
-      - name: Prepare frontend artifacts for upload
+      - name: Prepare frontend artifacts
         working-directory: ./frontend
         run: |
-          # Use the detected build output path
           BUILD_OUTPUT="${BUILD_OUTPUT_PATH:-dist/frontend}"
-          echo "📦 Preparing artifacts from: $BUILD_OUTPUT"
-          
-          # Create a consistent structure for deployment
           mkdir -p ../frontend-dist
           cp -r "$BUILD_OUTPUT"/* ../frontend-dist/ 2>/dev/null || cp -r "$BUILD_OUTPUT"/. ../frontend-dist/ 2>/dev/null || true
-          
-          echo "✅ Artifacts prepared in frontend-dist"
-          ls -la ../frontend-dist/ | head -10
-          
+
       - name: Upload frontend build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
           path: frontend-dist
           retention-days: 7
-          
-      - name: Verify artifact structure
-        working-directory: ./frontend
-        run: |
-          echo "📁 Build output structure:"
-          ls -la dist/frontend/ | head -10
-          echo ""
-          echo "✅ Artifact ready for upload"
 
   build-backend:
     name: Build Backend
     needs: detect-changes
     if: needs.detect-changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      REDIS_URL: ${{ secrets.REDIS_URL || 'redis://localhost:6379/0' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -293,8 +187,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          # Cache disabled since requirements.txt might not exist
-          # Will install dependencies manually
 
       - name: Install dependencies
         working-directory: ./backend
@@ -333,9 +225,8 @@ jobs:
         run: |
           mkdir -p ../backend-artifact
           cp -r app ../backend-artifact/
-          cp main.py ../backend-artifact/ 2>/dev/null || echo "main.py not found"
-          cp requirements.txt ../backend-artifact/ 2>/dev/null || echo "requirements.txt not found"
-          cp -r migrations ../backend-artifact/ 2>/dev/null || echo "migrations not found"
+          cp main.py requirements.txt ../backend-artifact/ 2>/dev/null || true
+          cp -r migrations ../backend-artifact/ 2>/dev/null || true
 
       - name: Upload backend build artifacts
         uses: actions/upload-artifact@v4
@@ -371,8 +262,6 @@ jobs:
             pip install fastapi uvicorn sqlalchemy pyodbc python-dotenv argon2-cffi PyJWT
           fi
 
-      # Run database migrations
-      # Configure which database to use by setting the appropriate secret
       - name: Run Database Migrations
         env:
           AZURE_SQL_CONNECTION_STRING: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
@@ -380,47 +269,14 @@ jobs:
           RENDER_DATABASE_URL: ${{ secrets.RENDER_DATABASE_URL }}
           AWS_RDS_CONNECTION_STRING: ${{ secrets.AWS_RDS_CONNECTION_STRING }}
         run: |
-          # Determine which database connection string to use
-          DATABASE_URL=""
-          
-          if [ -n "$AZURE_SQL_CONNECTION_STRING" ]; then
-            DATABASE_URL="$AZURE_SQL_CONNECTION_STRING"
-            echo "🔧 Using Azure SQL Database"
-          elif [ -n "$RAILWAY_DATABASE_URL" ]; then
-            DATABASE_URL="$RAILWAY_DATABASE_URL"
-            echo "🔧 Using Railway database"
-          elif [ -n "$RENDER_DATABASE_URL" ]; then
-            DATABASE_URL="$RENDER_DATABASE_URL"
-            echo "🔧 Using Render database"
-          elif [ -n "$AWS_RDS_CONNECTION_STRING" ]; then
-            DATABASE_URL="$AWS_RDS_CONNECTION_STRING"
-            echo "🔧 Using AWS RDS"
-          else
-            echo "⚠️  No database connection string found in secrets"
-            echo "Skipping migrations. Set one of: AZURE_SQL_CONNECTION_STRING, RAILWAY_DATABASE_URL, RENDER_DATABASE_URL, or AWS_RDS_CONNECTION_STRING"
-            exit 0
+          DATABASE_URL="${AZURE_SQL_CONNECTION_STRING:-${RAILWAY_DATABASE_URL:-${RENDER_DATABASE_URL:-$AWS_RDS_CONNECTION_STRING}}}"
+          if [ -z "$DATABASE_URL" ]; then
+            echo "No database secret set; skipping migrations." && exit 0
           fi
-          
-          if [ -n "$DATABASE_URL" ]; then
-            echo "🚀 Running database migrations..."
-            export DATABASE_URL
-            
-            # Install dependencies first
-            echo "📦 Installing dependencies for migrations..."
-            python -m pip install --upgrade pip
-            pip install -r requirements.txt
-            
-            # Run migrations
-            echo "🔄 Executing migration scripts..."
-            cd backend
-            if [ -f "run_migrations.py" ]; then
-              python run_migrations.py
-            else
-              echo "⚠️  run_migrations.py not found, skipping migrations"
-              echo "ℹ️  Note: Tables will be created automatically by SQLAlchemy on first startup"
-            fi
-            echo "✅ Migrations completed"
-          fi
+          export DATABASE_URL
+          python -m pip install --upgrade pip -q
+          pip install -r backend/requirements.txt -q
+          (cd backend && [ -f run_migrations.py ] && python run_migrations.py) || true
 
   deploy:
     name: Deploy Application
@@ -445,36 +301,12 @@ jobs:
           path: frontend-dist
           continue-on-error: false
           
-      - name: Verify and fix artifact structure
+      - name: Fix frontend artifact structure
         if: needs.detect-changes.outputs.frontend == 'true'
         run: |
-          echo "📁 Checking artifact structure..."
-          ls -la frontend-dist/ || echo "frontend-dist not found"
-          
-          # Check if there's a nested structure (frontend-dist/frontend-dist or frontend-dist/browser)
-          if [ -d "frontend-dist/frontend" ]; then
-            echo "⚠️  Found nested structure, flattening..."
-            mv frontend-dist/frontend/* frontend-dist/ 2>/dev/null || true
-            rmdir frontend-dist/frontend 2>/dev/null || true
-          fi
-          
-          if [ -d "frontend-dist/browser" ]; then
-            echo "⚠️  Found browser subdirectory, moving contents up..."
-            mv frontend-dist/browser/* frontend-dist/ 2>/dev/null || true
-            rmdir frontend-dist/browser 2>/dev/null || true
-          fi
-          
-          echo "✅ Final structure:"
-          ls -la frontend-dist/ | head -15
-          
-          # Verify index.html exists
-          if [ ! -f "frontend-dist/index.html" ]; then
-            echo "❌ Error: index.html not found after structure fix"
-            find frontend-dist -name "index.html" -type f || echo "No index.html found anywhere"
-            exit 1
-          fi
-          
-          echo "✅ index.html found at: frontend-dist/index.html"
+          [ -d "frontend-dist/frontend" ] && mv frontend-dist/frontend/* frontend-dist/ 2>/dev/null; rmdir frontend-dist/frontend 2>/dev/null || true
+          [ -d "frontend-dist/browser" ] && mv frontend-dist/browser/* frontend-dist/ 2>/dev/null; rmdir frontend-dist/browser 2>/dev/null || true
+          [ -f "frontend-dist/index.html" ] || (find frontend-dist -name "index.html" -type f; exit 1)
 
       - name: Download backend artifacts
         if: |
@@ -502,62 +334,23 @@ jobs:
             echo "✅ Backend build artifacts available" >> $GITHUB_STEP_SUMMARY
           fi
 
-      
-      # Deploy Frontend to Vercel
-      # This step deploys the pre-built Angular app from GitHub Actions to Vercel
       - name: Install Vercel CLI
         if: needs.detect-changes.outputs.frontend == 'true'
-        run: |
-          npm install -g vercel@latest
-          echo "✅ Vercel CLI installed"
-          vercel --version
+        run: npm install -g vercel@latest
 
       - name: Prepare Vercel deployment
         if: needs.detect-changes.outputs.frontend == 'true'
         run: |
-          # Verify build output exists
-          if [ ! -d "frontend-dist" ]; then
-            echo "❌ Error: frontend-dist directory not found"
-            exit 1
-          fi
-          
-          # Check if index.html exists
-          if [ ! -f "frontend-dist/index.html" ]; then
-            echo "❌ Error: index.html not found in build output"
-            echo "Contents of frontend-dist:"
-            ls -la frontend-dist/ || true
-            exit 1
-          fi
-          
-          echo "✅ Build output verified:"
-          ls -la frontend-dist/ | head -10
-          
-          # Copy vercel.json to the build output directory
+          [ -f "frontend-dist/index.html" ] || exit 1
           if [ -f "frontend/vercel.json" ]; then
             cp frontend/vercel.json frontend-dist/vercel.json
-            echo "✅ Copied vercel.json to build output"
           else
-            echo "⚠️  vercel.json not found, creating one that disables build"
             echo '{"version":2,"buildCommand":"","outputDirectory":".","installCommand":"","framework":null,"rewrites":[{"source":"/(.*)","destination":"/index.html"}]}' > frontend-dist/vercel.json
           fi
-          
-          # Verify vercel.json
-          echo "📄 vercel.json contents:"
-          cat frontend-dist/vercel.json
-          
-          # Remove any source files that might trigger Vercel to build
-          # Vercel might detect Angular from package.json or angular.json
           rm -f frontend-dist/package.json frontend-dist/angular.json frontend-dist/tsconfig.json 2>/dev/null || true
           rm -rf frontend-dist/src frontend-dist/node_modules 2>/dev/null || true
-          
-          echo "✅ Removed source files that might trigger builds"
-          echo "📁 Final deployment directory contents:"
-          ls -la frontend-dist/ | head -15
-          
-          echo "✅ Frontend build ready for deployment"
-          echo "📦 Production API URL: ${{ secrets.PRODUCTION_API_URL || 'https://api.yourdomain.com' }}"
 
-      - name: Deploy to Vercel (Pre-built Static Files)
+      - name: Deploy to Vercel
         if: needs.detect-changes.outputs.frontend == 'true'
         working-directory: ./frontend-dist
         env:
@@ -565,237 +358,23 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          # Verify required secrets
-          if [ -z "$VERCEL_TOKEN" ]; then
-            echo "❌ Error: VERCEL_TOKEN secret is not set"
-            exit 1
-          fi
-          if [ -z "$VERCEL_PROJECT_ID" ]; then
-            echo "❌ Error: VERCEL_PROJECT_ID secret is not set"
-            exit 1
-          fi
-          if [ -z "$VERCEL_ORG_ID" ]; then
-            echo "❌ Error: VERCEL_ORG_ID secret is not set"
-            exit 1
-          fi
-          
-          echo "🔗 Setting up Vercel project..."
-          echo "📦 Project ID: $VERCEL_PROJECT_ID"
-          echo "🏢 Organization ID: $VERCEL_ORG_ID"
-          
-          # Verify project exists by checking Vercel API
-          echo "🔍 Verifying project access..."
-          PROJECT_CHECK=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
-            "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID" 2>&1)
-          
-          if echo "$PROJECT_CHECK" | grep -q '"id"'; then
-            echo "✅ Project found and accessible"
-            PROJECT_NAME=$(echo "$PROJECT_CHECK" | grep -o '"name":"[^"]*"' | head -1 | cut -d'"' -f4)
-            echo "📝 Project name: $PROJECT_NAME"
-          elif echo "$PROJECT_CHECK" | grep -q "NOT_FOUND\|not found\|404"; then
-            echo "❌ Error: Project not found with ID: $VERCEL_PROJECT_ID"
-            echo ""
-            echo "🔧 Troubleshooting steps:"
-            echo "1. Verify the project exists in Vercel dashboard:"
-            echo "   https://vercel.com/$VERCEL_ORG_ID"
-            echo ""
-            echo "2. Get the correct Project ID:"
-            echo "   - Go to: https://vercel.com/$VERCEL_ORG_ID/[your-project-name]/settings/general"
-            echo "   - Find 'Project ID' in the General settings"
-            echo ""
-            echo "3. Or create a new project and link it:"
-            echo "   - Create project in Vercel dashboard"
-            echo "   - Copy the Project ID from settings"
-            echo ""
-            exit 1
-          else
-            echo "⚠️  Could not verify project (might be a token issue)"
-            echo "📋 API response: $PROJECT_CHECK"
-          fi
-          
-          # Create .vercel directory with project configuration
+          [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_PROJECT_ID" ] && [ -n "$VERCEL_ORG_ID" ] || (echo "Missing Vercel secrets"; exit 1)
+          PROJECT_CHECK=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID" 2>&1)
+          echo "$PROJECT_CHECK" | grep -q '"id"' || (echo "$PROJECT_CHECK" | grep -q "NOT_FOUND\|404" && echo "Project not found: $VERCEL_PROJECT_ID" && exit 1)
           mkdir -p .vercel
           echo "{\"projectId\":\"$VERCEL_PROJECT_ID\",\"orgId\":\"$VERCEL_ORG_ID\"}" > .vercel/project.json
-          
-          echo "✅ Created .vercel/project.json"
-          cat .vercel/project.json
-          
-          echo "📁 Working directory: $(pwd)"
-          echo "📂 Contents:"
-          ls -la | head -15
-          
-          # Verify index.html exists
-          if [ ! -f "index.html" ]; then
-            echo "❌ Error: index.html not found in deployment directory"
-            echo "Current directory contents:"
-            find . -type f -name "*.html" | head -5
-            exit 1
+          set +e
+          OUT=$(vercel deploy --prod --yes --token $VERCEL_TOKEN --prebuilt --force 2>&1)
+          CODE=$?
+          set -e
+          echo "$OUT"
+          if [ $CODE -ne 0 ]; then
+            OUT=$(vercel deploy --prod --yes --token $VERCEL_TOKEN --force 2>&1)
+            echo "$OUT"
+            [ $? -ne 0 ] && exit 1
           fi
-          
-          echo "✅ index.html found, ready to deploy"
-          
-          # Deploy as static files (no build) - use --prebuilt to skip build
-          # The vercel.json in this directory should prevent any build attempts
-          echo "🚀 Deploying to Vercel (production)..."
-          echo "🔄 Command: vercel deploy --prod --yes --token [HIDDEN] --prebuilt"
-          
-          # Verify Vercel CLI is installed
-          if ! command -v vercel &> /dev/null; then
-            echo "❌ Error: Vercel CLI not found. Installing..."
-            npm install -g vercel@latest
-          fi
-          
-          echo "✅ Vercel CLI version:"
-          vercel --version || echo "⚠️  Could not get version"
-          
-          # Deploy with better error handling
-          echo "🚀 Starting deployment..."
-          set +e  # Don't exit on error immediately
-          DEPLOYMENT_OUTPUT=$(vercel deploy --prod --yes --token $VERCEL_TOKEN --prebuilt --force 2>&1)
-          DEPLOYMENT_EXIT_CODE=$?
-          set -e  # Re-enable exit on error
-          
-          echo ""
-          echo "📋 Deployment output:"
-          echo "$DEPLOYMENT_OUTPUT"
-          echo ""
-          
-          if [ $DEPLOYMENT_EXIT_CODE -eq 0 ]; then
-            echo "✅ Deployment completed successfully!"
-            
-            # Extract deployment URL from output (multiple patterns)
-            DEPLOYMENT_URL=$(echo "$DEPLOYMENT_OUTPUT" | grep -oE 'https://[a-zA-Z0-9-]+\.vercel\.app' | head -1)
-            
-            if [ -z "$DEPLOYMENT_URL" ]; then
-              # Try alternative pattern
-              DEPLOYMENT_URL=$(echo "$DEPLOYMENT_OUTPUT" | grep -oE 'https://[^\s]+\.vercel\.app' | head -1)
-            fi
-            
-            if [ -n "$DEPLOYMENT_URL" ]; then
-              echo "🌐 Deployment URL: $DEPLOYMENT_URL"
-              echo "::notice title=Deployment Success::Frontend deployed to $DEPLOYMENT_URL"
-            else
-              echo "ℹ️  Deployment succeeded! Check Vercel dashboard for URL:"
-              echo "🔗 https://vercel.com/$VERCEL_ORG_ID/$VERCEL_PROJECT_ID"
-            fi
-          else
-            echo "❌ Error: Vercel deployment failed with exit code $DEPLOYMENT_EXIT_CODE"
-            echo ""
-            echo "📋 Full error output:"
-            echo "$DEPLOYMENT_OUTPUT"
-            echo ""
-            
-            # Check for common errors
-            if echo "$DEPLOYMENT_OUTPUT" | grep -q "Project not found"; then
-              echo "🔍 Error: Project not found. Verify VERCEL_PROJECT_ID is correct."
-            elif echo "$DEPLOYMENT_OUTPUT" | grep -q "Invalid token"; then
-              echo "🔍 Error: Invalid token. Verify VERCEL_TOKEN is valid and not expired."
-            elif echo "$DEPLOYMENT_OUTPUT" | grep -q "Organization not found"; then
-              echo "🔍 Error: Organization not found. Verify VERCEL_ORG_ID is correct."
-            elif echo "$DEPLOYMENT_OUTPUT" | grep -q "prebuilt"; then
-              echo "🔍 Error: --prebuilt flag issue. Trying without it..."
-            fi
-            
-            echo ""
-            echo "🔧 Attempting alternative deployment method (without --prebuilt)..."
-            
-            # Try deploying without --prebuilt flag but with explicit config
-            echo "🔄 Trying: vercel deploy --prod --yes --token [HIDDEN]"
-            ALTERNATIVE_OUTPUT=$(vercel deploy --prod --yes --token $VERCEL_TOKEN --force 2>&1)
-            ALTERNATIVE_EXIT=$?
-            
-            echo "📋 Alternative deployment output:"
-            echo "$ALTERNATIVE_OUTPUT"
-            
-            if [ $ALTERNATIVE_EXIT -eq 0 ]; then
-              echo "✅ Alternative deployment method succeeded"
-              
-              # Extract deployment URL
-              ALT_DEPLOYMENT_URL=$(echo "$ALTERNATIVE_OUTPUT" | grep -oE 'https://[a-zA-Z0-9-]+\.vercel\.app' | head -1)
-              if [ -n "$ALT_DEPLOYMENT_URL" ]; then
-                echo "🌐 Deployment URL: $ALT_DEPLOYMENT_URL"
-                echo "::notice title=Deployment Success::Frontend deployed to $ALT_DEPLOYMENT_URL"
-              fi
-            else
-              echo "❌ All deployment methods failed"
-              echo ""
-              echo "📋 Last error output:"
-              echo "$ALTERNATIVE_OUTPUT"
-              echo ""
-              echo "🔍 Troubleshooting checklist:"
-              echo "1. Verify VERCEL_TOKEN is valid and not expired"
-              echo "   → Get new token: https://vercel.com/account/tokens"
-              echo "2. Verify VERCEL_PROJECT_ID is correct"
-              echo "   → Check: Vercel Dashboard → Project Settings → General"
-              echo "3. Verify VERCEL_ORG_ID matches your team"
-              echo "   → Check: Vercel Dashboard → Team Settings → General"
-              echo "4. Verify project exists and you have access"
-              echo "   → Check: https://vercel.com/$VERCEL_ORG_ID/$VERCEL_PROJECT_ID"
-              echo "5. Check if index.html exists in deployment directory"
-              echo ""
-              exit 1
-            fi
-          fi
-
-      # Alternative Method 2: Use Vercel Action (deploys from source)
-      # Uncomment this if Method 1 doesn't work and comment out Method 1 above
-      # - name: Deploy Frontend to Vercel (from source)
-      #   if: needs.detect-changes.outputs.frontend == 'true'
-      #   uses: amondnet/vercel-action@v25
-      #   with:
-      #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
-      #     vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-      #     vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-      #     vercel-args: '--prod --yes'
-      #     working-directory: ./frontend
-      #   continue-on-error: true
-
-      # Deploy Backend to Railway (Recommended for FastAPI)
-      - name: Deploy Backend to Railway
-        if: needs.detect-changes.outputs.backend == 'true'
-        run: |
-          echo "🚀 Deploying backend to Railway..."
-          echo "⚠️  Railway deployment requires Railway CLI or API setup"
-          echo ""
-          echo "Option 1: Use Railway CLI"
-          echo "  - Install: npm install -g @railway/cli"
-          echo "  - Login: railway login"
-          echo "  - Deploy: railway up"
-          echo ""
-          echo "Option 2: Use Railway API"
-          echo "  - Set RAILWAY_TOKEN secret"
-          echo "  - Use Railway API to trigger deployment"
-          echo ""
-          echo "Option 3: Use Railway GitHub integration"
-          echo "  - Connect Railway to GitHub in Railway dashboard"
-          echo "  - Railway will auto-deploy on push"
-          echo ""
-          echo "📝 For now, skipping Railway deployment"
-          echo "   Configure Railway deployment manually or use Railway's GitHub integration"
-        continue-on-error: true
-
-      # Alternative: Deploy Backend to Render
-      # - name: Deploy Backend to Render
-      #   if: needs.detect-changes.outputs.backend == 'true'
-      #   uses: johnbeynon/render-deploy@v0.0.7
-      #   with:
-      #     service-id: ${{ secrets.RENDER_SERVICE_ID }}
-      #     api-key: ${{ secrets.RENDER_API_KEY }}
-
-      # Alternative: Deploy Backend to Fly.io
-      # - name: Setup Fly.io
-      #   if: needs.detect-changes.outputs.backend == 'true'
-      #   uses: superfly/flyctl-actions/setup-flyctl@master
-      # 
-      # - name: Deploy Backend to Fly.io
-      #   if: needs.detect-changes.outputs.backend == 'true'
-      #   run: |
-      #     cd backend-artifact
-      #     flyctl deploy --remote-only
-      #   env:
-      #     FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          URL=$(echo "$OUT" | grep -oE 'https://[a-zA-Z0-9-]+\.vercel\.app' | head -1)
+          [ -n "$URL" ] && echo "::notice title=Deployed::Frontend $URL"
 
       - name: Deployment Complete
-        run: |
-          echo "✅ Deployment process completed!"
-          echo "Check your deployment platform for status."
+        run: echo "Deployment finished. Set REDIS_URL on backend host for cache; use /health to verify."

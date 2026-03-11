@@ -1,12 +1,61 @@
 version: '3.8'
 
 services:
+  # ── Nginx Load Balancer ───────────────────────────────────────────
+  nginx:
+    build: ./nginx
+    container_name: todo_app_nginx
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - todo_app_network
+
+  # Backend: scale with "docker compose up -d --scale backend=N" (or deploy.replicas in Swarm)
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    networks:
+      - todo_app_network
+    deploy:
+      replicas: 3
+
+  # ── Redis Cache ───────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: todo_app_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - todo_app_network
+
+  # ── SQL Server (optional, for local dev) ──────────────────────────
   sqlserver:
     image: mcr.microsoft.com/azure-sql-edge:latest
     container_name: todo_app_sqlserver
-    # Platform will be auto-detected, but can be overridden via environment variable
-    # For Intel Macs/Windows: remove platform line or set to linux/amd64
-    # For Apple Silicon (M1/M2/M3): use linux/arm64
     platform: ${DOCKER_PLATFORM:-linux/arm64}
     environment:
       ACCEPT_EULA: "Y"
@@ -28,6 +77,8 @@ services:
 
 volumes:
   sqlserver_data:
+    driver: local
+  redis_data:
     driver: local
 
 networks:

@@ -7,6 +7,18 @@ from .. import database, models, schemas
 from ..routers.notifications import create_notification
 from ..services.notification_service import notification_manager
 from ..services.email_service import EmailService
+from ..cache import (
+    cache_get,
+    cache_set,
+    invalidate_todo_list_for_user,
+    invalidate_todo_detail,
+    invalidate_todo_comments,
+    invalidate_admin_users_with_todos,
+    PREFIX_TODOS_LIST,
+    PREFIX_TODO_DETAIL,
+    PREFIX_TODO_COMMENTS,
+)
+from ..config import CACHE_TTL_TODO_LIST, CACHE_TTL_TODO_DETAIL, CACHE_TTL_TODO_COMMENTS
 
 router = APIRouter(prefix="/todos", tags=["todos"])
 
@@ -20,20 +32,25 @@ def get_todos(
     limit: int = 100,
     db: Session = Depends(database.get_db)
 ):
+    cache_key = f"{PREFIX_TODOS_LIST}{user_id}:{skip}:{limit}"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return schemas.TodoListResponse(
+            todos=[schemas.TodoResponse(**t) for t in cached["todos"]],
+            total=cached["total"],
+        )
     todos = db.query(models.Todo).filter(
         or_(
             models.Todo.user_id == user_id,
             models.Todo.assigned_to_user_id == user_id
         )
     ).distinct().order_by(models.Todo.order_index.asc()).offset(skip).limit(limit).all()
-    
     total = db.query(models.Todo).filter(
         or_(
             models.Todo.user_id == user_id,
             models.Todo.assigned_to_user_id == user_id
         )
     ).count()
-    
     todo_responses = []
     for todo in todos:
         assigned_to_username = None
@@ -43,7 +60,6 @@ def get_todos(
             ).first()
             if assigned_user:
                 assigned_to_username = assigned_user.username
-        
         todo_dict = {
             "id": todo.id,
             "title": todo.title,
@@ -59,7 +75,11 @@ def get_todos(
             "assigned_to_username": assigned_to_username
         }
         todo_responses.append(schemas.TodoResponse(**todo_dict))
-    
+    cache_set(
+        cache_key,
+        {"todos": [t.model_dump(mode="json") for t in todo_responses], "total": total},
+        CACHE_TTL_TODO_LIST,
+    )
     return schemas.TodoListResponse(todos=todo_responses, total=total)
 
 
@@ -142,6 +162,10 @@ async def create_todo(
                     db_todo.title
                 )
     
+    invalidate_todo_list_for_user(user_id)
+    if db_todo.assigned_to_user_id:
+        invalidate_todo_list_for_user(db_todo.assigned_to_user_id)
+    invalidate_admin_users_with_todos()
     todo_dict = {
         "id": db_todo.id,
         "title": db_todo.title,
@@ -253,12 +277,18 @@ def get_todo(
     db: Session = Depends(database.get_db)
 ):
     """Get a single todo by ID. User must be the creator or assigned to the todo."""
+    cache_key = f"{PREFIX_TODO_DETAIL}{todo_id}"
+    cached = cache_get(cache_key)
     todo_db = db.query(models.Todo).filter(models.Todo.id == todo_id).first()
     if not todo_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Todo not found")
     if not _can_access_todo(todo_db, user_id, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized to view this todo")
-    return _build_todo_response(todo_db, db)
+    if cached is not None:
+        return schemas.TodoResponse(**cached)
+    response = _build_todo_response(todo_db, db)
+    cache_set(cache_key, response.model_dump(mode="json"), CACHE_TTL_TODO_DETAIL)
+    return response
 
 
 @router.get("/{todo_id}/comments", response_model=schemas.CommentListResponse)
@@ -268,11 +298,15 @@ def get_todo_comments(
     db: Session = Depends(database.get_db)
 ):
     """Get comments for a todo. User must be creator or assigned to the todo."""
+    cache_key = f"{PREFIX_TODO_COMMENTS}{todo_id}"
     todo_db = db.query(models.Todo).filter(models.Todo.id == todo_id).first()
     if not todo_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Todo not found")
     if not _can_access_todo(todo_db, user_id, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized to view this todo")
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return schemas.CommentListResponse(comments=[schemas.CommentResponse(**c) for c in cached])
     comments = db.query(models.TodoComment).filter(models.TodoComment.todo_id == todo_id).order_by(models.TodoComment.created_at.asc()).all()
     result = []
     for c in comments:
@@ -288,6 +322,7 @@ def get_todo_comments(
             content=c.content,
             created_at=c.created_at,
         ))
+    cache_set(cache_key, [r.model_dump(mode="json") for r in result], CACHE_TTL_TODO_COMMENTS)
     return schemas.CommentListResponse(comments=result)
 
 
@@ -370,6 +405,7 @@ async def create_todo_comment(
             todo_title,
         )
 
+    invalidate_todo_comments(todo_id)
     return schemas.CommentResponse(
         id=comment.id,
         todo_id=comment.todo_id,
@@ -411,6 +447,7 @@ def update_todo_comment(
     db.commit()
     db.refresh(comment_db)
     _add_comment_history(db, todo_id, comment_db.id, user_id, models.TodoCommentHistoryAction.UPDATED.value, content_before=old_content, content_after=content)
+    invalidate_todo_comments(todo_id)
     author = db.query(models.User).filter(models.User.id == comment_db.user_id).first()
     return schemas.CommentResponse(
         id=comment_db.id,
@@ -449,6 +486,7 @@ def delete_todo_comment(
     db.delete(comment_db)
     db.commit()
     _add_comment_history(db, todo_id, comment_id_val, user_id, models.TodoCommentHistoryAction.DELETED.value, content_before=content_before, content_after=None)
+    invalidate_todo_comments(todo_id)
     return None
 
 
@@ -829,6 +867,13 @@ async def update_todo(
         new_val = (new_assignee.username if new_assignee else "Unassigned") if todo_db.assigned_to_user_id else "Unassigned"
         _add_field_history(db, todo_id, user_id, "assigned_to_user_id", old_val, new_val)
 
+    invalidate_todo_detail(todo_id)
+    invalidate_todo_list_for_user(todo_db.user_id)
+    if todo_db.assigned_to_user_id:
+        invalidate_todo_list_for_user(todo_db.assigned_to_user_id)
+    if original_assigned_user_id and original_assigned_user_id != todo_db.assigned_to_user_id:
+        invalidate_todo_list_for_user(original_assigned_user_id)
+    invalidate_admin_users_with_todos()
     return _build_todo_response(todo_db, db)
 
 @router.delete("/{todo_id}")
@@ -902,5 +947,9 @@ async def delete_todo(
     ).update({models.Todo.order_index: models.Todo.order_index - 1})
     
     db.commit()
-
+    invalidate_todo_detail(todo_id)
+    invalidate_todo_list_for_user(todo.user_id)
+    if todo.assigned_to_user_id:
+        invalidate_todo_list_for_user(todo.assigned_to_user_id)
+    invalidate_admin_users_with_todos()
     return {"message": "Todo deleted successfully"}
