@@ -20,3 +20,4 @@
 .idea/
 .env
 frontend-dist/
+docker-compose.dev.yml

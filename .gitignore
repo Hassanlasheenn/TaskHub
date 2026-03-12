@@ -69,3 +69,4 @@ frontend/typings/
 .DS_Store
 Thumbs.db
 
+docker-compose.dev.yml
