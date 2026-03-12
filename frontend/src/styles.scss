@@ -21,7 +21,7 @@ body {
   position: relative;
   overflow-x: hidden;
   color: var(--text-primary);
-  transition: background 0.3s ease, color 0.3s ease;
+  transition: color 0.3s ease;
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
@@ -51,7 +51,9 @@ app-root {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   max-height: 100vh;
+  max-height: 100dvh;
   background: transparent;
   padding: var(--header-top-margin, 1.25rem) 1.25rem 0 1.25rem;
   position: relative;
@@ -71,21 +73,16 @@ app-root {
 }
 
 * {
-  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
 }
 
 @media (max-width: 768px) {
   * {
     will-change: auto;
   }
-  
-  .page-wrapper,
-  app-root {
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-  }
 }
 
+.no-transitions,
 .no-transitions * {
   transition: none !important;
 }

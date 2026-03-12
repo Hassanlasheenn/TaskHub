@@ -1,14 +1,18 @@
 <div 
     *ngIf="isOpen" 
     class="sidebar-backdrop" 
+    [class.justify-content-start]="position === 'left'"
+    [class.justify-content-end]="position === 'right'"
     @fadeInOut
     (click)="onBackdropClick($event)"
     (keydown)="onKeyDown($event)"
 >
     <aside 
         class="sidebar-panel" 
+        [class.sidebar-panel--left]="position === 'left'"
+        [class.sidebar-panel--right]="position === 'right'"
         [style.--sidebar-width]="width"
-        @slideInOut
+        [@slideInOut]="animationParams"
         role="dialog"
         aria-modal="true"
     >

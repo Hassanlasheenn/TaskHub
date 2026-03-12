@@ -15,16 +15,28 @@
 }
 
 .sidebar-panel {
+    position: fixed;
+    top: 0;
     height: 100%;
     max-width: 100%;
     width: var(--sidebar-width, 400px);
     background: var(--sidebar-bg);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
-    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.15);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    z-index: 1051;
+
+    &--right {
+        right: 0;
+        box-shadow: -8px 0 32px rgba(0, 0, 0, 0.15);
+    }
+
+    &--left {
+        left: 0;
+        box-shadow: 8px 0 32px rgba(0, 0, 0, 0.15);
+    }
 }
 
 .sidebar-header {

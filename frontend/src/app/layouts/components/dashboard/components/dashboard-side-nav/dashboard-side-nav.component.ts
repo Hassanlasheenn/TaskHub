@@ -35,6 +35,11 @@ export class DashboardSideNavComponent implements OnInit {
         this.isAdmin = this._authService.isAdmin();
         if (this.isAdmin) {
             this.navItems.push({
+                section: DashboardSections.MY_ASSIGNED,
+                icon: 'bi-person-check',
+                label: 'My Assigned'
+            });
+            this.navItems.push({
                 section: DashboardSections.ADMIN_PANEL,
                 icon: 'bi-shield-check',
                 label: 'Admin Panel'

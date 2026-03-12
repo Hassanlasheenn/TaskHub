@@ -148,6 +148,13 @@ export class TodoFormComponent implements OnInit, OnDestroy {
         if (userFieldIndex !== -1) {
             const unassignedOption = { key: 0, value: 'Unassigned' };
             const userOptions = this.users.map(user => ({ key: user.id, value: user.username }));
+            
+            // If current user is admin, add them to the list if not already present
+            const currentUser = this._authService.getCurrentUserData();
+            if (this.isAdmin && currentUser && !this.users.some(u => u.id === currentUser.id)) {
+                userOptions.unshift({ key: currentUser.id, value: `${currentUser.username} (Me)` });
+            }
+            
             this.fields[userFieldIndex].options = [unassignedOption, ...userOptions];
         }
     }

@@ -4,6 +4,7 @@ export enum DashboardSections {
     TODAY = 'today',
     UPCOMING = 'upcoming',
     COMPLETED = 'completed',
+    MY_ASSIGNED = 'my-assigned',
     ANALYTICS = 'analytics',
     SETTINGS = 'settings',
     ADMIN_PANEL = 'admin-panel',

@@ -21,7 +21,7 @@
                                 <tr *ngFor="let user of users; let i = index; trackBy: trackById" [class.current-user]="isCurrentUser(user.id)">
                                     <td>{{ i + 1 }}</td>
                                     <td>{{ user.id }}</td>
-                                    <td>{{ user.username }}</td>
+                                    <td>{{ user.username | titlecase }}</td>
                                     <td>{{ user.email }}</td>
                                     <td>
                                         <select 

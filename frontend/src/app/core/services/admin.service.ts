@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Observable, take } from "rxjs";
+import { Observable, take, map } from "rxjs";
 import { API_URLS } from "../../api.global";
 import { IUserListResponse, IUserRoleUpdate } from "../../auth/interfaces";
 import { ITodoResponse } from "../interfaces/todo.interface";

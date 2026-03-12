@@ -56,6 +56,9 @@ export class ThemeService {
     private applyTheme(theme: ThemeMode): void {
         const body = document.body;
         
+        // Add no-transitions class to prevent layout jumps/flashes
+        this._renderer.addClass(body, 'no-transitions');
+        
         if (theme === 'dark') {
             this._renderer.addClass(body, 'dark-theme');
             this._renderer.removeClass(body, 'light-theme');
@@ -69,6 +72,12 @@ export class ThemeService {
         if (metaThemeColor) {
             metaThemeColor.setAttribute('content', theme === 'dark' ? '#1a1a2e' : '#f5f5f5');
         }
+
+        // Remove no-transitions class after a short delay to allow theme change to settle
+        // A simple setTimeout(0) or 10ms is usually enough for the browser to apply classes without transition
+        setTimeout(() => {
+            this._renderer.removeClass(body, 'no-transitions');
+        }, 10);
     }
 
     private saveTheme(theme: ThemeMode): void {

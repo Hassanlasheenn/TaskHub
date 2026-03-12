@@ -9,6 +9,7 @@ import { ITodo, ITodoCreate, ITodoUpdate } from "../../../core/interfaces/todo.i
 import { LoaderService } from "../../../core/services/loader.service";
 import { ToastService } from "../../../core/services/toast.service";
 import { ConfirmationDialogService } from "../../../core/services/confirmation-dialog.service";
+import { NavigationService } from "../../../core/services/navigation.service";
 import { TodoListComponent } from "../todo-list/todo-list.component";
 import { SidebarComponent } from "../../../shared/components/sidebar/sidebar.component";
 import { DashboardSideNavComponent } from "./components/dashboard-side-nav/dashboard-side-nav.component";
@@ -45,6 +46,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     todos: ITodo[] = [];
     totalTodos: number = 0;
     isSidebarOpen: boolean = false;
+    isNavSidebarOpen: boolean = false;
     editingTodo: ITodo | null = null;
     activeSection: DashboardSections = DashboardSections.DASHBOARD;
     DashboardSections = DashboardSections;
@@ -53,13 +55,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     selectedCategory: string | null = null;
 
     constructor(
-        private readonly _authService: AuthService,
+        public readonly _authService: AuthService,
         private readonly _todoService: TodoService,
         private readonly _notificationService: NotificationService,
         private readonly _loaderService: LoaderService,
         private readonly _toastService: ToastService,
         private readonly _confirmationDialog: ConfirmationDialogService,
-        private readonly _router: Router
+        private readonly _router: Router,
+        private readonly _navService: NavigationService
     ) {}
 
     ngOnInit(): void {
@@ -75,6 +78,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
                 if (notification.todo_id) {
                     this.loadTodos(false);
                 }
+            });
+
+        this._navService.toggleNavSidebar$
+            .pipe(takeUntil(this._destroy$))
+            .subscribe(() => {
+                this.isNavSidebarOpen = !this.isNavSidebarOpen;
             });
     }
 
@@ -132,6 +141,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
         if (this.todoFormComponent) {
             this.todoFormComponent.resetForm();
         }
+    }
+
+    onNavSidebarClose(): void {
+        this.isNavSidebarOpen = false;
     }
 
     onTodoSubmit(todoData: ITodoCreate): void {
@@ -248,6 +261,34 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.selectedCategory = null;
     }
 
+    get unassignedCount(): number {
+        return this.todos.filter(todo => 
+            todo.status !== 'done' && 
+            (!todo.assigned_to_user_id || todo.assigned_to_user_id === null)
+        ).length;
+    }
+
+    get assignedCount(): number {
+        const userId = this._authService.getCurrentUserId();
+        return this.todos.filter(todo => 
+            todo.status !== 'done' && 
+            todo.assigned_to_user_id === userId
+        ).length;
+    }
+
+    get sectionTitle(): string {
+        switch (this.activeSection) {
+            case DashboardSections.COMPLETED:
+                return 'Completed Todos';
+            case DashboardSections.MY_ASSIGNED:
+                return 'My Assigned Todos';
+            case DashboardSections.DASHBOARD:
+                return this._authService.isAdmin() ? 'Unassigned Todos' : 'Your Todos';
+            default:
+                return 'Your Todos';
+        }
+    }
+
     onSearchChange(query: string): void {
         this.searchQuery = query.toLowerCase().trim();
     }
@@ -259,10 +300,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
     get filteredTodos(): ITodo[] {
         let filtered = this.todos;
         const isAdmin = this._authService.isAdmin();
+        const userId = this._authService.getCurrentUserId();
 
         switch (this.activeSection) {
             case DashboardSections.COMPLETED:
                 filtered = filtered.filter(todo => todo.status === 'done');
+                break;
+            case DashboardSections.MY_ASSIGNED:
+                filtered = filtered.filter(todo => 
+                    todo.status !== 'done' && 
+                    todo.assigned_to_user_id === userId
+                );
                 break;
             case DashboardSections.DASHBOARD:
                 if (isAdmin) {
@@ -330,11 +378,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
         // Get categories from filtered todos (after status and search filters, but not category filter)
         let filtered = this.todos;
         const isAdmin = this._authService.isAdmin();
+        const userId = this._authService.getCurrentUserId();
 
         // Apply section filter
         switch (this.activeSection) {
             case DashboardSections.COMPLETED:
                 filtered = filtered.filter(todo => todo.status === 'done');
+                break;
+            case DashboardSections.MY_ASSIGNED:
+                filtered = filtered.filter(todo => 
+                    todo.status !== 'done' && 
+                    todo.assigned_to_user_id === userId
+                );
                 break;
             case DashboardSections.DASHBOARD:
                 if (isAdmin) {

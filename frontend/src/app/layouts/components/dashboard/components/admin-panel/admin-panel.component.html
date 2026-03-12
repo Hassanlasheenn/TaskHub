@@ -13,7 +13,7 @@
                         <i *ngIf="!userData.user.photo" class="bi bi-person-circle"></i>
                     </div>
                     <div class="user-details">
-                        <h3 class="username">{{ userData.user.username }}</h3>
+                        <h3 class="username">{{ userData.user.username | titlecase }}</h3>
                         <p class="user-email">{{ userData.user.email }}</p>
                         <span class="user-role" [class.role-admin]="userData.user.role === 'admin'">
                             {{ userData.user.role === 'admin' ? 'Admin' : 'User' }}

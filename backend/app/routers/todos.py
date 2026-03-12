@@ -102,17 +102,23 @@ async def create_todo(
     ).scalar()
     next_index = (max_index or 0) + 1
     
-    assigned_to_user = None
+    # Validate assignment
     if todo.assigned_to_user_id:
         assigned_to_user = db.query(models.User).filter(
-            models.User.id == todo.assigned_to_user_id,
-            models.User.role == models.UserRole.USER.value
+            models.User.id == todo.assigned_to_user_id
         ).first()
         if not assigned_to_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Assigned user not found or is not a regular user"
+                detail="Assigned user not found"
             )
+        # If the creator is not an admin, they can only assign to regular users
+        if user_role != models.UserRole.ADMIN.value and assigned_to_user.role != models.UserRole.USER.value:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Non-admin users can only assign todos to regular users"
+            )
+
     
     db_todo = models.Todo(
         title=todo.title,
@@ -181,16 +187,23 @@ async def create_todo(
         "assigned_to_username": assigned_to_username
     }
     return schemas.TodoResponse(**todo_dict)
-
-def _validate_assigned_user(assigned_user_id: int, db: Session) -> None:
+def _validate_assigned_user(assigned_to_user_id: int | None, db: Session, user_role: str) -> None:
+    if not assigned_to_user_id:
+        return
     assigned_user = db.query(models.User).filter(
-        models.User.id == assigned_user_id,
-        models.User.role == models.UserRole.USER.value
+        models.User.id == assigned_to_user_id
     ).first()
     if not assigned_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assigned user not found or is not a regular user"
+            detail="Assigned user not found"
+        )
+
+    # If the user performing the update is not an admin, they can only assign to regular users
+    if user_role != models.UserRole.ADMIN.value and assigned_user.role != models.UserRole.USER.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Non-admin users can only assign todos to regular users"
         )
 
 
@@ -679,7 +692,7 @@ async def update_todo(
         new_assigned_user_id = todo.assigned_to_user_id
         
         if new_assigned_user_id is not None:
-            _validate_assigned_user(new_assigned_user_id, db)
+            _validate_assigned_user(new_assigned_user_id, db, updater.role if updater else models.UserRole.USER.value)
         
         # Check if assignment changed
         assignment_changed = old_assigned_user_id != new_assigned_user_id

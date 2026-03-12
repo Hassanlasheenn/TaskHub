@@ -35,91 +35,91 @@
 // ============================================
 body, body.light-theme {
   // Base colors
-  --white-color: #ffffff;
+  --white-color: #f8f7ff;
   --black-color: #000000;
   
   // Background colors
-  --bg-primary: #f5f3ff;
-  --bg-secondary: #ede9fe;
-  --bg-tertiary: #ffffff;
-  --bg-gradient-start: #fafafa;
-  --bg-gradient-end: #f5f3ff;
-  --bg-overlay-gradient-1: rgba(167, 139, 250, 0.05);
-  --bg-overlay-gradient-2: rgba(139, 92, 246, 0.05);
+  --bg-primary: #efebff;
+  --bg-secondary: #e5e0ff;
+  --bg-tertiary: #f8f7ff;
+  --bg-gradient-start: #f4f2ff;
+  --bg-gradient-end: #efebff;
+  --bg-overlay-gradient-1: rgba(167, 139, 250, 0.08);
+  --bg-overlay-gradient-2: rgba(139, 92, 246, 0.08);
   
   // Glassmorphism colors
-  --card-color: rgba(255, 255, 255, 0.4);
-  --card-color-solid: rgba(255, 255, 255, 0.95);
-  --card-border-color: rgba(139, 92, 246, 0.1);
-  --card-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.1);
-  --card-shadow-hover: 0 12px 40px 0 rgba(139, 92, 246, 0.15);
+  --card-color: rgba(248, 247, 255, 0.5);
+  --card-color-solid: rgba(248, 247, 255, 0.98);
+  --card-border-color: rgba(139, 92, 246, 0.15);
+  --card-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.12);
+  --card-shadow-hover: 0 12px 40px 0 rgba(139, 92, 246, 0.18);
   
   // Text colors
   --text-primary: #1e1b4b;
-  --text-secondary: #4338ca;
-  --text-light: #6366f1;
+  --text-secondary: #3730a3;
+  --text-light: #4f46e5;
   --text-white: #ffffff;
   --text-inverse: #ffffff;
   
   // Input colors
-  --input-bg: rgba(255, 255, 255, 0.6);
-  --input-border: rgba(167, 139, 250, 0.2);
+  --input-bg: rgba(248, 247, 255, 0.7);
+  --input-border: rgba(167, 139, 250, 0.25);
   --input-border-focus: var(--primary-gradient-start);
-  --input-placeholder: #a5b4fc;
+  --input-placeholder: #94a3b8;
   
   // Error summary colors
   --error-summary-border-color: var(--danger-color);
-  --error-summary-background-color: rgba(248, 215, 218, 0.9);
+  --error-summary-background-color: rgba(248, 215, 218, 0.95);
   --error-summary-text-color: #721c24;
   --error-summary-title-color: #721c24;
   
   // Button colors
-  --btn-secondary-bg: rgba(255, 255, 255, 0.3);
-  --btn-secondary-hover-bg: rgba(255, 255, 255, 0.5);
+  --btn-secondary-bg: rgba(239, 235, 255, 0.4);
+  --btn-secondary-hover-bg: rgba(229, 224, 255, 0.6);
   --btn-secondary-border: var(--card-border-color);
   
   // Checkbox colors
-  --checkbox-bg: rgba(255, 255, 255, 0.9);
-  --checkbox-border-color: rgba(139, 92, 246, 0.25);
+  --checkbox-bg: rgba(248, 247, 255, 0.95);
+  --checkbox-border-color: rgba(139, 92, 246, 0.3);
   
   // Header colors
-  --header-bg: rgba(255, 255, 255, 0.85);
-  --header-border: rgba(139, 92, 246, 0.1);
+  --header-bg: rgba(248, 247, 255, 0.9);
+  --header-border: rgba(139, 92, 246, 0.12);
   --header-logo-gradient-start: var(--primary-gradient-start);
   --header-logo-gradient-end: var(--primary-gradient-end);
   
   // Dropdown colors
-  --dropdown-bg: rgba(255, 255, 255, 0.95);
-  --dropdown-border: rgba(139, 92, 246, 0.1);
-  --dropdown-item-hover: rgba(167, 139, 250, 0.1);
-  --dropdown-divider: rgba(139, 92, 246, 0.1);
+  --dropdown-bg: rgba(248, 247, 255, 0.98);
+  --dropdown-border: rgba(139, 92, 246, 0.12);
+  --dropdown-item-hover: rgba(167, 139, 250, 0.12);
+  --dropdown-divider: rgba(139, 92, 246, 0.12);
   
   // Theme toggle colors
-  --toggle-track-bg: rgba(255, 255, 255, 0.6);
-  --toggle-track-bg-dark: rgba(30, 41, 59, 0.8);
-  --toggle-border-color: rgba(139, 92, 246, 0.1);
-  --toggle-border-color-dark: rgba(255, 255, 255, 0.1);
+  --toggle-track-bg: rgba(229, 224, 255, 0.7);
+  --toggle-track-bg-dark: rgba(30, 41, 59, 0.85);
+  --toggle-border-color: rgba(139, 92, 246, 0.12);
+  --toggle-border-color-dark: rgba(255, 255, 255, 0.12);
   --toggle-thumb-bg: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
   --toggle-thumb-bg-dark: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 100%);
-  --toggle-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
+  --toggle-shadow: 0 2px 8px rgba(139, 92, 246, 0.12);
   --toggle-sun-color: #fbbf24;
   --toggle-moon-color: #64748b;
   --toggle-moon-active-color: #e2e8f0;
   
   // Sidebar colors
-  --sidebar-bg: rgba(255, 255, 255, 0.95);
-  --sidebar-backdrop: rgba(139, 92, 246, 0.1);
+  --sidebar-bg: rgba(248, 247, 255, 0.98);
+  --sidebar-backdrop: rgba(139, 92, 246, 0.12);
   
   // Priority colors (light variants)
-  --priority-high-bg: rgba(220, 53, 69, 0.1);
-  --priority-high-text: #dc3545;
-  --priority-medium-bg: rgba(255, 193, 7, 0.15);
-  --priority-medium-text: #b38600;
-  --priority-low-bg: rgba(40, 167, 69, 0.1);
-  --priority-low-text: #28a745;
+  --priority-high-bg: rgba(220, 53, 69, 0.12);
+  --priority-high-text: #b91c1c;
+  --priority-medium-bg: rgba(255, 193, 7, 0.18);
+  --priority-medium-text: #92400e;
+  --priority-low-bg: rgba(40, 167, 69, 0.12);
+  --priority-low-text: #15803d;
   
   // Loader colors
-  --loader-backdrop: rgba(255, 255, 255, 0.3);
+  --loader-backdrop: rgba(248, 247, 255, 0.4);
   --loader-spinner-color: #ffffff;
 }
 

@@ -3,6 +3,8 @@ import { Router, NavigationEnd, RouterLink } from "@angular/router";
 import { NgIf } from "@angular/common";
 import { filter, Subject, takeUntil } from "rxjs";
 import { AuthService } from "../../../auth/services";
+import { NavigationService } from "../../../core/services/navigation.service";
+import { ThemeService, ThemeMode } from "../../../core/services/theme.service";
 import { LayoutPaths } from "../../enums";
 import { ThemeToggleComponent } from "../../../shared/components/theme-toggle/theme-toggle.component";
 import { NotificationsComponent } from "../../../shared/components";
@@ -21,16 +23,27 @@ export class HeaderComponent implements OnInit, OnDestroy {
     isAdmin = false;
     userEmail: string = '';
     userPhoto: string | null = null;
+    showMobileMenu: boolean = false;
+    currentTheme: ThemeMode = 'light';
     LayoutPaths = LayoutPaths;
 
     constructor(
         private readonly _authService: AuthService,
-        private readonly _router: Router
+        private readonly _router: Router,
+        private readonly _navService: NavigationService,
+        private readonly _themeService: ThemeService
     ) {}
 
     ngOnInit(): void {
         this.checkAuthentication();
+        this.updateMobileMenuVisibility();
         
+        this._themeService.theme$
+            .pipe(takeUntil(this._destroy$))
+            .subscribe(theme => {
+                this.currentTheme = theme;
+            });
+
         this._router.events
             .pipe(
                 filter(event => event instanceof NavigationEnd),
@@ -38,7 +51,26 @@ export class HeaderComponent implements OnInit, OnDestroy {
             )
             .subscribe(() => {
                 this.checkAuthentication();
+                this.updateMobileMenuVisibility();
             });
+    }
+
+    private updateMobileMenuVisibility(): void {
+        const url = this._router.url;
+        // Check if on dashboard or root path
+        this.showMobileMenu = this.isAuthenticated && (url === '/' || url.includes(LayoutPaths.DASHBOARD));
+    }
+
+    toggleMobileMenu(): void {
+        this._navService.toggleNavSidebar();
+    }
+
+    toggleTheme(): void {
+        this._themeService.toggleTheme();
+    }
+
+    get isDarkMode(): boolean {
+        return this.currentTheme === 'dark';
     }
 
     private checkAuthentication(): void {
@@ -63,9 +95,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;
-        if (!target.closest('.dropdown')) {
-            this.isDropdownOpen = false;
+        
+        // If the click is on the dropdown or its children, don't close it
+        // We also check if the target is still in the document because 
+        // theme toggle icons might be replaced when clicked
+        if (target.closest('.dropdown') || !document.body.contains(target)) {
+            return;
         }
+        
+        this.isDropdownOpen = false;
     }
 
     onProfile(): void {

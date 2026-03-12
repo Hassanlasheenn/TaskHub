@@ -11,12 +11,12 @@ import { animate, style, transition, trigger } from "@angular/animations";
     animations: [
         trigger('slideInOut', [
             transition(':enter', [
-                style({ transform: 'translateX(100%)' }),
+                style({ transform: '{{initialTransform}}' }),
                 animate('300ms ease-out', style({ transform: 'translateX(0)' }))
-            ]),
+            ], { params: { initialTransform: 'translateX(100%)' } }),
             transition(':leave', [
-                animate('300ms ease-in', style({ transform: 'translateX(100%)' }))
-            ])
+                animate('300ms ease-in', style({ transform: '{{exitTransform}}' }))
+            ], { params: { exitTransform: 'translateX(100%)' } })
         ]),
         trigger('fadeInOut', [
             transition(':enter', [
@@ -33,10 +33,21 @@ export class SidebarComponent implements OnChanges, OnDestroy {
     @Input() isOpen: boolean = false;
     @Input() title: string = '';
     @Input() width: string = '400px';
+    @Input() position: 'left' | 'right' = 'right';
     @Output() closed = new EventEmitter<void>();
 
     ngOnChanges(): void {
         this.updateBodyScrollLock();
+    }
+
+    get animationParams() {
+        return {
+            value: this.isOpen,
+            params: {
+                initialTransform: this.position === 'right' ? 'translateX(100%)' : 'translateX(-100%)',
+                exitTransform: this.position === 'right' ? 'translateX(100%)' : 'translateX(-100%)'
+            }
+        };
     }
 
     ngOnDestroy(): void {

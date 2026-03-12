@@ -84,6 +84,7 @@
                         <div *ngFor="let todo of group.todos; trackBy: trackById" class="col">
                             <div 
                                 class="todo-card h-100"
+                                [class.actions-dropdown-open]="openActionsTodoId === todo.id"
                                 [class.completed]="todo.status === 'done'"
                                 [ngClass]="getPriorityClass(todo.priority)"
                             >
@@ -108,7 +109,7 @@
                                         </div>
                                         <p *ngIf="todo.description" class="todo-description">{{ todo.description }}</p>
                                         <div *ngIf="isAdmin" class="assigned-to-section mt-2">
-                                            <span class="assigned-to-username">{{ todo.assigned_to_username || 'Unassigned' }}</span>
+                                            <span class="assigned-to-username">{{ (todo.assigned_to_username | titlecase) || 'Unassigned' }}</span>
                                         </div>
                                     </div>
                                     <div *ngIf="!isCompletedSection" class="todo-actions-dropdown-wrapper" (click)="$event.stopPropagation()" (keydown)="onActionsWrapperKeyDown($event)">
@@ -224,6 +225,7 @@
                 <div *ngFor="let todo of todos; trackBy: trackById" class="col">
                     <div 
                         class="todo-card h-100"
+                        [class.actions-dropdown-open]="openActionsTodoId === todo.id"
                         [class.completed]="todo.status === 'done'"
                         [ngClass]="getPriorityClass(todo.priority)"
                     >
@@ -248,9 +250,8 @@
                                 </div>
                                 <p *ngIf="todo.description" class="todo-description">{{ todo.description }}</p>
                                 <div *ngIf="isAdmin" class="assigned-to-section mt-2">
-                                    <span class="assigned-to-username">{{ todo.assigned_to_username || 'Unassigned' }}</span>
-                                </div>
-                            </div>
+                                    <span class="assigned-to-username">{{ (todo.assigned_to_username | titlecase) || 'Unassigned' }}</span>
+                                </div>                            </div>
                             <div *ngIf="!isCompletedSection" class="todo-actions-dropdown-wrapper" (click)="$event.stopPropagation()" (keydown)="onActionsWrapperKeyDown($event)">
                                 <button type="button" class="todo-actions-trigger" (click)="toggleActionsMenu(todo.id)" aria-label="Todo actions">
                                     <i class="bi bi-three-dots-vertical"></i>

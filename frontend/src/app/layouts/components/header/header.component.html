@@ -1,14 +1,25 @@
 <section class="header">
     <div class="d-flex justify-content-between align-items-center h-100">
-        <button 
-            type="button" 
-            class="header-logo-btn"
-            [routerLink]="[LayoutPaths.DASHBOARD]"
-        >
-            <span class="fs-1 fw-bold">TaskHub</span>
-        </button>
+        <div class="d-flex align-items-center gap-2">
+            <button 
+                *ngIf="showMobileMenu"
+                type="button" 
+                class="mobile-nav-trigger d-lg-none" 
+                (click)="toggleMobileMenu()"
+                aria-label="Open navigation menu"
+            >
+                <i class="bi bi-list"></i>
+            </button>
+            <button 
+                type="button" 
+                class="header-logo-btn"
+                [routerLink]="[LayoutPaths.DASHBOARD]"
+            >
+                <span class="fs-1 fw-bold">TaskHub</span>
+            </button>
+        </div>
         <div class="d-flex align-items-center gap-3">
-            <app-theme-toggle />
+            <app-theme-toggle *ngIf="!isAuthenticated" />
             
             <ng-container *ngIf="isAuthenticated">
                 <app-notifications />
@@ -33,6 +44,18 @@
                                 <i class="bi bi-person-circle"></i>
                                 <span class="item-label">Profile</span>
                             </button>
+
+                            <!-- Theme Toggle inside dropdown -->
+                            <button 
+                                type="button"
+                                class="dropdown-item dropdown-item--theme" 
+                                (click)="toggleTheme(); $event.stopPropagation()" 
+                                [attr.aria-label]="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'"
+                            >
+                                <i [class]="isDarkMode ? 'bi bi-sun' : 'bi bi-moon-stars'"></i>
+                                <span class="item-label">{{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}</span>
+                            </button>
+
                             <button 
                                 *ngIf="isAdmin"
                                 class="dropdown-item" 
