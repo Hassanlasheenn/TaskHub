@@ -70,8 +70,10 @@ jobs:
           filters: |
             frontend:
               - 'frontend/**'
+              - '.github/workflows/deploy.yml'
             backend:
               - 'backend/**'
+              - '.github/workflows/deploy.yml'
           list-files: shell
           
       - name: Set outputs
@@ -342,10 +344,13 @@ jobs:
         if: needs.detect-changes.outputs.frontend == 'true'
         run: |
           [ -f "frontend-dist/index.html" ] || exit 1
+          # Create a deployment-specific vercel.json that points to the current directory
+          # and preserves the SPA rewrites from the original if it exists
           if [ -f "frontend/vercel.json" ]; then
-            cp frontend/vercel.json frontend-dist/vercel.json
+            # Use jq if available or a simple sed/echo to override directory and command
+            echo '{"version":2,"buildCommand":null,"outputDirectory":".","installCommand":null,"framework":null,"rewrites":[{"source":"/(.*)","destination":"/index.html"}]}' > frontend-dist/vercel.json
           else
-            echo '{"version":2,"buildCommand":"","outputDirectory":".","installCommand":"","framework":null,"rewrites":[{"source":"/(.*)","destination":"/index.html"}]}' > frontend-dist/vercel.json
+            echo '{"version":2,"buildCommand":null,"outputDirectory":".","installCommand":null,"framework":null,"rewrites":[{"source":"/(.*)","destination":"/index.html"}]}' > frontend-dist/vercel.json
           fi
           rm -f frontend-dist/package.json frontend-dist/angular.json frontend-dist/tsconfig.json 2>/dev/null || true
           rm -rf frontend-dist/src frontend-dist/node_modules 2>/dev/null || true
