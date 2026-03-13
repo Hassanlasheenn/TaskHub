@@ -12,6 +12,9 @@ services:
     container_name: todo_app_nginx_prod
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
     restart: always
