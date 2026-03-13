@@ -29,7 +29,7 @@ if environment == "production":
         # Default production origin
         allowed_origins = [
             "https://full-stack-todo-i0ggb4p23-hassanlasheenns-projects.vercel.app",
-            # Add your custom domain if you have one (e.g., "https://yourdomain.com")
+            "https://hassanlasheenn.github.io",
         ]
 else:
     # Development: Only allow localhost
