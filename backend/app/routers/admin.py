@@ -149,6 +149,8 @@ def get_users_with_todos(
                 "status": todo.status or "new",
                 "priority": todo.priority,
                 "category": todo.category,
+                "due_date": todo.due_date,
+                "reminder_sent_at": todo.reminder_sent_at,
                 "order_index": todo.order_index,
                 "created_at": todo.created_at,
                 "updated_at": todo.updated_at,

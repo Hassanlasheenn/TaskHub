@@ -1,12 +1,12 @@
 <section class="todo-list-container">
     <div class="todo-grid">
-        <div class="todo-header d-flex justify-content-between align-items-center mb-4">
-            <div class="d-flex align-items-center gap-3 flex-wrap">
-                <div class="d-flex align-items-center gap-2">
-                    <h2 class="todo-section-title">{{ sectionTitle }}</h2>
+        <div class="todo-header d-flex justify-content-between align-items-center">
+            <div class="todo-header-left d-flex align-items-center gap-2 gap-sm-3 flex-wrap">
+                <div class="d-flex align-items-center gap-1 gap-sm-2">
+                    <h2 class="todo-section-title text-truncate">{{ sectionTitle }}</h2>
                     <span class="todo-count-badge">{{ totalCount }}</span>
                 </div>
-                <div *ngIf="showStatusFilter" class="d-flex align-items-center gap-2">
+                <div *ngIf="showStatusFilter" class="d-flex align-items-center gap-1 gap-sm-2">
                     <app-status-filter
                         [activeStatus]="activeStatus"
                         (statusChange)="statusChange.emit($event)"
@@ -23,7 +23,7 @@
                     </button>
                 </div>
             </div>
-            <div class="d-flex align-items-center gap-2">
+            <div class="todo-header-right d-flex align-items-center gap-2 ms-auto">
                 <div class="view-toggle" *ngIf="todos.length > 0 && !isCompletedSection">
                     <button 
                         type="button" 
@@ -46,7 +46,7 @@
                 </div>
                 <button *ngIf="showAddButton" type="button" class="add-todo-btn-small" (click)="onAddTodo()">
                     <i class="bi bi-plus-lg me-1"></i>
-                    Add
+                    <span>Add</span>
                 </button>
             </div>
         </div>
@@ -107,7 +107,16 @@
                                             <h4 class="todo-title">{{ todo.title }}</h4>
                                             <span *ngIf="todo.status === 'done'" class="done-badge">Done</span>
                                         </div>
-                                        <p *ngIf="todo.description" class="todo-description">{{ todo.description }}</p>
+                                        
+                                        <!-- Urgency-colored Due Date Badge -->
+                                        <div *ngIf="$any(todo).due_date" 
+                                             class="due-date-card-badge mt-2" 
+                                             [ngClass]="getDueDateUrgencyClass($any(todo).due_date)">
+                                            <i class="bi bi-alarm-fill"></i>
+                                            <span class="due-label">Due Date:</span>
+                                            <span class="due-value">{{ formatDate($any(todo).due_date)?.date }}</span>
+                                        </div>
+
                                         <div *ngIf="isAdmin" class="assigned-to-section mt-2">
                                             <span class="assigned-to-username">{{ (todo.assigned_to_username | titlecase) || 'Unassigned' }}</span>
                                         </div>
@@ -194,6 +203,13 @@
                                 <i [class]="'bi ' + getPriorityIcon(todo.priority)"></i>
                                 {{ todo.priority }}
                             </span>
+                            <span *ngIf="$any(todo).due_date" 
+                                  class="due-date-badge" 
+                                  [ngClass]="getDueDateUrgencyClass($any(todo).due_date)">
+                                <i class="bi bi-alarm"></i>
+                                <span class="due-label">Due Date:</span>
+                                <span class="due-date-text">{{ formatDate($any(todo).due_date)?.date }}</span>
+                            </span>
                             <span *ngIf="todo.category" class="category-tag">
                                 <i class="bi bi-tag"></i>
                                 <span class="category-tag-text">{{ todo.category }}</span>
@@ -248,10 +264,20 @@
                                     <h4 class="todo-title">{{ todo.title }}</h4>
                                     <span *ngIf="todo.status === 'done'" class="done-badge">Done</span>
                                 </div>
-                                <p *ngIf="todo.description" class="todo-description">{{ todo.description }}</p>
+
+                                <!-- Urgency-colored Due Date Badge -->
+                                <div *ngIf="$any(todo).due_date" 
+                                     class="due-date-card-badge mt-2" 
+                                     [ngClass]="getDueDateUrgencyClass($any(todo).due_date)">
+                                    <i class="bi bi-alarm-fill"></i>
+                                    <span class="due-label">Due Date:</span>
+                                    <span class="due-value">{{ formatDate($any(todo).due_date)?.date }}</span>
+                                </div>
+
                                 <div *ngIf="isAdmin" class="assigned-to-section mt-2">
                                     <span class="assigned-to-username">{{ (todo.assigned_to_username | titlecase) || 'Unassigned' }}</span>
-                                </div>                            </div>
+                                </div>
+                            </div>
                             <div *ngIf="!isCompletedSection" class="todo-actions-dropdown-wrapper" (click)="$event.stopPropagation()" (keydown)="onActionsWrapperKeyDown($event)">
                                 <button type="button" class="todo-actions-trigger" (click)="toggleActionsMenu(todo.id)" aria-label="Todo actions">
                                     <i class="bi bi-three-dots-vertical"></i>

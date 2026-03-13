@@ -105,15 +105,31 @@ export class CalendarComponent implements OnInit, OnChanges {
         if (!date) return [];
         
         return this.todos.filter(todo => {
-            if (!todo.created_at) return false;
+            const dueDateStr = (todo as any).due_date;
+            if (!dueDateStr) return false;
             
-            const todoDate = this.parseTodoDate(todo.created_at);
+            const todoDate = this.parseTodoDate(dueDateStr);
             const compareDate = new Date(date);
             
             return todoDate.getFullYear() === compareDate.getFullYear() &&
                    todoDate.getMonth() === compareDate.getMonth() &&
                    todoDate.getDate() === compareDate.getDate();
         });
+    }
+
+    getDueDateUrgencyClass(dateString?: string): string {
+        if (!dateString) return '';
+        
+        const dueDate = new Date(dateString);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 3) return 'urgency-high';
+        if (diffDays <= 10) return 'urgency-medium';
+        return 'urgency-low';
     }
 
     getPriorityClass(priority: string): string {
@@ -146,24 +162,25 @@ export class CalendarComponent implements OnInit, OnChanges {
         if (!this.selectedDate) return [];
         
         const todosInHour = this.selectedDayTodos.filter(todo => {
-            if (!todo.created_at) return false;
+            const dueDateStr = (todo as any).due_date;
+            if (!dueDateStr) return false;
             
-            const todoDate = this.parseTodoDate(todo.created_at);
+            const todoDate = this.parseTodoDate(dueDateStr);
             return todoDate.getHours() === hour;
         });
 
         return todosInHour.sort((a, b) => {
-            if (!a.created_at || !b.created_at) return 0;
-            const dateA = this.parseTodoDate(a.created_at);
-            const dateB = this.parseTodoDate(b.created_at);
+            const dateA = this.parseTodoDate((a as any).due_date);
+            const dateB = this.parseTodoDate((b as any).due_date);
             return dateA.getTime() - dateB.getTime();
         });
     }
 
     getTodoTimeIndicator(todo: ITodo): string {
-        if (!todo.created_at) return '';
+        const dueDateStr = (todo as any).due_date;
+        if (!dueDateStr) return '';
         
-        const todoDate = this.parseTodoDate(todo.created_at);
+        const todoDate = this.parseTodoDate(dueDateStr);
         const minutes = todoDate.getMinutes();
         const seconds = todoDate.getSeconds();
         
@@ -171,9 +188,10 @@ export class CalendarComponent implements OnInit, OnChanges {
     }
 
     getTodoPositionPercent(todo: ITodo): number {
-        if (!todo.created_at) return 0;
+        const dueDateStr = (todo as any).due_date;
+        if (!dueDateStr) return 0;
         
-        const todoDate = this.parseTodoDate(todo.created_at);
+        const todoDate = this.parseTodoDate(dueDateStr);
         const minutes = todoDate.getMinutes();
         const seconds = todoDate.getSeconds();
         
@@ -215,6 +233,18 @@ export class CalendarComponent implements OnInit, OnChanges {
         const ampm = hours >= 12 ? 'PM' : 'AM';
         hours = hours % 12 || 12;
         return `${hours}:${minutes} ${ampm}`;
+    }
+
+    formatFullDate(dateString?: string): string {
+        if (!dateString) return '';
+        const date = this.parseTodoDate(dateString);
+        return date.toLocaleDateString(undefined, { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     }
 
     trackByTodo(index: number, todo: ITodo): number {

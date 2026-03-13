@@ -276,12 +276,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
         ).length;
     }
 
+    get completedCount(): number {
+        return this.todos.filter(todo => todo.status === 'done').length;
+    }
+
     get sectionTitle(): string {
         switch (this.activeSection) {
             case DashboardSections.COMPLETED:
                 return 'Completed Todos';
             case DashboardSections.MY_ASSIGNED:
-                return 'My Assigned Todos';
+                return 'My Todos';
             case DashboardSections.DASHBOARD:
                 return this._authService.isAdmin() ? 'Unassigned Todos' : 'Your Todos';
             default:

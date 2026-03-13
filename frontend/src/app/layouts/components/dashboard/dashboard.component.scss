@@ -73,6 +73,21 @@
         transition: all 0.3s ease;
     }
 
+    &.unassigned .summary-card-icon {
+        background: rgba(139, 92, 246, 0.1);
+        color: var(--primary-color);
+    }
+
+    &.assigned .summary-card-icon {
+        background: rgba(74, 144, 226, 0.1);
+        color: #4a90e2;
+    }
+
+    &.completed .summary-card-icon {
+        background: rgba(40, 167, 69, 0.1);
+        color: var(--success-color);
+    }
+
     .summary-card-content {
         display: flex;
         flex-direction: column;

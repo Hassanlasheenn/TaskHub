@@ -218,6 +218,69 @@
             color: var(--priority-high-text);
         }
     }
+
+    &.assigned-select {
+        background-color: rgba(139, 92, 246, 0.08);
+        border-color: rgba(139, 92, 246, 0.25);
+        color: var(--primary-color);
+        min-width: 10rem;
+
+        &:hover {
+            background-color: rgba(139, 92, 246, 0.12);
+            border-color: rgba(139, 92, 246, 0.4);
+        }
+
+        option {
+            background: var(--card-color-solid, #fff);
+            color: var(--text-primary);
+        }
+    }
+}
+
+.due-date-view-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+
+    i {
+        font-size: 0.9rem;
+    }
+
+    .due-label {
+        opacity: 0.9;
+    }
+
+    .due-value {
+        font-weight: 700;
+    }
+
+    // Urgency Colors
+    &.urgency-high {
+        background: rgba(220, 53, 69, 0.12);
+        color: #dc3545;
+        border-color: rgba(220, 53, 69, 0.3);
+        i { color: #dc3545; }
+    }
+
+    &.urgency-medium {
+        background: rgba(255, 193, 7, 0.12);
+        color: #b38600;
+        border-color: rgba(255, 193, 7, 0.3);
+        i { color: #b38600; }
+    }
+
+    &.urgency-low {
+        background: rgba(40, 167, 69, 0.12);
+        color: #28a745;
+        border-color: rgba(40, 167, 69, 0.3);
+        i { color: #28a745; }
+    }
 }
 
 .status-badge,
@@ -275,8 +338,85 @@
     padding: 1.5rem;
 }
 
+.todo-view-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.todo-view-field {
+    flex: 1;
+    min-width: 200px;
+}
+
+.todo-view-date-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    i {
+        position: absolute;
+        left: 1rem;
+        color: var(--primary-color);
+        font-size: 1.1rem;
+        pointer-events: none;
+    }
+}
+
+.todo-view-date-input {
+    width: 100%;
+    padding: 0.65rem 1rem 0.65rem 2.75rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    background: var(--input-bg);
+    border: 1px solid var(--card-border-color);
+    border-radius: 10px;
+    height: 42px;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+    outline: none;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+
+    &::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        filter: var(--calendar-icon-filter, sepia(1) saturate(5) hue-rotate(220deg));
+        opacity: 0.6;
+        transition: all 0.2s ease;
+        
+        &:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+    }
+
+    &:focus {
+        border-color: var(--primary-gradient-start);
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    }
+}
+
+:host-context(body.dark-theme) {
+    .todo-view-date-input {
+        --calendar-icon-filter: invert(0.8) sepia(1) saturate(5) hue-rotate(220deg);
+    }
+}
+
 .todo-view-description-field {
     margin-bottom: 1.25rem;
+}
+
+    &.assigned-select {
+        background-color: rgba(139, 92, 246, 0.08);
+        border-color: rgba(139, 92, 246, 0.25);
+        color: var(--primary-color);
+        min-width: 8rem;
+
+        &:hover {
+            background-color: rgba(139, 92, 246, 0.12);
+            border-color: rgba(139, 92, 246, 0.4);
+        }
+    }
 }
 
 .todo-view-label {
@@ -393,9 +533,17 @@
     color: var(--text-primary);
 }
 
-.todo-view-history-user {
-    font-size: 0.8125rem;
-    color: var(--text-secondary);
+.todo-view-history-user-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    background: rgba(139, 92, 246, 0.1);
+    padding: 0.15rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    display: inline-flex;
+    align-items: center;
+    margin: 0 0.25rem;
 }
 
 .todo-view-history-date {

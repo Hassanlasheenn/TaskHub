@@ -45,6 +45,8 @@ class Todo(Base):
     status = Column(String(20), default=TodoStatus.NEW.value)
     priority = Column(String(20), default=PriorityLevel.MEDIUM.value)
     category = Column(String(100), nullable=True)
+    due_date = Column(DateTime, nullable=True)
+    reminder_sent_at = Column(DateTime, nullable=True)
     order_index = Column(Integer, default=0)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())  
@@ -55,7 +57,8 @@ class Todo(Base):
     user = relationship("User", back_populates="todos", foreign_keys=[user_id])
     assigned_to_user = relationship("User", foreign_keys=[assigned_to_user_id])
     comments = relationship("TodoComment", back_populates="todo", cascade="all, delete-orphan")
-    comment_history = relationship("TodoCommentHistory", back_populates="todo", foreign_keys="[TodoCommentHistory.todo_id]")
+    comment_history = relationship("TodoCommentHistory", back_populates="todo", foreign_keys="[TodoCommentHistory.todo_id]", cascade="all, delete-orphan")
+    field_history = relationship("TodoFieldHistory", back_populates="todo", foreign_keys="[TodoFieldHistory.todo_id]", cascade="all, delete-orphan")
 
 
 class TodoComment(Base):
@@ -104,7 +107,7 @@ class TodoFieldHistory(Base):
     new_value = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
-    todo = relationship("Todo", foreign_keys=[todo_id])
+    todo = relationship("Todo", back_populates="field_history", foreign_keys=[todo_id])
     user = relationship("User", foreign_keys=[user_id])
 
 

@@ -53,8 +53,14 @@
                                     </a>
                                 </div>
                             </div>
-                            <p *ngIf="todo.description" class="todo-description">{{ todo.description }}</p>
                             <div class="todo-meta">
+                                <span *ngIf="todo.due_date" 
+                                      class="todo-due-date-badge" 
+                                      [ngClass]="getDueDateUrgencyClass(todo.due_date)">
+                                    <i class="bi bi-alarm-fill"></i>
+                                    <span class="due-label">Due Date:</span>
+                                    <span class="due-value">{{ formatDate(todo.due_date)?.date }}</span>
+                                </span>
                                 <span *ngIf="todo.category" class="todo-category">
                                     <i class="bi bi-tag"></i> {{ todo.category }}
                                 </span>

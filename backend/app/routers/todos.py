@@ -66,6 +66,8 @@ def get_todos(
             "status": todo.status or models.TodoStatus.NEW.value,
             "priority": todo.priority,
             "category": todo.category,
+            "due_date": todo.due_date,
+            "reminder_sent_at": todo.reminder_sent_at,
             "order_index": todo.order_index,
             "created_at": todo.created_at,
             "updated_at": todo.updated_at,
@@ -125,6 +127,7 @@ async def create_todo(
         priority=todo.priority.value,
         status=todo.status.value if todo.status else models.TodoStatus.NEW.value,
         category=todo.category,
+        due_date=todo.due_date,
         order_index=next_index,
         user_id=user_id,
         assigned_to_user_id=todo.assigned_to_user_id
@@ -132,6 +135,9 @@ async def create_todo(
     db.add(db_todo)
     db.commit()
     db.refresh(db_todo)
+    
+    # Log creation in history
+    _add_field_history(db, db_todo.id, user_id, "created", None, "Task Created")
     
     assigned_to_username = None
     assigned_user_email = None
@@ -178,6 +184,8 @@ async def create_todo(
         "status": db_todo.status or models.TodoStatus.NEW.value,
         "priority": db_todo.priority,
         "category": db_todo.category,
+        "due_date": db_todo.due_date,
+        "reminder_sent_at": db_todo.reminder_sent_at,
         "order_index": db_todo.order_index,
         "created_at": db_todo.created_at,
         "updated_at": db_todo.updated_at,
@@ -224,6 +232,8 @@ def _build_todo_response(todo_db: models.Todo, db: Session) -> schemas.TodoRespo
         "status": todo_db.status or models.TodoStatus.NEW.value,
         "priority": todo_db.priority,
         "category": todo_db.category,
+        "due_date": todo_db.due_date,
+        "reminder_sent_at": todo_db.reminder_sent_at,
         "order_index": todo_db.order_index,
         "created_at": todo_db.created_at,
         "updated_at": todo_db.updated_at,
@@ -579,6 +589,19 @@ def get_todo_history(
         .filter(models.TodoFieldHistory.todo_id == todo_id)
         .all()
     )
+    
+    # Mapping for user-friendly field labels
+    field_labels = {
+        "title": "Title",
+        "description": "Description",
+        "status": "Status",
+        "priority": "Priority",
+        "category": "Category",
+        "due_date": "Due Date",
+        "assigned_to_user_id": "Assignee",
+        "created": "Event"
+    }
+
     for h, username in field_rows:
         entries.append({
             "kind": "field",
@@ -586,7 +609,7 @@ def get_todo_history(
             "todo_id": h.todo_id,
             "user_id": h.user_id,
             "username": username or f"User#{h.user_id}",
-            "field": h.field,
+            "field": field_labels.get(h.field, h.field.replace('_', ' ').title()),
             "old_value": h.old_value,
             "new_value": h.new_value,
             "created_at": h.created_at.strftime('%Y-%m-%dT%H:%M:%S') if h.created_at else None,
@@ -643,9 +666,13 @@ async def update_todo(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized to update this todo")
     
     # Snapshot old values for field history (before any updates)
+    old_title = todo_db.title
+    old_description = todo_db.description
+    old_category = todo_db.category
     old_priority = todo_db.priority
     old_status = todo_db.status
     old_assigned_user_id = todo_db.assigned_to_user_id
+    old_due_date = todo_db.due_date
     
     # Track which fields actually changed (for notification)
     changed_fields = []
@@ -667,6 +694,14 @@ async def update_todo(
         if todo_db.category != todo.category:
             changed_fields.append('category')
         todo_db.category = todo.category
+    
+    # Handle due_date update
+    provided_fields = todo.model_dump(exclude_unset=True)
+    if 'due_date' in provided_fields:
+        if todo_db.due_date != todo.due_date:
+            changed_fields.append('due_date')
+        todo_db.due_date = todo.due_date
+
     status_changed = False
     old_status = todo_db.status
     was_done = todo_db.status == models.TodoStatus.DONE.value
@@ -869,8 +904,18 @@ async def update_todo(
             status_labels.get(old_status, old_status),
             status_labels.get(todo_db.status, todo_db.status),
         )
+    if old_title != todo_db.title:
+        _add_field_history(db, todo_id, user_id, "title", old_title, todo_db.title)
+    if old_description != todo_db.description:
+        _add_field_history(db, todo_id, user_id, "description", old_description, todo_db.description)
+    if old_category != todo_db.category:
+        _add_field_history(db, todo_id, user_id, "category", old_category, todo_db.category)
     if old_priority != todo_db.priority:
         _add_field_history(db, todo_id, user_id, "priority", old_priority, todo_db.priority)
+    if old_due_date != todo_db.due_date:
+        old_due_str = old_due_date.strftime('%Y-%m-%d') if old_due_date else "None"
+        new_due_str = todo_db.due_date.strftime('%Y-%m-%d') if todo_db.due_date else "None"
+        _add_field_history(db, todo_id, user_id, "due_date", old_due_str, new_due_str)
     if old_assigned_user_id != todo_db.assigned_to_user_id:
         old_assignee = db.query(models.User).filter(models.User.id == old_assigned_user_id).first() if old_assigned_user_id else None
         new_assignee = db.query(models.User).filter(models.User.id == todo_db.assigned_to_user_id).first() if todo_db.assigned_to_user_id else None

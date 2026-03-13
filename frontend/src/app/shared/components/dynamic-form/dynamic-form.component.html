@@ -30,8 +30,20 @@
                 [showErrors]="isSubmitted"
             />
 
+            <app-date-picker
+                *ngIf="field.type === InputTypes.DATE"
+                [label]="field.label"
+                [formGroup]="form"
+                [placeholder]="field.placeholder || ''"
+                [name]="field.formControlName"
+                [customInputStyle]="customInputStyle"
+                [customInputClass]="field.customInputClass"
+                [field]="field"
+                [showErrors]="isSubmitted"
+            />
+
             <app-input-form
-                *ngIf="field.type === InputTypes.TEXT || field.type === InputTypes.EMAIL || field.type === InputTypes.PASSWORD || field.type === InputTypes.NUMBER || field.type === InputTypes.DATE || field.type === InputTypes.TIME || field.type === InputTypes.CHECKBOX"
+                *ngIf="field.type === InputTypes.TEXT || field.type === InputTypes.EMAIL || field.type === InputTypes.PASSWORD || field.type === InputTypes.NUMBER || field.type === InputTypes.TIME || field.type === InputTypes.CHECKBOX"
                 [label]="field.label"
                 [type]="field.type"
                 [formGroup]="form"

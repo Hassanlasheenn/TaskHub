@@ -37,7 +37,7 @@ export class DashboardSideNavComponent implements OnInit {
             this.navItems.push({
                 section: DashboardSections.MY_ASSIGNED,
                 icon: 'bi-person-check',
-                label: 'My Assigned'
+                label: 'My Todos'
             });
             this.navItems.push({
                 section: DashboardSections.ADMIN_PANEL,

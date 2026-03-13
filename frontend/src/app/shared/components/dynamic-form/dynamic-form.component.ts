@@ -2,6 +2,7 @@ import { Component, Input, OnChanges, SimpleChanges, EventEmitter, Output } from
 import { InputFormComponent } from "../form-fields/input/input.component";
 import { DropdownFormComponent } from "../form-fields/dropdown/dropdown.component";
 import { UploadPhotoComponent } from "../form-fields/upload-photo/upload-photo.component";
+import { DatePickerComponent } from "../form-fields/date-picker/date-picker.component";
 import { CommonModule } from "@angular/common";
 import { FormGroup, ReactiveFormsModule } from "@angular/forms";
 import { trackById } from "../../helpers";
@@ -13,7 +14,14 @@ import { InputTypes } from "../../enums";
     templateUrl: './dynamic-form.component.html',
     styleUrls: ['./dynamic-form.component.scss'],
     standalone: true,
-    imports: [InputFormComponent, DropdownFormComponent, UploadPhotoComponent, CommonModule, ReactiveFormsModule]
+    imports: [
+        InputFormComponent, 
+        DropdownFormComponent, 
+        UploadPhotoComponent, 
+        DatePickerComponent,
+        CommonModule, 
+        ReactiveFormsModule
+    ]
 })
 export class DynamicFormComponent implements OnChanges {
     @Input() fields: IFieldControl[] = [];

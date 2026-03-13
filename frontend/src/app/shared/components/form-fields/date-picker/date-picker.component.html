@@ -1,0 +1,65 @@
+<section class="date-picker">
+    <div class="date-picker__label-wrapper">
+        <label class="date-picker__label" for="date-{{ name }}">{{ label }}</label>
+        <div class="date-picker__error" *ngIf="isInvalid && errorMessage">
+            {{ errorMessage }}
+        </div>
+    </div>
+    
+    <div class="date-picker__container">
+        <!-- Trigger Input -->
+        <div 
+            class="date-picker__input-wrapper" 
+            (click)="togglePicker()"
+            [ngClass]="getInputClasses()"
+        >
+            <div class="date-picker__icon-wrapper">
+                <i class="bi bi-calendar3"></i>
+            </div>
+            <input
+                id="date-{{ name }}"
+                type="text"
+                readonly
+                [placeholder]="placeholder"
+                [value]="formattedValue"
+                class="date-picker__field"
+            />
+            <div class="date-picker__arrow-wrapper">
+                <i class="bi bi-chevron-down" [class.rotated]="showPicker"></i>
+            </div>
+        </div>
+
+        <!-- Calendar Popup -->
+        <div class="date-picker__popup" *ngIf="showPicker" (click)="$event.stopPropagation()">
+            <div class="calendar-header">
+                <button type="button" class="calendar-nav-btn" (click)="prevMonth($event)">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <div class="calendar-current-date">
+                    {{ months[viewDate.getMonth()] }} {{ viewDate.getFullYear() }}
+                </div>
+                <button type="button" class="calendar-nav-btn" (click)="nextMonth($event)">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+
+            <div class="calendar-grid">
+                <!-- Week Days -->
+                <div *ngFor="let day of weekDays" class="calendar-weekday">{{ day }}</div>
+                
+                <!-- Month Days -->
+                <div 
+                    *ngFor="let date of calendarDays" 
+                    class="calendar-day"
+                    [class.empty]="!date"
+                    [class.today]="isToday(date)"
+                    [class.selected]="isDateSelected(date)"
+                    [class.disabled]="isDateDisabled(date)"
+                    (click)="selectDate(date, $event)"
+                >
+                    {{ date ? date.getDate() : '' }}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

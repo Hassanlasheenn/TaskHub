@@ -31,6 +31,14 @@
     background-size: 12px;
     padding-right: 2.5rem;
 
+    @media (max-width: 576px) {
+        max-width: 120px;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.8125rem;
+        padding-right: 1.75rem;
+        background-position: right 0.5rem center;
+    }
+
     &:hover {
         border-color: var(--primary-gradient-start);
         background-color: var(--btn-secondary-hover-bg);

@@ -6,6 +6,7 @@ export interface ITodoCreate {
     priority: 'low' | 'medium' | 'high';
     status?: TodoStatus;
     category?: string;
+    due_date?: string;
     assigned_to_user_id?: number | null;
 }
 
@@ -15,6 +16,7 @@ export interface ITodoUpdate {
     priority?: 'low' | 'medium' | 'high';
     status?: TodoStatus;
     category?: string;
+    due_date?: string | null;
     assigned_to_user_id?: number | null;
 }
 
@@ -25,6 +27,7 @@ export interface ITodoResponse {
     status: string;
     priority: string;
     category?: string;
+    due_date?: string;
     order_index: number;
     created_at?: string;
     updated_at?: string;
@@ -45,6 +48,7 @@ export interface ITodo {
     status: TodoStatus;
     priority: 'low' | 'medium' | 'high';
     category?: string;
+    due_date?: string;
     order_index: number;
     created_at?: string;
     updated_at?: string;

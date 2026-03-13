@@ -17,13 +17,15 @@ from migrations.add_category_column import run_migration as migration2
 from migrations.add_notifications_table import upgrade as migration3  # Uses upgrade() instead
 from migrations.add_order_index_column import run_migration as migration4
 from migrations.add_priority_column import run_migration as migration5
-from migrations.add_profile_pic_column import run_migration as migration6
+from migrations.add_profile_pic_column import migrate as migration6
 from migrations.add_role_column import run_migration as migration7
 from migrations.remove_password_reset_fields import run_migration as migration8
 from migrations.remove_user_email_settings import run_migration as migration9
 from migrations.update_profile_pic_to_text import run_migration as migration10
 from migrations.add_status_column import run_migration as migration11
 from migrations.add_todo_comments_table import run_migration as migration12
+from migrations.add_due_date_column import run_migration as migration13
+from migrations.add_reminder_sent_at_column import migrate as migration14
 
 from app.database import SessionLocal
 
@@ -45,6 +47,8 @@ def run_all_migrations():
         ("Update profile_pic to text", migration10),
         ("Add status column", migration11),
         ("Add todo_comments table", migration12),
+        ("Add due_date column", migration13),
+        ("Add reminder_sent_at column", migration14),
     ]
     
     db = SessionLocal()

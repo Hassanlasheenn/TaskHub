@@ -59,6 +59,15 @@ export class TodoFormComponent implements OnInit, OnDestroy {
             validations: [],
         },
         {
+            label: 'Due Date',
+            type: InputTypes.DATE,
+            formControlName: 'due_date',
+            placeholder: 'Select due date',
+            value: '',
+            required: false,
+            validations: [],
+        },
+        {
             label: 'Assign To',
             type: InputTypes.DROPDOWN,
             formControlName: 'assigned_to_user_id',
@@ -223,6 +232,7 @@ export class TodoFormComponent implements OnInit, OnDestroy {
         const todoData: ITodoCreate = {
             title: this.form.get('title')?.value,
             description: this.form.get('description')?.value || undefined,
+            due_date: this.form.get('due_date')?.value || undefined,
             priority: this.selectedPriority || 'medium',
             category: categoryToUse,
             assigned_to_user_id: assignedUserId
@@ -232,6 +242,7 @@ export class TodoFormComponent implements OnInit, OnDestroy {
             const updateData: ITodoUpdate = {
                 title: todoData.title,
                 description: todoData.description,
+                due_date: todoData.due_date || null,
                 category: todoData.category,
                 status: this.selectedStatus
             };
@@ -258,6 +269,9 @@ export class TodoFormComponent implements OnInit, OnDestroy {
 
     resetForm(): void {
         this.form.reset();
+        if (this.form.get('due_date')) {
+            this.form.get('due_date')?.setValue('');
+        }
         if (this.isAdmin && this.form.get('assigned_to_user_id')) {
             this.form.patchValue({ assigned_to_user_id: 0 });
         }
@@ -320,7 +334,8 @@ export class TodoFormComponent implements OnInit, OnDestroy {
         
         const formValue: any = {
             title: todo.title || '',
-            description: todo.description || ''
+            description: todo.description || '',
+            due_date: todo.due_date ? todo.due_date.split('T')[0] : ''
         };
         
         if (this.isAdmin) {

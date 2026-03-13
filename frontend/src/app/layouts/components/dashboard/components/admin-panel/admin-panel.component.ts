@@ -107,6 +107,41 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
         }
     }
 
+    getDueDateUrgencyClass(dateString?: string): string {
+        if (!dateString) return '';
+        
+        const dueDate = new Date(dateString);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 3) return 'urgency-high';
+        if (diffDays <= 10) return 'urgency-medium';
+        return 'urgency-low';
+    }
+
+    formatDate(dateString?: string): { date: string; day: string; time: string } | null {
+        if (!dateString) return null;
+        
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return null;
+
+        return {
+            date: date.toLocaleDateString(undefined, { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+            }),
+            day: date.toLocaleDateString(undefined, { weekday: 'long' }),
+            time: date.toLocaleTimeString(undefined, { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            })
+        };
+    }
+
     ngOnDestroy(): void {
         this._destroy$.next();
         this._destroy$.complete();

@@ -48,6 +48,8 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
     initialPriority: 'low' | 'medium' | 'high' | null = null;
     initialDescription: string | null = null;
     initialAssignedToUserId: number | null = null;
+    initialDueDate: string | null = null;
+    todoDueDate: string = '';
     mentionableUsers: IUserListResponse[] = [];
     comments: ITodoComment[] = [];
     newCommentText = '';
@@ -90,7 +92,8 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
         const priorityChanged = this.todo.priority !== this.initialPriority;
         const descriptionChanged = (this.todo.description ?? '') !== (this.initialDescription ?? '');
         const assignedChanged = (this.todo.assigned_to_user_id ?? null) !== this.initialAssignedToUserId;
-        return statusChanged || priorityChanged || descriptionChanged || assignedChanged;
+        const dueDateChanged = (this.todoDueDate || null) !== this.initialDueDate;
+        return statusChanged || priorityChanged || descriptionChanged || assignedChanged || dueDateChanged;
     }
 
     constructor(
@@ -141,6 +144,8 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
                 this.initialPriority = this.todo.priority;
                 this.initialDescription = this.todo.description ?? null;
                 this.initialAssignedToUserId = this.todo.assigned_to_user_id ?? null;
+                this.initialDueDate = this.todo.due_date ? this.todo.due_date.split('T')[0] : null;
+                this.todoDueDate = this.initialDueDate || '';
                 this._loadMentionableUsers();
                 this._loadComments();
                 this._loaderService.hide();
@@ -223,10 +228,11 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
     }
 
     getFieldHistoryLabel(field: string): string {
-        switch (field) {
+        switch (field?.toLowerCase()) {
             case 'status': return 'Status';
             case 'priority': return 'Priority';
             case 'assigned_to_user_id': return 'Assigned to';
+            case 'system': return 'System';
             default: return field;
         }
     }
@@ -425,6 +431,7 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
             priority: this.todo.priority,
             description: this.todo.description ?? undefined,
             assigned_to_user_id: this.todo.assigned_to_user_id ?? null,
+            due_date: this.todoDueDate || null,
         }).subscribe({
             next: (updated) => {
                 this.todo = {
@@ -434,12 +441,15 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
                     description: updated.description ?? this.todo!.description,
                     assigned_to_user_id: updated.assigned_to_user_id ?? undefined,
                     assigned_to_username: updated.assigned_to_username ?? this.todo!.assigned_to_username,
+                    due_date: updated.due_date,
                     updated_at: updated.updated_at,
                 };
                 this.initialStatus = this.todo.status;
                 this.initialPriority = this.todo.priority;
                 this.initialDescription = this.todo.description ?? null;
                 this.initialAssignedToUserId = this.todo.assigned_to_user_id ?? null;
+                this.initialDueDate = this.todo.due_date ? this.todo.due_date.split('T')[0] : null;
+                this.todoDueDate = this.initialDueDate || '';
                 this.saving = false;
                 if (this.commentHistoryTab === 'history') this._loadCommentHistory();
                 this._toastService.success('Todo updated');
@@ -451,6 +461,11 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
         });
     }
 
+    onDueDateChange(newDate: string): void {
+        this.todoDueDate = newDate;
+        this._cdr.markForCheck();
+    }
+
     getStatusLabel(status: string): string {
         const statusMap: { [key: string]: string } = {
             'new': 'New',
@@ -459,6 +474,21 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
             'done': 'Done'
         };
         return statusMap[status] || status;
+    }
+
+    getDueDateUrgencyClass(dateString?: string): string {
+        if (!dateString) return '';
+        
+        const dueDate = new Date(dateString);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 3) return 'urgency-high';
+        if (diffDays <= 10) return 'urgency-medium';
+        return 'urgency-low';
     }
 
     getPriorityIcon(priority: string): string {

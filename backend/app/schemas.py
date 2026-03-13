@@ -61,6 +61,7 @@ class TodoCreate(BaseModel):
     priority: PriorityLevel = PriorityLevel.MEDIUM
     status: Optional[TodoStatus] = TodoStatus.NEW
     category: Optional[str] = None
+    due_date: Optional[datetime] = None
     assigned_to_user_id: Optional[int] = None
 
 class TodoUpdate(BaseModel):
@@ -69,6 +70,7 @@ class TodoUpdate(BaseModel):
     status: Optional[TodoStatus] = None
     priority: Optional[PriorityLevel] = None
     category: Optional[str] = None
+    due_date: Optional[datetime] = None
     assigned_to_user_id: Optional[int] = None
 
 class TodoResponse(BaseModel):
@@ -78,6 +80,8 @@ class TodoResponse(BaseModel):
     status: str
     priority: str
     category: Optional[str] = None
+    due_date: Optional[datetime] = None
+    reminder_sent_at: Optional[datetime] = None
     order_index: int = 0
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -88,7 +92,7 @@ class TodoResponse(BaseModel):
     class Config:
         from_attributes = True
 
-    @field_serializer('created_at', 'updated_at')
+    @field_serializer('created_at', 'updated_at', 'due_date', 'reminder_sent_at')
     def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
         """Serialize datetime without timezone (Z) suffix"""
         if value is None:

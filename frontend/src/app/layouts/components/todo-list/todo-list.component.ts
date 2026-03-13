@@ -144,6 +144,21 @@ export class TodoListComponent implements OnInit, OnChanges {
         return `status-${status}`;
     }
 
+    getDueDateUrgencyClass(dateString?: string): string {
+        if (!dateString) return '';
+        
+        const dueDate = new Date(dateString);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 3) return 'urgency-high';
+        if (diffDays <= 10) return 'urgency-medium';
+        return 'urgency-low';
+    }
+
     formatDate(dateString?: string): { date: string; day: string; time: string } | null {
         if (!dateString) return null;
         
