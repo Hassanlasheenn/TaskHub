@@ -11,6 +11,7 @@ This project uses a modern scalable architecture:
 *   **Load Balancer:** Nginx as a reverse proxy and load balancer.
 *   **Cache:** Redis for high-performance data caching.
 *   **Database:** SQL Server (local) or Postgres (Docker).
+*   **Analytics:** PostHog for user behavior tracking and insights.
 
 ---
 
@@ -34,6 +35,12 @@ Redis is used by the backend for caching:
 *   **Optional** — If `REDIS_URL` is not set, the app runs without caching (no Redis required for basic runs).
 
 In Docker, the backend gets `REDIS_URL=redis://redis:6379/0` from Compose. The `/health` endpoint reports Redis status (`ok` / `disabled` / `error`).
+
+---
+
+## Analytics (PostHog)
+
+PostHog is integrated for product analytics, tracking user interactions, feature usage, and performance metrics to improve the application.
 
 ---
 
