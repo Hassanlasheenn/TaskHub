@@ -76,7 +76,8 @@
                                 <span class="summary-card-label">In Progress</span>
                             </div>
                         </div>
-                        <div *ngIf="!_authService.isAdmin()" class="summary-card completed" (click)="onSectionChange(DashboardSections.COMPLETED)">
+                        <!-- Completed card: Shown in Dashboard for users, hidden in My Todos for non-admins -->
+                        <div *ngIf="(!_authService.isAdmin() && activeSection === DashboardSections.DASHBOARD)" class="summary-card completed" (click)="onSectionChange(DashboardSections.COMPLETED)">
                             <div class="summary-card-icon">
                                 <i class="bi bi-check-all"></i>
                             </div>

@@ -107,6 +107,7 @@ export class TodoFormComponent implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         this.isAdmin = this._authService.isAdmin();
+        this.updateFieldsBasedOnRole();
         this.form = this._formService.initializeForm(this.fields);
         this.loadUsers();
     }
@@ -114,6 +115,13 @@ export class TodoFormComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this._destroy$.next();
         this._destroy$.complete();
+    }
+
+    updateFieldsBasedOnRole(): void {
+        // If not admin, remove the "Assign To" field always (Create & Edit)
+        if (!this.isAdmin) {
+            this.fields = this.fields.filter(f => f.formControlName !== 'assigned_to_user_id');
+        }
     }
 
     loadUsers(): void {
@@ -252,7 +260,57 @@ export class TodoFormComponent implements OnInit, OnDestroy {
     }
 
     resetForm(): void {
-        this.form.reset();
+        this.isEditMode = false;
+        this.editingTodo = null;
+        
+        // Reset fields to original state and then filter based on role
+        const baseFields = [
+            {
+                label: 'Title',
+                type: InputTypes.TEXT,
+                formControlName: 'title',
+                placeholder: 'Enter todo title',
+                value: '',
+                required: true,
+                validations: [
+                    { type: ValidatorTypes.REQUIRED, message: 'Title is required' },
+                    { type: ValidatorTypes.MINLENGTH, message: 'Title must be at least 3 characters', value: 3 }
+                ],
+            },
+            {
+                label: 'Description',
+                type: InputTypes.TEXT,
+                formControlName: 'description',
+                placeholder: 'Enter description (optional)',
+                value: '',
+                required: false,
+                validations: [],
+            },
+            {
+                label: 'Due Date',
+                type: InputTypes.DATE,
+                formControlName: 'due_date',
+                placeholder: 'Select due date',
+                value: '',
+                required: false,
+                validations: [],
+            },
+            {
+                label: 'Assign To',
+                type: InputTypes.DROPDOWN,
+                formControlName: 'assigned_to_user_id',
+                placeholder: 'Select user',
+                value: 0,
+                required: false,
+                validations: [],
+                options: [{ key: 0, value: 'Unassigned' }],
+            },
+        ];
+        
+        this.fields = baseFields;
+        this.updateFieldsBasedOnRole();
+        this.form = this._formService.initializeForm(this.fields);
+        
         if (this.form.get('due_date')) {
             this.form.get('due_date')?.setValue('');
         }
@@ -266,8 +324,6 @@ export class TodoFormComponent implements OnInit, OnDestroy {
         this.isOtherCategory = false;
         this.isSubmitted = false;
         this.errorSummary = null;
-        this.isEditMode = false;
-        this.editingTodo = null;
         this.selectedUserId = null;
     }
 
@@ -276,11 +332,55 @@ export class TodoFormComponent implements OnInit, OnDestroy {
         this.editingTodo = todo;
         this.selectedUserId = todo.assigned_to_user_id || null;
         
-        if (!this.form || Object.keys(this.form.controls).length === 0) {
-            this.form = this._formService.initializeForm(this.fields);
-        }
+        // Restore all fields (including Assign To) for edit mode
+        const baseFields = [
+            {
+                label: 'Title',
+                type: InputTypes.TEXT,
+                formControlName: 'title',
+                placeholder: 'Enter todo title',
+                value: '',
+                required: true,
+                validations: [
+                    { type: ValidatorTypes.REQUIRED, message: 'Title is required' },
+                    { type: ValidatorTypes.MINLENGTH, message: 'Title must be at least 3 characters', value: 3 }
+                ],
+            },
+            {
+                label: 'Description',
+                type: InputTypes.TEXT,
+                formControlName: 'description',
+                placeholder: 'Enter description (optional)',
+                value: '',
+                required: false,
+                validations: [],
+            },
+            {
+                label: 'Due Date',
+                type: InputTypes.DATE,
+                formControlName: 'due_date',
+                placeholder: 'Select due date',
+                value: '',
+                required: false,
+                validations: [],
+            },
+            {
+                label: 'Assign To',
+                type: InputTypes.DROPDOWN,
+                formControlName: 'assigned_to_user_id',
+                placeholder: 'Select user',
+                value: 0,
+                required: false,
+                validations: [],
+                options: [{ key: 0, value: 'Unassigned' }],
+            },
+        ];
         
-        if (this.isAdmin && this.users.length === 0) {
+        this.fields = baseFields;
+        this.updateFieldsBasedOnRole();
+        this.form = this._formService.initializeForm(this.fields);
+        
+        if (this.users.length === 0) {
             this.loadUsers();
             return;
         }
