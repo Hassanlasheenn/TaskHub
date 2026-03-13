@@ -29,7 +29,7 @@ if environment == "production":
         # Default production origin
         allowed_origins = [
             "https://full-stack-todo-i0ggb4p23-hassanlasheenns-projects.vercel.app",
-            "https://hassanlasheenn.github.io",
+            "https://hassanlasheenn.github.io/TaskHub/",
         ]
 else:
     # Development: Only allow localhost

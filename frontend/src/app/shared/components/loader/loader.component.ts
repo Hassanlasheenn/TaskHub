@@ -21,7 +21,6 @@ export class LoaderComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this._destroy$))
             .subscribe(loading => {
                 this.isLoading = loading;
-                // Prevent scrolling when loader is active
                 document.body.style.overflow = loading ? 'hidden' : '';
             });
     }
