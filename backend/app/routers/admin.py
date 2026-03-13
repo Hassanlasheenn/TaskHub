@@ -58,7 +58,6 @@ def delete_user(
         {models.Todo.assigned_to_user_id: None}
     )
     
-    # Delete the user (todos owned by user will be cascade deleted via relationship)
     db.delete(user)
     db.commit()
     invalidate_user_list_caches()
