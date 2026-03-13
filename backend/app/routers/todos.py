@@ -811,7 +811,6 @@ async def update_todo(
                 logger = logging.getLogger(__name__)
                 logger.error(f"Failed to send status change notification to admin {creator.id}: {e}")
     
-    # Only notify if there are actual field changes (not just assignment)
     has_other_updates = len(changed_fields) > 0
     
     if (is_admin_updater and 

@@ -364,21 +364,18 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_PROJECT_ID" ] && [ -n "$VERCEL_ORG_ID" ] || (echo "Missing Vercel secrets"; exit 1)
-          PROJECT_CHECK=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID" 2>&1)
-          echo "$PROJECT_CHECK" | grep -q '"id"' || (echo "$PROJECT_CHECK" | grep -q "NOT_FOUND\|404" && echo "Project not found: $VERCEL_PROJECT_ID" && exit 1)
+          
+          # Create the project config so Vercel CLI knows which project we are working on
           mkdir -p .vercel
           echo "{\"projectId\":\"$VERCEL_PROJECT_ID\",\"orgId\":\"$VERCEL_ORG_ID\"}" > .vercel/project.json
-          set +e
-          OUT=$(vercel deploy --prod --yes --token $VERCEL_TOKEN --force 2>&1)
-          CODE=$?
-          set -e
-          echo "$OUT"
-          if [ $CODE -ne 0 ]; then
-            echo "Deployment failed with exit code $CODE"
-            exit $CODE
-          fi
-          URL=$(echo "$OUT" | grep -oE 'https://[a-zA-Z0-9-]+\.vercel\.app' | head -1)
-          [ -n "$URL" ] && echo "::notice title=Deployed::Frontend $URL"
+          
+          # Step 1: Build the project metadata. 
+          # Since our vercel.json has buildCommand: null, this just packages our files.
+          vercel build --prod --token $VERCEL_TOKEN
+          
+          # Step 2: Deploy the prebuilt artifacts.
+          # This is more reliable for CI/CD and avoids most Git Author permission issues.
+          vercel deploy --prebuilt --prod --yes --token $VERCEL_TOKEN
 
       - name: Deployment Complete
         run: echo "Deployment finished. Set REDIS_URL on backend host for cache; use /health to verify."

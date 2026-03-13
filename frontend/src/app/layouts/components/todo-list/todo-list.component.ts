@@ -202,7 +202,6 @@ export class TodoListComponent implements OnInit, OnChanges {
 
     private initializeExpandedCategories(): void {
         if (this.groupByCategory && this.todos.length > 0) {
-            // Create new object with only current categories, preserving existing expanded state
             const newExpandedCategories: { [key: string]: boolean } = {};
             
             // Add new categories (default to expanded) and preserve existing ones
