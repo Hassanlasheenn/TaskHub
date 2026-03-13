@@ -1026,10 +1026,14 @@ async def delete_todo(
             await notification_manager.send_notification(assigned_user.id, notification_data)
             
             if assigned_user.email:
-                email_service.send_notification_email(
-                    to_email=assigned_user.email,
-                    todo_title=todo_title,
-                    assigned_by=deleter_username
+                import asyncio
+                asyncio.create_task(
+                    asyncio.to_thread(
+                        email_service.send_notification_email,
+                        assigned_user.email,
+                        todo_title,
+                        deleter_username
+                    )
                 )
 
     db.delete(todo)

@@ -1,5 +1,6 @@
+import asyncio
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSocketDisconnect, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
@@ -206,12 +207,17 @@ async def create_notification(
         # Send via WebSocket if user is connected
         await notification_manager.send_notification(user_id, notification_data)
         
-        # Send email if email is provided
+        # Send email in a separate thread to avoid blocking the event loop
         if assigned_to_email:
-            email_service.send_notification_email(
-                to_email=assigned_to_email,
-                todo_title=todo_title,
-                assigned_by=assigned_by_username
+            # We use asyncio.to_thread (Python 3.9+) to run the synchronous email sending
+            # without blocking the main event loop.
+            asyncio.create_task(
+                asyncio.to_thread(
+                    email_service.send_notification_email,
+                    assigned_to_email,
+                    todo_title,
+                    assigned_by_username
+                )
             )
     except Exception as e:
         # Log error but don't fail the todo operation

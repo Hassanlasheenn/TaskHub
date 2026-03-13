@@ -1,9 +1,14 @@
 """
-Script to run all database migrations
+Script to run all database migrations efficiently
 """
 import os
 import sys
+import logging
 from pathlib import Path
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -14,7 +19,7 @@ load_dotenv()
 # Import all migration modules
 from migrations.add_assigned_to_user_id_column import run_migration as migration1
 from migrations.add_category_column import run_migration as migration2
-from migrations.add_notifications_table import upgrade as migration3  # Uses upgrade() instead
+from migrations.add_notifications_table import upgrade as migration3
 from migrations.add_order_index_column import run_migration as migration4
 from migrations.add_priority_column import run_migration as migration5
 from migrations.add_profile_pic_column import migrate as migration6
@@ -27,11 +32,15 @@ from migrations.add_todo_comments_table import run_migration as migration12
 from migrations.add_due_date_column import run_migration as migration13
 from migrations.add_reminder_sent_at_column import migrate as migration14
 
-from app.database import SessionLocal
+from app.database import engine
 
 def run_all_migrations():
-    """Run all database migrations in order"""
-    print("🚀 Starting database migrations...")
+    """Run all database migrations in order with minimal overhead"""
+    # Check if we've already run migrations in this process
+    if os.environ.get("MIGRATIONS_RUN"):
+        return
+        
+    logger.info("🚀 Starting database migrations...")
     
     # List of migrations in order
     migrations = [
@@ -51,27 +60,23 @@ def run_all_migrations():
         ("Add reminder_sent_at column", migration14),
     ]
     
-    db = SessionLocal()
+    # We don't open a session here because each migration opens its own
+    # but we will set an environment variable to prevent re-runs if called multiple times
     try:
         for name, migration_func in migrations:
-            print(f"\n📝 Running migration: {name}")
             try:
+                # Most migrations currently open their own SessionLocal()
                 migration_func()
-                db.commit()
-                print(f"✅ Migration '{name}' completed successfully")
             except Exception as e:
-                print(f"⚠️  Migration '{name}' failed: {e}")
-                # Continue with next migration
-                db.rollback()
+                logger.warning(f"⚠️  Migration '{name}' might have already been applied or failed: {e}")
                 continue
         
-        print("\n✅ All migrations completed!")
+        os.environ["MIGRATIONS_RUN"] = "true"
+        logger.info("✅ All migrations checked/completed!")
     except Exception as e:
-        print(f"❌ Error running migrations: {e}")
-        db.rollback()
-        sys.exit(1)
-    finally:
-        db.close()
+        logger.error(f"❌ Critical error during migrations: {e}")
+        # Don't exit(1) here to allow the app to try and start anyway
+        # unless it's a completely fresh DB which will fail later anyway
 
 if __name__ == "__main__":
     run_all_migrations()

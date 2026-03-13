@@ -16,7 +16,13 @@ def _get_client() -> Optional["Redis"]:
     if _redis_client is None:
         try:
             import redis
-            _redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+            _redis_client = redis.from_url(
+                REDIS_URL, 
+                decode_responses=True,
+                socket_timeout=2.0,
+                socket_connect_timeout=2.0,
+                retry_on_timeout=False
+            )
             _redis_client.ping()
         except Exception:
             _redis_client = None
