@@ -152,13 +152,10 @@ async def create_todo(
             assigned_to_username = assigned_user.username
             assigned_user_email = assigned_user.email
             
-            # Only notify the assigned user if:
-            # 1. They are not the creator (no self-notifications)
-            # 2. They are not an admin (admins don't receive notifications)
+            # Only notify the assigned user if they are not the creator (no self-notifications)
             # Note: The creator (user_id) never receives notifications, only the assigned user does
             should_notify = (
-                assigned_user.id != user_id and  # Not self-assignment
-                assigned_user.role != models.UserRole.ADMIN.value  # Assigned user is not an admin
+                assigned_user.id != user_id  # Not self-assignment
             )
             
             if should_notify:
@@ -225,13 +222,6 @@ def _validate_assigned_user(assigned_to_user_id: int | None, db: Session, user_r
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Assigned user not found"
-        )
-
-    # If the user performing the update is not an admin, they can only assign to regular users
-    if user_role != models.UserRole.ADMIN.value and assigned_user.role != models.UserRole.USER.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Non-admin users can only assign todos to regular users"
         )
 
 
@@ -403,7 +393,7 @@ async def create_todo_comment(
         # Admin commented: notify the user assigned to this todo (if any and not self)
         if todo_db.assigned_to_user_id and todo_db.assigned_to_user_id != user_id:
             assigned_user = db.query(models.User).filter(models.User.id == todo_db.assigned_to_user_id).first()
-            if assigned_user and assigned_user.role != models.UserRole.ADMIN.value:
+            if assigned_user:
                 message = f"{author_username} commented on todo: {todo_title}"
                 await create_notification(
                     db,
@@ -771,8 +761,8 @@ async def update_todo(
                 old_assigned_user = db.query(models.User).filter(
                     models.User.id == old_assigned_user_id
                 ).first()
-                # Only notify if: user exists, not creator, and not admin
-                if old_assigned_user and old_assigned_user.id != user_id and old_assigned_user.role != models.UserRole.ADMIN.value:
+                # Only notify if: user exists and not creator
+                if old_assigned_user and old_assigned_user.id != user_id:
                     message = f"{updater_username} unassigned you from todo: {todo_db.title}"
                     await create_notification(
                         db,
@@ -790,7 +780,7 @@ async def update_todo(
                 old_assigned_user = db.query(models.User).filter(
                     models.User.id == old_assigned_user_id
                 ).first()
-                if old_assigned_user and old_assigned_user.id != user_id and old_assigned_user.role != models.UserRole.ADMIN.value:
+                if old_assigned_user and old_assigned_user.id != user_id:
                     message = f"{updater_username} unassigned you from todo: {todo_db.title}"
                     await create_notification(
                         db,
@@ -806,7 +796,7 @@ async def update_todo(
                 new_assigned_user = db.query(models.User).filter(
                     models.User.id == new_assigned_user_id
                 ).first()
-                if new_assigned_user and new_assigned_user.id != user_id and new_assigned_user.role != models.UserRole.ADMIN.value:
+                if new_assigned_user and new_assigned_user.id != user_id:
                     message = f"{updater_username} assigned you a todo: {todo_db.title}"
                     await create_notification(
                         db,
@@ -824,7 +814,7 @@ async def update_todo(
                     models.User.id == new_assigned_user_id
                 ).first()
                 # Only notify if: user exists, not creator, and not admin
-                if new_assigned_user and new_assigned_user.id != user_id and new_assigned_user.role != models.UserRole.ADMIN.value:
+                if new_assigned_user and new_assigned_user.id != user_id:
                     message = f"{updater_username} assigned you a todo: {todo_db.title}"
                     await create_notification(
                         db,
@@ -885,7 +875,7 @@ async def update_todo(
             models.User.id == final_assigned_user_id
         ).first()
         
-        if assigned_user and assigned_user.id != user_id and assigned_user.role != models.UserRole.ADMIN.value:
+        if assigned_user and assigned_user.id != user_id:
             field_names = {
                 'title': 'title',
                 'description': 'description',
@@ -1009,7 +999,7 @@ async def delete_todo(
         assigned_user = db.query(models.User).filter(
             models.User.id == todo.assigned_to_user_id
         ).first()
-        if assigned_user and assigned_user.id != user_id and assigned_user.role != models.UserRole.ADMIN.value:
+        if assigned_user and assigned_user.id != user_id:
             message = f"{deleter_username} deleted the todo: {todo_title}"
             notification = models.Notification(
                 user_id=assigned_user.id,

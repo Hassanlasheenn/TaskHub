@@ -107,12 +107,8 @@ export class TodoFormComponent implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         this.isAdmin = this._authService.isAdmin();
-        this.updateFieldsBasedOnRole();
         this.form = this._formService.initializeForm(this.fields);
-            
-        if (this.isAdmin) {
-            this.loadUsers();
-        }
+        this.loadUsers();
     }
 
     ngOnDestroy(): void {
@@ -120,18 +116,8 @@ export class TodoFormComponent implements OnInit, OnDestroy {
         this._destroy$.complete();
     }
 
-    updateFieldsBasedOnRole(): void {
-        if (!this.isAdmin) {
-            this.fields = this.fields.filter(f => f.formControlName !== 'assigned_to_user_id');
-        }
-    }
-
     loadUsers(): void {
-        if (!this.isAdmin) {
-            return;
-        }
-        
-        this._userService.getUsersWithRoleUser()
+        this._userService.getMentionableUsers()
             .pipe(takeUntil(this._destroy$))
             .subscribe({
                 next: (users) => {
@@ -158,9 +144,9 @@ export class TodoFormComponent implements OnInit, OnDestroy {
             const unassignedOption = { key: 0, value: 'Unassigned' };
             const userOptions = this.users.map(user => ({ key: user.id, value: user.username }));
             
-            // If current user is admin, add them to the list if not already present
+            // Always add the current user to the list if not already present
             const currentUser = this._authService.getCurrentUserData();
-            if (this.isAdmin && currentUser && !this.users.some(u => u.id === currentUser.id)) {
+            if (currentUser && !this.users.some(u => u.id === currentUser.id)) {
                 userOptions.unshift({ key: currentUser.id, value: `${currentUser.username} (Me)` });
             }
             
@@ -216,20 +202,16 @@ export class TodoFormComponent implements OnInit, OnDestroy {
             categoryToUse = 'Other';
         }
 
+        const assignedUserIdValue = this.form.get('assigned_to_user_id')?.value;
         let assignedUserId: number | null = null;
-        if (this.isAdmin) {
-            const assignedUserIdValue = this.form.get('assigned_to_user_id')?.value;
-            if (assignedUserIdValue === null || assignedUserIdValue === undefined || 
-                assignedUserIdValue === 0 || assignedUserIdValue === "0" || 
-                String(assignedUserIdValue).trim() === "0") {
-                assignedUserId = null;
-            } else {
-                const numValue = Number(assignedUserIdValue);
-                assignedUserId = isNaN(numValue) ? null : numValue;
-            }
-        } else if (this.isEditMode && this.editingTodo) {
-            // Preserve current assignee for non-admins
-            assignedUserId = this.editingTodo.assigned_to_user_id ?? null;
+        
+        if (assignedUserIdValue === null || assignedUserIdValue === undefined || 
+            assignedUserIdValue === 0 || assignedUserIdValue === "0" || 
+            String(assignedUserIdValue).trim() === "0") {
+            assignedUserId = null;
+        } else {
+            const numValue = Number(assignedUserIdValue);
+            assignedUserId = isNaN(numValue) ? null : numValue;
         }
         
         const todoData: ITodoCreate = {
@@ -247,14 +229,13 @@ export class TodoFormComponent implements OnInit, OnDestroy {
                 description: todoData.description,
                 due_date: todoData.due_date || null,
                 category: todoData.category,
-                status: this.selectedStatus
+                status: this.selectedStatus,
+                assigned_to_user_id: assignedUserId
             };
             
             // Only include priority if user is admin (non-admin users cannot change priority)
             if (this.isAdmin) {
                 updateData.priority = this.selectedPriority || undefined;
-                // Only include assigned_to_user_id if user is admin (non-admin users cannot change assignment)
-                updateData.assigned_to_user_id = assignedUserId ?? null;
             }
             
             this.updateTodo.emit({ 
@@ -341,15 +322,14 @@ export class TodoFormComponent implements OnInit, OnDestroy {
             due_date: todo.due_date ? todo.due_date.split('T')[0] : ''
         };
         
-        if (this.isAdmin) {
-            const assignedUserId = todo.assigned_to_user_id;
-            if (assignedUserId && assignedUserId !== null && assignedUserId !== 0) {
-                const userField = this.fields.find(f => f.formControlName === 'assigned_to_user_id');
-                const userExists = userField?.options?.some(opt => opt.key === assignedUserId);
-                formValue.assigned_to_user_id = userExists ? assignedUserId : 0;
-            } else {
-                formValue.assigned_to_user_id = 0;
-            }
+        // Handle assignee dropdown value
+        const assignedUserId = todo.assigned_to_user_id;
+        if (assignedUserId && assignedUserId !== null && assignedUserId !== 0) {
+            const userField = this.fields.find(f => f.formControlName === 'assigned_to_user_id');
+            const userExists = userField?.options?.some(opt => opt.key === assignedUserId);
+            formValue.assigned_to_user_id = userExists ? assignedUserId : 0;
+        } else {
+            formValue.assigned_to_user_id = 0;
         }
         
         setTimeout(() => {
@@ -362,7 +342,7 @@ export class TodoFormComponent implements OnInit, OnDestroy {
                 if (this.form.get('description')?.value !== formValue.description) {
                     this.form.get('description')?.setValue(formValue.description, { emitEvent: false });
                 }
-                if (this.isAdmin && this.form.get('assigned_to_user_id')) {
+                if (this.form.get('assigned_to_user_id')) {
                     const currentValue = this.form.get('assigned_to_user_id')?.value;
                     if (currentValue !== formValue.assigned_to_user_id) {
                         this.form.get('assigned_to_user_id')?.setValue(formValue.assigned_to_user_id, { emitEvent: false });

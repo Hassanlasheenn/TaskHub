@@ -26,6 +26,7 @@ export class DashboardSideNavComponent implements OnInit {
     navItems: NavItem[] = [
         { section: DashboardSections.DASHBOARD, icon: 'bi-clipboard-check', label: 'Dashboard' },
         { section: DashboardSections.CALENDAR, icon: 'bi-calendar3', label: 'Calendar' },
+        { section: DashboardSections.MY_ASSIGNED, icon: 'bi-person-check', label: 'My Todos' },
         { section: DashboardSections.COMPLETED, icon: 'bi-check-circle', label: 'Completed' }
     ];
 
@@ -34,11 +35,6 @@ export class DashboardSideNavComponent implements OnInit {
     ngOnInit(): void {
         this.isAdmin = this._authService.isAdmin();
         if (this.isAdmin) {
-            this.navItems.push({
-                section: DashboardSections.MY_ASSIGNED,
-                icon: 'bi-person-check',
-                label: 'My Todos'
-            });
             this.navItems.push({
                 section: DashboardSections.ADMIN_PANEL,
                 icon: 'bi-shield-check',
