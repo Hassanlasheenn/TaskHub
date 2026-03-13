@@ -11,7 +11,9 @@ COPY frontend/ ./
 
 # Pass build arguments to the frontend
 ARG POSTHOG_KEY
+ARG POSTHOG_HOST
 ENV POSTHOG_KEY=$POSTHOG_KEY
+ENV POSTHOG_HOST=$POSTHOG_HOST
 
 # Run environment replacement script before building
 RUN node scripts/replace-api-url.js
