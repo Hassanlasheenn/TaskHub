@@ -364,14 +364,13 @@ jobs:
           mkdir -p .vercel
           echo "{\"projectId\":\"$VERCEL_PROJECT_ID\",\"orgId\":\"$VERCEL_ORG_ID\"}" > .vercel/project.json
           set +e
-          OUT=$(vercel deploy --prod --yes --token $VERCEL_TOKEN --prebuilt --force 2>&1)
+          OUT=$(vercel deploy --prod --yes --token $VERCEL_TOKEN --force 2>&1)
           CODE=$?
           set -e
           echo "$OUT"
           if [ $CODE -ne 0 ]; then
-            OUT=$(vercel deploy --prod --yes --token $VERCEL_TOKEN --force 2>&1)
-            echo "$OUT"
-            [ $? -ne 0 ] && exit 1
+            echo "Deployment failed with exit code $CODE"
+            exit $CODE
           fi
           URL=$(echo "$OUT" | grep -oE 'https://[a-zA-Z0-9-]+\.vercel\.app' | head -1)
           [ -n "$URL" ] && echo "::notice title=Deployed::Frontend $URL"
