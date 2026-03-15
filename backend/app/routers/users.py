@@ -18,65 +18,32 @@ from ..cache import (
     PREFIX_USER_PROFILE,
 )
 from ..config import CACHE_TTL_USER_LISTS, CACHE_TTL_USER_PROFILE
+from ..services.storage_service import S3StorageService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["users"])
+storage_service = S3StorageService()
 
-# Directory configuration
+# Local directory configuration (for fallback/legacy)
 STATIC_DIR = "static"
 PROFILE_PICS_DIR = os.path.join(STATIC_DIR, "profile_pics")
 
-# Ensure directory exists
-if not os.path.exists(PROFILE_PICS_DIR):
-    os.makedirs(PROFILE_PICS_DIR, exist_ok=True)
-
 
 def get_photo_url(request: Request, photo_path: Optional[str]) -> Optional[str]:
-    """Helper to convert stored path to a full public URL."""
+    """
+    Helper to convert stored path to a full public URL.
+    Handles both S3 full URLs and local relative paths.
+    """
     if not photo_path:
         return None
     
-    # If it's already a full URL (external) or data URI (old legacy), return as is
+    # If it's already a full URL (S3, external) or data URI, return as is
     if photo_path.startswith(("http", "data:")):
         return photo_path
         
-    # Construct full URL: base_url + /static/profile_pics/filename
+    # Construct full URL for local legacy files: base_url + /static/profile_pics/filename
     base_url = str(request.base_url).rstrip("/")
     return f"{base_url}/static/profile_pics/{photo_path}"
-
-
-def save_profile_pic(file_content: bytes, filename: str) -> str:
-    """
-    Optimizes and saves the image to disk.
-    Returns only the filename to be stored in the DB.
-    """
-    try:
-        # Generate unique filename to avoid collisions
-        ext = os.path.splitext(filename)[1].lower()
-        if ext not in ['.jpg', '.jpeg', '.png', '.webp']:
-            ext = '.jpg'
-        
-        unique_filename = f"{uuid.uuid4().hex}{ext}"
-        save_path = os.path.join(PROFILE_PICS_DIR, unique_filename)
-        
-        # Load image into Pillow
-        img = Image.open(io.BytesIO(file_content))
-        
-        # Convert to RGB (required for JPEG)
-        if img.mode != "RGB":
-            img = img.convert("RGB")
-        
-        # Resize to thumbnail (Max 150px)
-        img.thumbnail((150, 150), Image.Resampling.LANCZOS)
-        
-        # Save to disk
-        img.save(save_path, format="JPEG", quality=85, optimize=True)
-        
-        return unique_filename
-        
-    except Exception as e:
-        logger.error(f"Image saving failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to process image")
 
 
 @router.get("/mentionable", response_model=List[schemas.UserListResponse])
@@ -89,7 +56,6 @@ def get_mentionable_users(
     cache_key = f"{PREFIX_USERS_MENTIONABLE}{current_user.id}"
     cached = cache_get(cache_key)
     if cached is not None:
-        # We need to ensure URLs are correct even if host changed
         for item in cached:
             item['photo'] = get_photo_url(request, item.get('photo'))
         return [schemas.UserListResponse(**item) for item in cached]
@@ -106,14 +72,14 @@ def get_mentionable_users(
             is_verified=user.is_verified
         ))
     
-    # Store raw profile_pic paths in cache, convert to URL on retrieval
+    # Cache raw paths/URLs
     cache_data = []
     for user in users:
         cache_data.append({
             "id": user.id,
             "username": user.username,
             "email": user.email,
-            "photo": user.profile_pic, # Store path
+            "photo": user.profile_pic,
             "role": getattr(user, 'role', 'user'),
             "is_verified": user.is_verified
         })
@@ -142,7 +108,7 @@ def get_user_data(request: Request, user_id: int, db: Session = Depends(database
         "is_verified": user_db.is_verified
     }
     
-    # Cache the raw path
+    # Cache raw path/URL
     cache_item = user_dict.copy()
     cache_item['photo'] = user_db.profile_pic
     cache_set(cache_key, cache_item, CACHE_TTL_USER_PROFILE)
@@ -170,11 +136,17 @@ async def update_user_data(
         user_db.email = email
     
     if delete_photo and delete_photo.lower() == 'true':
-        # Optional: delete file from disk
-        if user_db.profile_pic and not user_db.profile_pic.startswith(("http", "data:")):
+        # Delete from S3 if it's an S3 URL
+        if user_db.profile_pic and "s3.amazonaws.com" in user_db.profile_pic:
+            storage_service.delete_file(user_db.profile_pic)
+        
+        # Local legacy cleanup
+        elif user_db.profile_pic and not user_db.profile_pic.startswith("data:"):
             old_path = os.path.join(PROFILE_PICS_DIR, user_db.profile_pic)
             if os.path.exists(old_path):
-                os.remove(old_path)
+                try: os.remove(old_path)
+                except: pass
+                
         user_db.profile_pic = None
     
     elif photo:
@@ -192,14 +164,27 @@ async def update_user_data(
                 detail="File size must be less than 5MB"
             )
         
-        # Delete old photo if exists
-        if user_db.profile_pic and not user_db.profile_pic.startswith(("http", "data:")):
-            old_path = os.path.join(PROFILE_PICS_DIR, user_db.profile_pic)
-            if os.path.exists(old_path):
-                try: os.remove(old_path)
-                except: pass
-
-        user_db.profile_pic = save_profile_pic(content, photo.filename or "photo.jpg")
+        # 1. Delete old photo if it exists in S3
+        if user_db.profile_pic and "s3.amazonaws.com" in user_db.profile_pic:
+            storage_service.delete_file(user_db.profile_pic)
+            
+        # 2. Upload new photo to S3
+        s3_url = storage_service.upload_profile_pic(content, photo.filename or "photo.jpg")
+        
+        if s3_url:
+            user_db.profile_pic = s3_url
+        else:
+            # Fallback to local if S3 fails
+            logger.warning("S3 upload failed, using local storage fallback")
+            unique_filename = f"{uuid.uuid4().hex}.jpg"
+            if not os.path.exists(PROFILE_PICS_DIR):
+                os.makedirs(PROFILE_PICS_DIR, exist_ok=True)
+            
+            save_path = os.path.join(PROFILE_PICS_DIR, unique_filename)
+            img = Image.open(io.BytesIO(content))
+            img.thumbnail((150, 150), Image.Resampling.LANCZOS)
+            img.save(save_path, format="JPEG", quality=85)
+            user_db.profile_pic = unique_filename
     
     db.commit()
     db.refresh(user_db)
@@ -245,7 +230,7 @@ def get_users_with_role_user(
             is_verified=user.is_verified
         ))
         
-    # Cache raw paths
+    # Cache raw paths/URLs
     cache_data = []
     for user in users:
         cache_data.append({
