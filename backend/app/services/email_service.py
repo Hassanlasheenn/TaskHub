@@ -1,27 +1,28 @@
-import os
 import smtplib
 import logging
 import asyncio
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
+from .. import config
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 class EmailService:
     def __init__(self):
-        self.smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-        self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        self.smtp_username = os.getenv("SMTP_USERNAME", "")
-        self.smtp_password = os.getenv("SMTP_PASSWORD", "")
-        self.smtp_use_tls = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
-        self.from_email = os.getenv("FROM_EMAIL", self.smtp_username)
-        self.timeout = 10  # 10 seconds timeout for SMTP operations
+        # Load settings from centralized config
+        self.smtp_server = config.SMTP_SERVER
+        self.smtp_port = config.SMTP_PORT
+        self.smtp_username = config.SMTP_USERNAME
+        self.smtp_password = config.SMTP_PASSWORD
+        self.smtp_use_tls = config.SMTP_USE_TLS
+        self.from_email = config.FROM_EMAIL
+        self.timeout = 15  # Increased timeout for production stability
         
         # Application Brand Colors
-        self.primary_gradient_start = "#a78bfa"
-        self.primary_gradient_end = "#8b5cf6"
+        self.primary_gradient_start = config.primary_gradient_start if hasattr(config, 'primary_gradient_start') else "#a78bfa"
+        self.primary_gradient_end = config.primary_gradient_end if hasattr(config, 'primary_gradient_end') else "#8b5cf6"
         self.text_primary = "#1e1b4b"
         self.text_secondary = "#3730a3"
         self.bg_light = "#f4f2ff"
@@ -41,7 +42,7 @@ class EmailService:
             return False
 
         try:
-            frontend_url = os.getenv("FRONTEND_URL", "http://localhost:4200")
+            frontend_url = config.FRONTEND_URL.rstrip("/")
             verify_link = f"{frontend_url}/verify-email?token={token}"
 
             subject = "Verify your Taskrr account"
