@@ -192,8 +192,9 @@ export class AuthContainerComponent implements OnInit, OnDestroy {
     private performLogin(): void {
         this.loginError = null;
         
+        const email = this.loginForm.get('email')?.value;
         const payload: ILoginPayload = {
-            email: this.loginForm.get('email')?.value,
+            email: email,
             password: this.loginForm.get('password')?.value,
         };
 
@@ -217,6 +218,12 @@ export class AuthContainerComponent implements OnInit, OnDestroy {
                     this.loginSubmitted = true;
                     const errorMessage = err?.error?.detail || err?.error?.message || err?.message || 'An error occurred during login. Please try again.';
                     this.loginError = errorMessage;
+                    
+                    // If the error is about verification, store the email so we can offer a resend button
+                    if (err.status === 403 && errorMessage.toLowerCase().includes('verified')) {
+                        this.registeredEmail = email;
+                    }
+                    
                     this._toastService.error(errorMessage);
                 }
             });
