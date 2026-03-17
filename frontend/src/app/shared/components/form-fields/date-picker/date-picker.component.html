@@ -45,12 +45,13 @@
 
             <div class="calendar-grid">
                 <!-- Week Days -->
-                <div *ngFor="let day of weekDays" class="calendar-weekday">{{ day }}</div>
-                
+                <div *ngFor="let day of weekDays; trackBy: trackById" class="calendar-weekday">{{ day }}</div>
+
                 <!-- Month Days -->
-                <div 
-                    *ngFor="let date of calendarDays" 
+                <div
+                    *ngFor="let date of calendarDays; trackBy: trackByDate"
                     class="calendar-day"
+
                     [class.empty]="!date"
                     [class.today]="isToday(date)"
                     [class.selected]="isDateSelected(date)"

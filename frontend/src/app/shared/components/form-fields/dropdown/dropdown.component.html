@@ -12,7 +12,7 @@
             [ngClass]="getInputClasses()"
             [ngStyle]="customInputStyle"
         >
-            <option *ngFor="let option of field?.options" [value]="option.key">
+            <option *ngFor="let option of field?.options; trackBy: trackByKey" [value]="option.key">
                 {{ option.value }}
             </option>
         </select>

@@ -1,6 +1,6 @@
 <div class="tabs-nav" role="tablist" [attr.aria-label]="ariaLabel">
     <button
-        *ngFor="let tab of tabs"
+        *ngFor="let tab of tabs; trackBy: trackById"
         type="button"
         class="tabs-tab"
         [class.tabs-tab--active]="activeTabId === tab.id"

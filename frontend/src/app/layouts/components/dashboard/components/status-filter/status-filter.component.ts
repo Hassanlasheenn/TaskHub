@@ -1,5 +1,6 @@
 import { Component, Output, EventEmitter, Input } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { trackById } from "../../../../../shared/helpers/trackByFn.helper";
 
 export type TodoStatus = 'all' | 'new' | 'inProgress' | 'paused' | 'done';
 
@@ -13,6 +14,7 @@ export type TodoStatus = 'all' | 'new' | 'inProgress' | 'paused' | 'done';
 export class StatusFilterComponent {
     @Input() activeStatus: TodoStatus = 'all';
     @Output() statusChange = new EventEmitter<TodoStatus>();
+    trackById = trackById;
 
     statuses: { value: TodoStatus; label: string }[] = [
         { value: 'all', label: 'All' },

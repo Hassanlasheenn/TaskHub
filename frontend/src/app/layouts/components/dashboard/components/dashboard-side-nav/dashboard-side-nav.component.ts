@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { DashboardSections } from "../../../../enums/dashboard-sections.enum";
 import { AuthService } from "../../../../../auth/services";
+import { trackById } from "../../../../../shared/helpers/trackByFn.helper";
 
 interface NavItem {
     section: DashboardSections;
@@ -22,6 +23,7 @@ export class DashboardSideNavComponent implements OnInit {
 
     DashboardSections = DashboardSections;
     isAdmin: boolean = false;
+    trackById = trackById;
 
     navItems: NavItem[] = [
         { section: DashboardSections.DASHBOARD, icon: 'bi-clipboard-check', label: 'Dashboard' },

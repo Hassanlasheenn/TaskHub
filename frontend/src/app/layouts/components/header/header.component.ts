@@ -63,9 +63,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
             '/' + LayoutPaths.CALENDAR,
             '/' + LayoutPaths.MY_TODOS,
             '/' + LayoutPaths.COMPLETED,
-            '/' + LayoutPaths.ADMIN_PANEL
+            '/' + LayoutPaths.ADMIN_PANEL,
+            '/' + LayoutPaths.PROFILE,
+            '/' + LayoutPaths.ADMIN
         ];
-        // Check if on dashboard or root path
+        // Check if on dashboard or related paths
         this.showMobileMenu = this.isAuthenticated && dashboardPaths.includes(url);
     }
 

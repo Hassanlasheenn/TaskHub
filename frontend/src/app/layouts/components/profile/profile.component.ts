@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from "@angular/core";
+import { Component, OnInit, OnDestroy, ViewChild } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { AuthService } from "../../../auth/services/auth.service";
 import { UserService } from "../../../core/services/user.service";
@@ -10,7 +10,13 @@ import { ProfileSideNavComponent } from "./components/profile-side-nav/profile-s
 import { PersonalDataComponent } from "./components/personal-data/personal-data.component";
 import { PosthogService } from "../../../core/services";
 import { CanComponentDeactivate } from "../../../auth/guards/can-deactivate.guard";
-import { Observable, map } from "rxjs";
+import { Observable, Subject, map, takeUntil } from "rxjs";
+import { Router } from "@angular/router";
+import { DashboardSideNavComponent } from "../dashboard/components/dashboard-side-nav/dashboard-side-nav.component";
+import { DashboardSections } from "../../enums/dashboard-sections.enum";
+import { LayoutPaths } from "../../enums/layout-paths.enum";
+import { NavigationService } from "../../../core/services/navigation.service";
+import { SidebarComponent } from "../../../shared/components/sidebar/sidebar.component";
 
 @Component({
     selector: 'app-profile',
@@ -20,29 +26,57 @@ import { Observable, map } from "rxjs";
     imports: [
         CommonModule,
         ProfileSideNavComponent,
-        PersonalDataComponent
+        PersonalDataComponent,
+        DashboardSideNavComponent,
+        SidebarComponent
     ],
 })
-export class ProfileComponent implements OnInit, CanComponentDeactivate {
+export class ProfileComponent implements OnInit, OnDestroy, CanComponentDeactivate {
     @ViewChild(PersonalDataComponent) personalDataComponent!: PersonalDataComponent;
     userData: IUserResponse | null = null;
     activeSection: ProfileSections = ProfileSections.PERSONAL_DATA;
     ProfileSections = ProfileSections;
+    private readonly _destroy$ = new Subject<void>();
+    isNavSidebarOpen: boolean = false;
 
     constructor(
         private readonly _authService: AuthService,
         private readonly _userService: UserService,
         private readonly _toastService: ToastService,
         private readonly _confirmationDialog: ConfirmationDialogService,
-        private readonly _posthogService: PosthogService
+        private readonly _posthogService: PosthogService,
+        private readonly _router: Router,
+        private readonly _navService: NavigationService
     ) {}
 
     ngOnInit(): void {
         this.userData = this._authService.getCurrentUserData();
+
+        this._navService.toggleNavSidebar$
+            .pipe(takeUntil(this._destroy$))
+            .subscribe(() => {
+                this.isNavSidebarOpen = !this.isNavSidebarOpen;
+            });
     }
 
     onSectionChange(section: ProfileSections): void {
         this.activeSection = section;
+    }
+
+    onDashboardSectionChange(section: DashboardSections): void {
+        let path = '';
+        switch(section) {
+            case DashboardSections.CALENDAR: path = LayoutPaths.CALENDAR; break;
+            case DashboardSections.MY_ASSIGNED: path = LayoutPaths.MY_TODOS; break;
+            case DashboardSections.COMPLETED: path = LayoutPaths.COMPLETED; break;
+            case DashboardSections.ADMIN_PANEL: path = LayoutPaths.ADMIN_PANEL; break;
+            default: path = LayoutPaths.DASHBOARD; break;
+        }
+        this._router.navigate([path]);
+    }
+
+    onNavSidebarClose(): void {
+        this.isNavSidebarOpen = false;
     }
 
     onPersonalDataSubmit(event: { form: any; photoRemoved: boolean; updateCallback: (user: IUserResponse) => void }): void {
@@ -74,18 +108,23 @@ export class ProfileComponent implements OnInit, CanComponentDeactivate {
             error: (error) => {
                 this._toastService.error(error?.error?.detail || 'Failed to update profile');
             }
-            });
-            }
+        });
+    }
 
-            canDeactivate(): boolean | Observable<boolean> {
-            if (this.personalDataComponent?.hasChanges()) {
+    canDeactivate(): boolean | Observable<boolean> {
+        if (this.personalDataComponent?.hasChanges()) {
             return this._confirmationDialog.show({
                 title: 'Unsaved Changes',
                 message: 'You have unsaved changes in your profile. Are you sure you want to leave?',
                 confirmText: 'Leave',
                 cancelText: 'Stay'
             }).pipe(map(result => result.confirmed));
-            }
-            return true;
-            }
-            }
+        }
+        return true;
+    }
+
+    ngOnDestroy(): void {
+        this._destroy$.next();
+        this._destroy$.complete();
+    }
+}

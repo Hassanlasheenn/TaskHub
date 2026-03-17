@@ -2,6 +2,7 @@ import { CommonModule } from "@angular/common";
 import { ChangeDetectorRef, Component, EventEmitter, HostListener, Input, OnChanges, OnInit, Output, SimpleChanges } from "@angular/core";
 import { AuthService } from "../../../auth/services";
 import { ITodo } from "../../../core/interfaces/todo.interface";
+import { trackById } from "../../../shared/helpers/trackByFn.helper";
 import { StatusFilterComponent, TodoStatus as FilterStatus } from "../dashboard/components/status-filter/status-filter.component";
 import { PriorityFilterComponent } from "../dashboard/components/priority-filter/priority-filter.component";
 
@@ -118,8 +119,10 @@ export class TodoListComponent implements OnInit, OnChanges {
         this.priorityChange.emit('all');
     }
 
-    trackById(index: number, item: ITodo): number {
-        return item.id;
+    trackById = trackById;
+
+    trackByCategory(index: number, group: { category: string | null; todos: ITodo[] }): string | null {
+        return group.category;
     }
 
     getPriorityClass(priority: string): string {

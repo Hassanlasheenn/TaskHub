@@ -1,253 +1,292 @@
 @use '../../../assets/components/buttons';
 
+.admin-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+    min-height: 0;
+}
+
 .admin-container {
     width: 100%;
-    padding-top: 1rem;
-    padding-bottom: 2rem;
+    max-width: 100%;
     box-sizing: border-box;
+    overflow: visible;
+    min-height: 0;
+}
 
-    .admin-card {
-        width: 100%;
+.side-nav-wrapper {
+    &.d-lg-block {
+        @media (min-width: 992px) {
+            display: block !important;
+            width: 220px;
+            flex-shrink: 0;
+        }
+    }
+    
+    @media (max-width: 991.98px) {
+        display: none !important;
+    }
+}
 
-        ::ng-deep .card {
+.mobile-nav-content {
+    ::ng-deep {
+        .dashboard-side-nav {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
             width: 100% !important;
-            margin: 0 !important;
+
+            .side-nav-list {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 0.75rem !important;
+            }
+
+            .side-nav-item {
+                margin-bottom: 0 !important;
+                text-align: left !important;
+                justify-content: flex-start !important;
+                flex-direction: row !important;
+                padding: 0.75rem 1rem !important;
+                
+                i {
+                    font-size: 1.25rem !important;
+                }
+            }
+        }
+    }
+}
+
+::ng-deep {
+    .sidebar-panel--left {
+        .sidebar-title {
+            background: linear-gradient(135deg, var(--header-logo-gradient-start) 0%, var(--header-logo-gradient-end) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-family: 'Caveat', 'Montserrat', cursive !important;
+            font-weight: 400 !important;
+            letter-spacing: 0.05em;
+            font-size: 2.25rem !important;
+        }
+    }
+}
+
+.admin-content {
+    min-width: 0;
+    width: 100%;
+    overflow: visible;
+}
+
+.admin-header {
+    background: var(--card-color);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: 16px;
+    border: 1px solid var(--card-border-color);
+    box-shadow: var(--card-shadow);
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+
+    &::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 40%;
+        background: linear-gradient(to top, 
+            rgba(107, 207, 209, 0.15) 0%, 
+            rgba(74, 144, 226, 0.1) 50%,
+            transparent 100%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    h1 {
+        position: relative;
+        z-index: 1;
+        font-size: clamp(1.75rem, 4vw, 2.5rem);
+        font-weight: 700;
+        margin: 0;
+        background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+}
+
+.admin-card {
+    width: 100%;
+
+    ::ng-deep .card {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+}
+
+.section-description {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.users-table-wrapper {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+
+    thead {
+        background-color: var(--card-background);
+        border-bottom: 2px solid var(--border-color);
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
         }
     }
 
-    .section-description {
-        color: var(--text-secondary);
-        font-size: 0.9375rem;
-        margin-bottom: 2rem;
-        line-height: 1.6;
-    }
+    tbody {
+        tr {
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
 
-    .users-table-wrapper {
-        overflow-x: auto;
-        margin-top: 1rem;
-    }
+            &:hover {
+                background-color: var(--hover-background);
+            }
 
-    .users-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.9375rem;
+            &.current-user {
+                background-color: var(--accent-light);
+            }
 
-        thead {
-            background-color: var(--card-background);
-            border-bottom: 2px solid var(--border-color);
-
-            th {
+            td {
                 padding: 1rem;
-                text-align: left;
-                font-weight: 600;
                 color: var(--text-primary);
             }
         }
+    }
 
-        tbody {
-            tr {
-                border-bottom: 1px solid var(--border-color);
-                transition: background-color 0.2s;
+    .role-select {
+        padding: 0.625rem 1rem;
+        border: 1px solid var(--border-color, var(--card-border-color));
+        border-radius: 12px;
+        background-color: var(--dropdown-bg, var(--card-color-solid));
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        min-width: 120px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        position: relative;
 
-                &:hover {
-                    background-color: var(--hover-background);
-                }
+        // Custom dropdown arrow
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236bcfd1' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        padding-right: 2.5rem;
 
-                &.current-user {
-                    background-color: var(--accent-light);
-                }
-
-                td {
-                    padding: 1rem;
-                    color: var(--text-primary);
-                }
-            }
+        &:disabled {
+            opacity: 0.6;
+            cursor: default;
+            box-shadow: none;
         }
 
-        .role-select {
-            padding: 0.625rem 1rem;
-            border: 1px solid var(--border-color, var(--card-border-color));
-            border-radius: 12px;
+        &:hover:not(:disabled) {
+            border-color: var(--primary-gradient-start);
+            background-color: var(--dropdown-item-hover, var(--btn-secondary-hover-bg));
+            box-shadow: 0 4px 12px rgba(107, 207, 209, 0.15);
+            transform: translateY(-1px);
+        }
+
+        &:focus {
+            outline: none;
+            border-color: var(--primary-gradient-start);
+            box-shadow: 0 0 0 3px rgba(107, 207, 209, 0.15), 
+                        0 4px 16px rgba(107, 207, 209, 0.2);
             background-color: var(--dropdown-bg, var(--card-color-solid));
-            color: var(--text-primary);
-            font-size: 0.875rem;
+            transform: translateY(-1px);
+        }
+
+        &:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(107, 207, 209, 0.2);
+        }
+
+        option {
+            background-color: var(--dropdown-bg, var(--card-color-solid));
+            color: var(--text-secondary);
+            padding: 0.75rem 1rem;
             font-weight: 500;
-            cursor: pointer;
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            min-width: 120px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            position: relative;
+            border-radius: 8px;
+            margin: 0.25rem 0;
+            transition: all 0.2s ease;
+        }
 
-            // Custom dropdown arrow
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236bcfd1' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            padding-right: 2.5rem;
-
-            &:disabled {
-                opacity: 0.6;
-                cursor: default;
-                box-shadow: none;
+        &:not(:disabled) {
+            option:checked {
+                background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
+                color: white;
+                font-weight: 600;
             }
 
-            &:hover:not(:disabled) {
-                border-color: var(--primary-gradient-start);
-                background-color: var(--dropdown-item-hover, var(--btn-secondary-hover-bg));
-                box-shadow: 0 4px 12px rgba(107, 207, 209, 0.15);
-                transform: translateY(-1px);
-            }
+            &:hover {
+                option:not(:hover) {
+                    color: var(--text-light);
+                    opacity: 0.4;
+                }
 
-            &:focus {
-                outline: none;
-                border-color: var(--primary-gradient-start);
-                box-shadow: 0 0 0 3px rgba(107, 207, 209, 0.15), 
-                            0 4px 16px rgba(107, 207, 209, 0.2);
-                background-color: var(--dropdown-bg, var(--card-color-solid));
-                transform: translateY(-1px);
-            }
-
-            &:active:not(:disabled) {
-                transform: translateY(0);
-                box-shadow: 0 2px 8px rgba(107, 207, 209, 0.2);
-            }
-
-            // Style options for better visibility in both light and dark modes
-            // Note: Browser support for option styling is limited, but we set what we can
-            option {
-                background-color: var(--dropdown-bg, var(--card-color-solid));
-                color: var(--text-secondary);
-                padding: 0.75rem 1rem;
-                font-weight: 500;
-                border-radius: 8px;
-                margin: 0.25rem 0;
-                transition: all 0.2s ease;
-            }
-
-            // Ensure selected option is visible
-            &:not(:disabled) {
-                option:checked {
-                    background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
-                    color: white;
+                option:hover {
+                    background-color: var(--dropdown-item-hover, rgba(107, 207, 209, 0.15));
+                    color: var(--primary-gradient-start);
                     font-weight: 600;
                 }
-
-                // When hovering, change color and adjust opacity for non-hovered options
-                &:hover {
-                    option:not(:hover) {
-                        color: var(--text-light);
-                        opacity: 0.4;
-                    }
-
-                    option:hover {
-                        background-color: var(--dropdown-item-hover, rgba(107, 207, 209, 0.15));
-                        color: var(--primary-gradient-start);
-                        font-weight: 600;
-                    }
-                }
             }
         }
+    }
 
-        // Light mode specific adjustments
-        body:not(.dark-theme) & {
-            .role-select {
-                option {
-                    color: var(--text-secondary);
-                    opacity: 0.8;
-                }
+    .btn-delete {
+        background-color: transparent;
+        border: none;
+        color: var(--error-color, #dc3545);
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+        font-size: 1.125rem;
 
-                &:not(:disabled) {
-                    &:hover {
-                        option:not(:hover) {
-                            color: var(--text-light);
-                            opacity: 0.35;
-                        }
-
-                        option:hover {
-                            background-color: rgba(107, 207, 209, 0.2);
-                            color: var(--primary-gradient-start);
-                        }
-                    }
-                }
-            }
+        &:hover:not(:disabled) {
+            background-color: var(--error-light, rgba(220, 53, 69, 0.1));
         }
 
-        // Dark mode specific adjustments
-        body.dark-theme & {
-            .role-select {
-                option {
-                    color: var(--text-secondary);
-                    opacity: 0.7;
-                }
-
-                &:not(:disabled) {
-                    &:hover {
-                        option:not(:hover) {
-                            color: var(--text-light);
-                            opacity: 0.4;
-                        }
-
-                        option:hover {
-                            background-color: rgba(107, 207, 209, 0.2);
-                            color: var(--primary-gradient-start);
-                        }
-                    }
-                }
-            }
+        &:disabled {
+            opacity: 0.4;
+            cursor: default;
         }
+    }
 
-        // Attempt to style the dropdown container (limited browser support)
-        // This uses vendor prefixes and may not work in all browsers
-        .role-select {
-            // For WebKit browsers (Chrome, Safari, Edge)
-            &::-webkit-select-menu {
-                border-radius: 12px;
-                border: 1px solid var(--card-border-color);
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-                background-color: var(--dropdown-bg, var(--card-color-solid));
-                padding: 0.5rem;
-                margin-top: 0.25rem;
-            }
-
-            // For Firefox
-            &:-moz-listbox {
-                border-radius: 12px;
-                border: 1px solid var(--card-border-color);
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-                background-color: var(--dropdown-bg, var(--card-color-solid));
-            }
-        }
-
-        .btn-delete {
-            background-color: transparent;
-            border: none;
-            color: var(--error-color, #dc3545);
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 4px;
-            transition: background-color 0.2s;
-            font-size: 1.125rem;
-
-            &:hover:not(:disabled) {
-                background-color: var(--error-light, rgba(220, 53, 69, 0.1));
-            }
-
-            &:disabled {
-                opacity: 0.4;
-                cursor: default;
-            }
-        }
-
-        .no-users {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-secondary);
-        }
+    .no-users {
+        text-align: center;
+        padding: 2rem;
+        color: var(--text-secondary);
     }
 }

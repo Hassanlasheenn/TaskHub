@@ -104,7 +104,7 @@
                             All Categories
                         </button>
                         <button
-                            *ngFor="let category of categories"
+                            *ngFor="let category of categories; trackBy: trackById"
                             type="button"
                             class="category-filter-btn"
                             [class.active]="selectedCategory === category"

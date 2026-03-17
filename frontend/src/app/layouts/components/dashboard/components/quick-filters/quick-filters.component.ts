@@ -1,5 +1,6 @@
 import { Component, Output, EventEmitter, Input } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { trackById } from "../../../../../shared/helpers/trackByFn.helper";
 
 export type QuickFilterType = 'all' | 'today' | 'thisWeek';
 
@@ -13,6 +14,7 @@ export type QuickFilterType = 'all' | 'today' | 'thisWeek';
 export class QuickFiltersComponent {
     @Input() activeFilter: QuickFilterType = 'all';
     @Output() filterChange = new EventEmitter<QuickFilterType>();
+    trackById = trackById;
 
     filters: { type: QuickFilterType; label: string; icon: string }[] = [
         { type: 'all', label: 'All', icon: 'bi-list-ul' },

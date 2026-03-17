@@ -11,7 +11,7 @@
         <legend class="category-label">Category</legend>
         <div class="d-flex flex-wrap gap-2">
             <button
-                *ngFor="let category of availableCategories"
+                *ngFor="let category of availableCategories; trackBy: trackById"
                 type="button"
                 class="category-btn"
                 [class.selected]="selectedCategory === category"
@@ -38,7 +38,7 @@
         <legend class="priority-label">Priority</legend>
         <div class="d-flex flex-column flex-sm-row gap-2">
             <button
-                *ngFor="let priority of priorities"
+                *ngFor="let priority of priorities; trackBy: trackByValue"
                 type="button"
                 class="priority-btn flex-grow-1"
                 [class.selected]="selectedPriority === priority.value"
@@ -62,7 +62,7 @@
                 [(ngModel)]="selectedStatus"
                 [ngModelOptions]="{standalone: true}"
             >
-                <option *ngFor="let status of statuses" [value]="status.value">
+                <option *ngFor="let status of statuses; trackBy: trackByValue" [value]="status.value">
                     {{ status.label }}
                 </option>
             </select>
@@ -84,4 +84,3 @@
         </button>
     </div>
 </div>
-

@@ -5,6 +5,7 @@ import { ICustomStyle, IFieldControl } from "../../../interfaces";
 import { InputTypes } from "../../../enums";
 import { ReactiveFormService } from "../../../services/reactive-form.service";
 import { Subscription } from "rxjs";
+import { trackById } from "../../../helpers/trackByFn.helper";
 
 @Component({
     selector: 'app-dropdown-form',
@@ -27,6 +28,7 @@ export class DropdownFormComponent implements OnInit, OnDestroy, OnChanges {
     
     errorMessage: string | null = null;
     private readonly subscriptions: Subscription[] = [];
+    trackById = trackById;
     
     constructor(
         private readonly formService: ReactiveFormService
@@ -38,6 +40,10 @@ export class DropdownFormComponent implements OnInit, OnDestroy, OnChanges {
 
     ngOnDestroy() {
         this.subscriptions.forEach(sub => sub.unsubscribe());
+    }
+
+    trackByKey(index: number, option: any): any {
+        return option.key ?? index;
     }
 
     ngOnChanges(changes: SimpleChanges): void {

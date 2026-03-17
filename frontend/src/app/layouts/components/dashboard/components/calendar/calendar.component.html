@@ -16,7 +16,7 @@
         </button>
 
         <div class="calendar-grid">
-            <div class="calendar-weekday" *ngFor="let day of weekDays">
+            <div class="calendar-weekday" *ngFor="let day of weekDays; trackBy: trackById">
                 <span class="full-day">{{ day }}</span>
                 <span class="short-day">{{ day.charAt(0) }}</span>
             </div>
@@ -36,7 +36,7 @@
                     <!-- Desktop: Full Badges -->
                     <div class="day-todos" *ngIf="getTodosForDate(date).length > 0">
                         <div
-                            *ngFor="let todo of getTodosForDate(date)"
+                            *ngFor="let todo of getTodosForDate(date); trackBy: trackByTodo"
                             class="todo-badge"
                             [ngClass]="getPriorityClass(todo.priority)"
                             [title]="todo.title"
@@ -48,7 +48,7 @@
                     <!-- Mobile: Dot Indicators -->
                     <div class="mobile-todo-dots" *ngIf="getTodosForDate(date).length > 0">
                         <div 
-                            *ngFor="let todo of getTodosForDate(date)"
+                            *ngFor="let todo of getTodosForDate(date); trackBy: trackByTodo"
                             class="todo-dot"
                             [ngClass]="getPriorityClass(todo.priority)"
                         ></div>
@@ -68,7 +68,7 @@
         </div>
 
         <div class="day-timeline">
-            <div *ngFor="let hour of hours" class="time-slot">
+            <div *ngFor="let hour of hours; trackBy: trackById" class="time-slot">
                 <div class="time-label">
                     <span class="hour-text">{{ getHourLabel(hour) }}</span>
                 </div>

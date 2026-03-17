@@ -19,22 +19,32 @@ def list_users(
 ):
     cached = cache_get(PREFIX_ADMIN_USERS)
     if cached is not None:
+        result = []
         for item in cached:
             item['photo'] = get_photo_url(request, item.get('photo'))
-        return [schemas.UserListResponse(**item) for item in cached]
+            # Ensure role is always present
+            if not item.get('role'):
+                item['role'] = 'user'
+            try:
+                result.append(schemas.UserListResponse(**item))
+            except Exception as e:
+                # Log error and skip invalid items
+                import logging
+                logging.getLogger(__name__).error(f"Cache data error for user {item.get('id')}: {e}")
+                continue
+        return result
         
     users = db.query(models.User).all()
-    result = [
-        schemas.UserListResponse(
+    result = []
+    for user in users:
+        result.append(schemas.UserListResponse(
             id=user.id,
             username=user.username,
             email=user.email,
             photo=get_photo_url(request, user.profile_pic),
-            role=getattr(user, 'role', 'user'),
+            role=getattr(user, 'role', 'user') or 'user',
             is_verified=user.is_verified
-        )
-        for user in users
-    ]
+        ))
     
     # Cache raw paths
     cache_data = []
@@ -44,7 +54,7 @@ def list_users(
             "username": user.username,
             "email": user.email,
             "photo": user.profile_pic,
-            "role": getattr(user, 'role', 'user'),
+            "role": getattr(user, 'role', 'user') or 'user',
             "is_verified": user.is_verified
         })
     cache_set(PREFIX_ADMIN_USERS, cache_data, CACHE_TTL_USER_LISTS)
@@ -124,24 +134,40 @@ def get_users_with_todos(
     current_user: models.User = Depends(get_current_admin_user)
 ):
     """Get all users with their todos (admin only) - shows todos owned by or assigned to each user"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     cached = cache_get(PREFIX_ADMIN_USERS_WITH_TODOS)
     if cached is not None:
+        result = []
         for item in cached:
-            item['user']['photo'] = get_photo_url(request, item['user'].get('photo'))
-        return [
-            {
-                "user": schemas.UserListResponse(**item["user"]),
-                "todos": [schemas.TodoResponse(**t) for t in item["todos"]],
-                "todo_count": item["todo_count"],
-            }
-            for item in cached
-        ]
+            try:
+                item['user']['photo'] = get_photo_url(request, item['user'].get('photo'))
+                if not item['user'].get('role'):
+                    item['user']['role'] = 'user'
+                
+                # Ensure todos is a list and provide defaults for each todo
+                todos_data = item.get('todos', [])
+                for t in todos_data:
+                    if not t.get('status'): t['status'] = 'new'
+                    if not t.get('priority'): t['priority'] = 'medium'
+                
+                result.append({
+                    "user": schemas.UserListResponse(**item["user"]),
+                    "todos": [schemas.TodoResponse(**t) for t in todos_data],
+                    "todo_count": item.get("todo_count", 0),
+                })
+            except Exception as e:
+                logger.error(f"Cache data error for user {item.get('user', {}).get('id')}: {e}")
+                continue
+        return result
+
     from sqlalchemy import or_
     users = db.query(models.User).all()
     
     result = []
     for user in users:
-        if user.role == models.UserRole.ADMIN.value:
+        if getattr(user, 'role', 'user') == models.UserRole.ADMIN.value:
             todos = db.query(models.Todo).filter(
                 models.Todo.user_id == user.id,
                 models.Todo.assigned_to_user_id.is_(None)
@@ -169,7 +195,7 @@ def get_users_with_todos(
                 "title": todo.title,
                 "description": todo.description,
                 "status": todo.status or "new",
-                "priority": todo.priority,
+                "priority": todo.priority or "medium",
                 "category": todo.category,
                 "due_date": todo.due_date,
                 "reminder_sent_at": todo.reminder_sent_at,
@@ -180,20 +206,29 @@ def get_users_with_todos(
                 "assigned_to_user_id": todo.assigned_to_user_id,
                 "assigned_to_username": assigned_to_username
             }
-            todo_responses.append(schemas.TodoResponse(**todo_dict))
+            try:
+                todo_responses.append(schemas.TodoResponse(**todo_dict))
+            except Exception as e:
+                logger.error(f"Pydantic validation error for todo {todo.id}: {e}")
+                continue
         
-        result.append({
-            "user": schemas.UserListResponse(
-                id=user.id,
-                username=user.username,
-                email=user.email,
-                photo=get_photo_url(request, user.profile_pic),
-                role=getattr(user, 'role', 'user'),
-                is_verified=user.is_verified
-            ),
-            "todos": todo_responses,
-            "todo_count": len(todos)
-        })
+        try:
+            result.append({
+                "user": schemas.UserListResponse(
+                    id=user.id,
+                    username=user.username,
+                    email=user.email,
+                    photo=get_photo_url(request, user.profile_pic),
+                    role=getattr(user, 'role', 'user') or 'user',
+                    is_verified=user.is_verified
+                ),
+                "todos": todo_responses,
+                "todo_count": len(todos)
+            })
+        except Exception as e:
+            logger.error(f"Pydantic validation error for user {user.id}: {e}")
+            continue
+
     # Serialize for cache (Pydantic models -> dicts)
     cacheable = []
     for item in result:

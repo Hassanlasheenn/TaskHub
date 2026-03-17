@@ -16,6 +16,7 @@ import { LayoutPaths } from "../../enums/layout-paths.enum";
 import { CanComponentDeactivate } from "../../../auth/guards";
 import { ParseMentionsPipe } from "../../../core/pipes/parse-mentions.pipe";
 import { TabsComponent, ITabItem } from "../../../shared/components/tabs";
+import { trackById } from "../../../shared/helpers/trackByFn.helper";
 
 type StatusOption = { value: TodoStatus; label: string };
 type PriorityOption = { value: 'low' | 'medium' | 'high'; label: string };
@@ -66,6 +67,16 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
     commentHistoryTab: 'comments' | 'history' = 'comments';
     commentHistory: ITodoHistoryEntry[] = [];
     loadingHistory = false;
+    trackById = trackById;
+
+    trackByValue(index: number, item: any): any {
+        return item.value ?? index;
+    }
+
+    trackByHistoryEntry(index: number, item: ITodoHistoryEntry): string | number {
+        return item.id ?? index;
+    }
+
     readonly commentHistoryTabs: ITabItem[] = [
         { id: 'comments', label: 'Comments', icon: 'bi-chat-left-text' },
         { id: 'history', label: 'History', icon: 'bi-clock-history' },

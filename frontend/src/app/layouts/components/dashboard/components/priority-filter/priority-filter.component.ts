@@ -1,5 +1,6 @@
 import { Component, Output, EventEmitter, Input } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { trackById } from "../../../../../shared/helpers/trackByFn.helper";
 
 @Component({
     selector: 'app-priority-filter',
@@ -11,6 +12,7 @@ import { CommonModule } from "@angular/common";
 export class PriorityFilterComponent {
     @Input() activePriority: string = 'all';
     @Output() priorityChange = new EventEmitter<string>();
+    trackById = trackById;
 
     priorities = [
         { value: 'all', label: 'All Priorities' },

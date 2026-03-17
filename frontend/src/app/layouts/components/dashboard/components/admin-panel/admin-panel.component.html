@@ -5,7 +5,7 @@
     </div>
 
     <div class="users-grid">
-        <div *ngFor="let userData of usersWithTodos" class="user-card">
+        <div *ngFor="let userData of usersWithTodos; trackBy: trackByUserId" class="user-card">
             <div class="user-card-header" [class.no-todos]="userData.todos.length === 0" (click)="toggleUserExpansion(userData.user.id)">
                 <div class="user-info">
                     <div class="user-avatar">
@@ -39,7 +39,7 @@
 
             <div class="user-todos" *ngIf="isUserExpanded(userData.user.id) && userData.todos.length > 0">
                 <div class="todos-list">
-                    <div *ngFor="let todo of userData.todos" class="todo-item" [class.completed]="todo.status === 'done'">
+                    <div *ngFor="let todo of userData.todos; trackBy: trackById" class="todo-item" [class.completed]="todo.status === 'done'">
                         <div class="todo-priority" [class]="getPriorityClass(todo.priority)"></div>
                         <div class="todo-content">
                             <div class="todo-header">

@@ -6,6 +6,7 @@ import { AuthService } from "../../../auth/services";
 import { TodoService } from "../../../core/services/todo.service";
 import { NotificationService } from "../../../core/services/notification.service";
 import { ITodo, ITodoCreate, ITodoUpdate } from "../../../core/interfaces/todo.interface";
+import { trackById } from "../../../shared/helpers/trackByFn.helper";
 import { LoaderService } from "../../../core/services/loader.service";
 import { ToastService } from "../../../core/services/toast.service";
 import { ConfirmationDialogService } from "../../../core/services/confirmation-dialog.service";
@@ -58,6 +59,7 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
     activeStatus: FilterStatus = 'all';
     activePriority: string = 'all';
     selectedCategory: string | null = null;
+    trackById = trackById;
 
     constructor(
         public readonly _authService: AuthService,

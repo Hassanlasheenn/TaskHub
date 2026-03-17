@@ -5,7 +5,7 @@
         [value]="activeStatus"
         (change)="onStatusChange($event)"
     >
-        <option *ngFor="let status of statuses" [value]="status.value">
+        <option *ngFor="let status of statuses; trackBy: trackById" [value]="status.value">
             {{ status.label }}
         </option>
     </select>

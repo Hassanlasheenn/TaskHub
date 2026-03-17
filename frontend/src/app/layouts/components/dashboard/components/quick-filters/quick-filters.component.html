@@ -1,7 +1,7 @@
 <div class="quick-filters-container">
     <div class="filters-wrapper">
         <button
-            *ngFor="let filter of filters"
+            *ngFor="let filter of filters; trackBy: trackById"
             type="button"
             class="filter-btn"
             [class.active]="activeFilter === filter.type"

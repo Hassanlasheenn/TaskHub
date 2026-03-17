@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
 import { ToastService, IToast } from '../../../core/services/toast.service';
+import { trackById } from '../../helpers/trackByFn.helper';
 
 @Component({
     selector: 'app-toast',
@@ -13,6 +14,7 @@ import { ToastService, IToast } from '../../../core/services/toast.service';
 export class ToastComponent implements OnInit, OnDestroy {
     toasts: IToast[] = [];
     private _destroy$ = new Subject<void>();
+    trackById = trackById;
 
     constructor(private toastService: ToastService) {}
 
@@ -52,13 +54,8 @@ export class ToastComponent implements OnInit, OnDestroy {
         }
     }
 
-    trackById(index: number, toast: IToast): string {
-        return toast.id;
-    }
-
     ngOnDestroy(): void {
         this._destroy$.next();
         this._destroy$.complete();
     }
 }
-

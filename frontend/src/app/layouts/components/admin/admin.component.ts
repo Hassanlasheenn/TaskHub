@@ -10,13 +10,19 @@ import { IUserListResponse } from "../../../auth/interfaces";
 import { CardComponent } from "../../../shared/components/card/card.component";
 import { trackById } from "../../../shared/helpers/trackByFn.helper";
 import { PosthogService } from "../../../core/services";
+import { Router } from "@angular/router";
+import { DashboardSideNavComponent } from "../dashboard/components/dashboard-side-nav/dashboard-side-nav.component";
+import { DashboardSections } from "../../enums/dashboard-sections.enum";
+import { LayoutPaths } from "../../enums/layout-paths.enum";
+import { NavigationService } from "../../../core/services/navigation.service";
+import { SidebarComponent } from "../../../shared/components/sidebar/sidebar.component";
 
 @Component({
     selector: 'app-admin',
     templateUrl: './admin.component.html',
     styleUrls: ['./admin.component.scss'],
     standalone: true,
-    imports: [CommonModule, CardComponent]
+    imports: [CommonModule, CardComponent, DashboardSideNavComponent, SidebarComponent]
 })
 export class AdminComponent implements OnInit, OnDestroy {
     private readonly _destroy$ = new Subject<void>();
@@ -24,26 +30,49 @@ export class AdminComponent implements OnInit, OnDestroy {
     currentUserId: number | null = null;
     trackById = trackById;
     private isDeleting: boolean = false;
+    private hasLoadedUsers: boolean = false;
+    isNavSidebarOpen: boolean = false;
+    
+    readonly DashboardSections = DashboardSections;
 
     constructor(
         private readonly _adminService: AdminService,
-        private readonly _authService: AuthService,
+        public readonly _authService: AuthService,
         private readonly _toastService: ToastService,
         private readonly _loaderService: LoaderService,
         private readonly _confirmationDialog: ConfirmationDialogService,
-        private readonly _posthogService: PosthogService
+        private readonly _posthogService: PosthogService,
+        private readonly _router: Router,
+        private readonly _navService: NavigationService
     ) {}
 
     ngOnInit(): void {
         this.currentUserId = this._authService.getCurrentUserId();
         
-        // Verify user is admin before loading users
-        if (!this._authService.isAdmin()) {
-            this._toastService.error('Access denied. Admin privileges required.');
-            return;
-        }
-        
-        this.loadUsers();
+        // Wait for user data to be loaded before verifying admin status
+        this._authService.currentUserData$
+            .pipe(takeUntil(this._destroy$))
+            .subscribe((userData) => {
+                if (userData && !this.hasLoadedUsers) {
+                    // Once user data is loaded, verify admin status
+                    if (this._authService.isAdmin()) {
+                        this.hasLoadedUsers = true;
+                        this.loadUsers();
+                    } else {
+                        this._toastService.error('Access denied. Admin privileges required.');
+                    }
+                } else if (!this.currentUserId && !this.hasLoadedUsers) {
+                    // No user logged in
+                    this.hasLoadedUsers = true;
+                    this._toastService.error('Access denied. Admin privileges required.');
+                }
+            });
+
+        this._navService.toggleNavSidebar$
+            .pipe(takeUntil(this._destroy$))
+            .subscribe(() => {
+                this.isNavSidebarOpen = !this.isNavSidebarOpen;
+            });
     }
 
     loadUsers(): void {
@@ -134,6 +163,22 @@ export class AdminComponent implements OnInit, OnDestroy {
 
     isCurrentUser(userId: number): boolean {
         return userId === this.currentUserId;
+    }
+
+    onSectionChange(section: DashboardSections): void {
+        let path = '';
+        switch(section) {
+            case DashboardSections.CALENDAR: path = LayoutPaths.CALENDAR; break;
+            case DashboardSections.MY_ASSIGNED: path = LayoutPaths.MY_TODOS; break;
+            case DashboardSections.COMPLETED: path = LayoutPaths.COMPLETED; break;
+            case DashboardSections.ADMIN_PANEL: path = LayoutPaths.ADMIN_PANEL; break;
+            default: path = LayoutPaths.DASHBOARD; break;
+        }
+        this._router.navigate([path]);
+    }
+
+    onNavSidebarClose(): void {
+        this.isNavSidebarOpen = false;
     }
 
     ngOnDestroy(): void {

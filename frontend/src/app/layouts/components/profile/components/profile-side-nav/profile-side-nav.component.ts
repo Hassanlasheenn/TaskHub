@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ProfileSections } from "../../../../enums/profile-sections.enum";
+import { trackById } from "../../../../../shared/helpers/trackByFn.helper";
 
 interface NavItem {
     section: ProfileSections;
@@ -20,6 +21,7 @@ export class ProfileSideNavComponent {
     @Output() sectionChange = new EventEmitter<ProfileSections>();
 
     ProfileSections = ProfileSections;
+    trackById = trackById;
 
     navItems: NavItem[] = [
         { section: ProfileSections.PERSONAL_DATA, icon: 'bi-person-circle', label: 'Personal Data' },

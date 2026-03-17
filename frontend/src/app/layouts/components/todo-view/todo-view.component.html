@@ -45,7 +45,7 @@
                                     *ngIf="todo.assigned_to_user_id && !assigneeInList(todo.assigned_to_user_id)"
                                     [ngValue]="todo.assigned_to_user_id"
                                 >{{ todo.assigned_to_username || ('User #' + todo.assigned_to_user_id) }}</option>
-                                <option *ngFor="let u of mentionableUsers" [ngValue]="u.id">{{ u.username }}</option>
+                                <option *ngFor="let u of mentionableUsers; trackBy: trackById" [ngValue]="u.id">{{ u.username }}</option>
                             </select>
                         </div>
                         <div class="todo-view-dropdown-wrap">
@@ -55,7 +55,7 @@
                                 [(ngModel)]="todo.status"
                                 aria-label="Status"
                             >
-                                <option *ngFor="let opt of statusOptions" [value]="opt.value">{{ opt.label }}</option>
+                                <option *ngFor="let opt of statusOptions; trackBy: trackByValue" [value]="opt.value">{{ opt.label }}</option>
                             </select>
                         </div>
                         <!-- Priority: Dropdown for Admin, Badge for User -->
@@ -66,7 +66,7 @@
                                 [(ngModel)]="todo.priority"
                                 aria-label="Priority"
                             >
-                                <option *ngFor="let opt of priorityOptions" [value]="opt.value">{{ opt.label }}</option>
+                                <option *ngFor="let opt of priorityOptions; trackBy: trackByValue" [value]="opt.value">{{ opt.label }}</option>
                             </select>
                         </div>
                         <ng-template #priorityBadge>
@@ -110,7 +110,7 @@
                     ></app-tabs>
                     <ng-container *ngIf="commentHistoryTab === 'comments'">
                     <ul class="todo-view-comments-list">
-                        <li *ngFor="let comment of comments" class="todo-view-comment" [class.todo-view-comment--own]="isCurrentUser(comment.user_id)">
+                        <li *ngFor="let comment of comments; trackBy: trackById" class="todo-view-comment" [class.todo-view-comment--own]="isCurrentUser(comment.user_id)">
                             <div class="todo-view-comment-header">
                                 <div class="todo-view-comment-author-row">
                                     <span class="todo-view-comment-avatar" aria-hidden="true">
@@ -142,7 +142,7 @@
                             </ng-container>
                             <ng-template #commentContent>
                                 <p class="todo-view-comment-content">
-                                    <ng-container *ngFor="let seg of (comment.content | parseMentions)">
+                                    <ng-container *ngFor="let seg of (comment.content | parseMentions); trackBy: trackById">
                                         <ng-container *ngIf='seg.type === "text"'>{{ seg.value }}</ng-container>
                                         <span *ngIf='seg.type === "mention"' class="todo-view-comment-mention">{{ seg.value }}</span>
                                     </ng-container>
@@ -174,7 +174,7 @@
                                 aria-label="Mention a user"
                             >
                                 <button
-                                    *ngFor="let user of mentionableUsersFiltered; let i = index"
+                                    *ngFor="let user of mentionableUsersFiltered; let i = index; trackBy: trackById"
                                     type="button"
                                     class="todo-view-mention-item"
                                     [class.todo-view-mention-item--active]="i === highlightedMentionIndex"
@@ -203,7 +203,7 @@
                         <div class="todo-view-history">
                             <p *ngIf="loadingHistory" class="todo-view-history-loading">Loading history...</p>
                             <ul *ngIf="!loadingHistory && commentHistory.length > 0" class="todo-view-history-list">
-                                <ng-container *ngFor="let item of commentHistory">
+                                <ng-container *ngFor="let item of commentHistory; trackBy: trackByHistoryEntry">
                                     <li *ngIf="item.type === 'comment'" class="todo-view-history-item">
                                         <div class="todo-view-history-header">
                                             <span class="todo-view-history-action" [attr.data-action]="item.action">{{ getHistoryActionLabel(item.action) }}</span>

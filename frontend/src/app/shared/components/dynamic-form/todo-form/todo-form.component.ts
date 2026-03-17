@@ -11,6 +11,7 @@ import { UserService } from "../../../../core/services/user.service";
 import { IUserListResponse } from "../../../../auth/interfaces";
 import { Subject, takeUntil } from "rxjs";
 import { AuthService } from "../../../../auth/services/auth.service";
+import { trackById } from "../../../helpers/trackByFn.helper";
 
 type PriorityLevel = 'low' | 'medium' | 'high';
 
@@ -35,6 +36,7 @@ export class TodoFormComponent implements OnInit, OnDestroy {
     users: IUserListResponse[] = [];
     selectedUserId: number | null = null;
     isAdmin: boolean = false;
+    trackById = trackById;
 
     fields: IFieldControl[] = [
         {
@@ -115,6 +117,10 @@ export class TodoFormComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this._destroy$.next();
         this._destroy$.complete();
+    }
+
+    trackByValue(index: number, item: any): any {
+        return item.value ?? index;
     }
 
     updateFieldsBasedOnRole(): void {
@@ -478,4 +484,3 @@ export class TodoFormComponent implements OnInit, OnDestroy {
     }
 
 }
-

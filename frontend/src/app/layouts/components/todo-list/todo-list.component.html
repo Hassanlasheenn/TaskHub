@@ -93,7 +93,7 @@
         </div>
         
         <ng-container *ngIf="todos.length > 0 && groupByCategory && viewMode === 'grid'">
-            <div *ngFor="let group of groupedTodos" class="category-group-card">
+            <div *ngFor="let group of groupedTodos; trackBy: trackByCategory" class="category-group-card">
                 <div class="category-group-header" (click)="toggleCategory(group.category)">
                     <div class="category-header-content">
                         <h3 class="category-title">

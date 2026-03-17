@@ -6,8 +6,10 @@ import { AdminService, IUserWithTodos } from "../../../../../core/services/admin
 import { LoaderService } from "../../../../../core/services/loader.service";
 import { ToastService } from "../../../../../core/services/toast.service";
 import { NotificationService } from "../../../../../core/services/notification.service";
+import { AuthService } from "../../../../../auth/services/auth.service";
 import { ITodoResponse } from "../../../../../core/interfaces/todo.interface";
 import { LayoutPaths } from "../../../../enums/layout-paths.enum";
+import { trackById } from "../../../../../shared/helpers/trackByFn.helper";
 
 @Component({
     selector: 'app-admin-panel',
@@ -22,16 +24,26 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
     usersWithTodos: IUserWithTodos[] = [];
     private originalTodosMap: Map<number, ITodoResponse[]> = new Map();
     expandedUsers: Set<number> = new Set();
+    private hasLoadedData: boolean = false;
+    trackById = trackById;
 
     constructor(
         private readonly _adminService: AdminService,
         private readonly _loaderService: LoaderService,
         private readonly _toastService: ToastService,
-        private readonly _notificationService: NotificationService
+        private readonly _notificationService: NotificationService,
+        private readonly _authService: AuthService
     ) {}
 
     ngOnInit(): void {
-        this.loadUsersWithTodos();
+        this._authService.currentUserData$
+            .pipe(takeUntil(this._destroy$))
+            .subscribe((userData) => {
+                if (userData && this._authService.isAdmin() && !this.hasLoadedData) {
+                    this.hasLoadedData = true;
+                    this.loadUsersWithTodos();
+                }
+            });
         
         this._notificationService.notificationEvents$
             .pipe(
@@ -68,6 +80,10 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
                     this._toastService.error(error?.error?.detail || 'Failed to load users and todos');
                 }
             });
+    }
+
+    trackByUserId(index: number, item: IUserWithTodos): number {
+        return item.user.id;
     }
 
     toggleUserExpansion(userId: number): void {

@@ -1,6 +1,7 @@
 import { Component, OnInit, Input, OnChanges, SimpleChanges, Output, EventEmitter } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ITodo } from "../../../../../core/interfaces/todo.interface";
+import { trackById } from "../../../../../shared/helpers/trackByFn.helper";
 
 @Component({
     selector: 'app-calendar',
@@ -12,6 +13,7 @@ import { ITodo } from "../../../../../core/interfaces/todo.interface";
 export class CalendarComponent implements OnInit, OnChanges {
     @Input() todos: ITodo[] = [];
     @Output() viewTodo = new EventEmitter<ITodo>();
+    trackById = trackById;
 
     currentDate: Date = new Date();
     currentMonth: number = this.currentDate.getMonth();

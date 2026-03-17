@@ -1,6 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { ITabItem } from "./tab.interface";
+import { trackById } from "../../helpers/trackByFn.helper";
 
 @Component({
     selector: "app-tabs",
@@ -14,6 +15,7 @@ export class TabsComponent {
     @Input() activeTabId = "";
     @Input() ariaLabel: string | null = null;
     @Output() activeTabIdChange = new EventEmitter<string>();
+    trackById = trackById;
 
     selectTab(tabId: string): void {
         if (this.activeTabId !== tabId) {

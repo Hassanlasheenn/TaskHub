@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { API_URLS } from "../../api.global";
 import { HttpClient } from "@angular/common/http";
-import { Observable, take } from "rxjs";
+import { Observable, take, BehaviorSubject } from "rxjs";
 import { IUserResponse, ILoginPayload, ILoginResponse, IRegisterPayload, IRegisterResponse } from "../interfaces";
 import { AuthHttpService } from "./auth-http.service";
 import { PosthogService } from "../../core/services/posthog.service";
@@ -15,6 +15,9 @@ export class AuthService {
     private readonly USER_DATA_KEY = 'currentUserData';
     private currentUserId: number | null = null;
     private currentUserData: IUserResponse | null = null;
+    
+    private _currentUserDataSubject = new BehaviorSubject<IUserResponse | null>(null);
+    public readonly currentUserData$ = this._currentUserDataSubject.asObservable();
 
     constructor(
         private readonly _http: HttpClient,
@@ -94,6 +97,7 @@ export class AuthService {
     // ========== User Data Management ==========
     setCurrentUserData(userData: IUserResponse): void {
         this.currentUserData = userData;
+        this._currentUserDataSubject.next(userData);
         sessionStorage.setItem(this.USER_DATA_KEY, JSON.stringify(userData));
         if (this.currentUserId) {
             this._posthogService.identify(this.currentUserId, userData);
@@ -114,6 +118,7 @@ export class AuthService {
     clearCurrentUser(): void {
         this.currentUserId = null;
         this.currentUserData = null;
+        this._currentUserDataSubject.next(null);
         sessionStorage.removeItem(this.ACCESS_TOKEN_KEY);
         sessionStorage.removeItem(this.USER_ID_KEY);
         sessionStorage.removeItem(this.USER_DATA_KEY);
@@ -162,9 +167,11 @@ export class AuthService {
         if (storedUserData) {
             try {
                 this.currentUserData = JSON.parse(storedUserData);
+                this._currentUserDataSubject.next(this.currentUserData);
             } catch {
                 sessionStorage.removeItem(this.USER_DATA_KEY);
                 this.currentUserData = null;
+                this._currentUserDataSubject.next(null);
             }
         }
     }

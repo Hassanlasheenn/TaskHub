@@ -4,6 +4,7 @@ import { ICustomStyle, IFieldControl } from "../../../interfaces";
 import { ReactiveFormService } from "../../../services/reactive-form.service";
 import { Subscription } from "rxjs";
 import { CommonModule } from "@angular/common";
+import { trackById } from "../../../helpers/trackByFn.helper";
 
 @Component({
     selector: 'app-date-picker',
@@ -32,6 +33,7 @@ export class DatePickerComponent implements OnInit, OnDestroy, OnChanges {
         'January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'
     ];
+    trackById = trackById;
 
     private readonly subscriptions: Subscription[] = [];
 
@@ -72,6 +74,10 @@ export class DatePickerComponent implements OnInit, OnDestroy, OnChanges {
         if (changes['showErrors'] && !changes['showErrors'].firstChange) {
             this.updateErrorMessage();
         }
+    }
+
+    trackByDate(index: number, date: Date | null): any {
+        return date ? date.getTime() : index;
     }
 
     private setupValidation(): void {
