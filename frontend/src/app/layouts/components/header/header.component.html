@@ -59,12 +59,12 @@
                             <button 
                                 *ngIf="isAdmin"
                                 class="dropdown-item" 
-                                [routerLink]="[LayoutPaths.ADMIN_PANEL]"
+                                [routerLink]="[LayoutPaths.ADMIN]"
                                 (click)="isDropdownOpen = false"
-                                aria-label="Admin Panel"
+                                aria-label="User management"
                             >
-                                <i class="bi bi-shield-check"></i>
-                                <span class="item-label">Admin Panel</span>
+                                <i class="bi bi-people"></i>
+                                <span class="item-label">User management</span>
                             </button>
                             <button class="dropdown-item" (click)="onLogout()" aria-label="Logout">
                                 <i class="bi bi-box-arrow-right"></i>

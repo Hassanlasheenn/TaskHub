@@ -31,7 +31,7 @@ export class VerifyEmailComponent implements OnInit {
 
     ngOnInit(): void {
         const token = this.route.snapshot.queryParamMap.get('token');
-        this.userEmail = this.route.snapshot.queryParamMap.get('email'); // Optional: can be passed in URL
+        this.userEmail = this.route.snapshot.queryParamMap.get('email');
 
         if (!token) {
             this.verifying = false;
@@ -39,11 +39,16 @@ export class VerifyEmailComponent implements OnInit {
             return;
         }
 
-        this.verifyEmail(token);
+        this.verifyEmail(token, this.userEmail);
     }
 
-    verifyEmail(token: string): void {
-        this.http.get(`${API_BASE_URL}/verify-email?token=${token}`).subscribe({
+    verifyEmail(token: string, email: string | null): void {
+        let url = `${API_BASE_URL}/verify-email?token=${token}`;
+        if (email) {
+            url += `&email=${encodeURIComponent(email)}`;
+        }
+        
+        this.http.get(url).subscribe({
             next: () => {
                 this.verifying = false;
                 this.verified = true;

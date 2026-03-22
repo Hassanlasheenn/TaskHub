@@ -177,22 +177,30 @@ async def create_todo(
 
     # Urgency notification logic (immediate)
     if db_todo.due_date and db_todo.status != models.TodoStatus.DONE.value:
-        from datetime import datetime, timedelta
-        threshold = datetime.now() + timedelta(days=3)
-        if db_todo.due_date <= threshold:
+        from datetime import datetime, timedelta, timezone
+        # Ensure comparison works by using timezone-aware datetimes
+        now = datetime.now(timezone.utc)
+        threshold = now + timedelta(days=3)
+        
+        # Ensure db_todo.due_date is treated as UTC if it's naive, or convert if aware
+        due_date = db_todo.due_date
+        if due_date.tzinfo is None:
+            due_date = due_date.replace(tzinfo=timezone.utc)
+            
+        if due_date <= threshold:
             user_to_notify_id = db_todo.assigned_to_user_id or db_todo.user_id
             target_user = db.query(models.User).filter(models.User.id == user_to_notify_id).first()
             
             if target_user:
                 message = f"Urgent: New todo '{db_todo.title}' is due soon!"
-                if db_todo.due_date < datetime.now():
+                if due_date < now:
                     message = f"Alert: New todo '{db_todo.title}' is already OVERDUE!"
                 
                 await create_notification(
                     db, user_to_notify_id, db_todo.id, message,
                     creator_username, target_user.email, db_todo.title
                 )
-                db_todo.reminder_sent_at = datetime.now()
+                db_todo.reminder_sent_at = now
                 db.commit()
 
     todo_dict = {
@@ -676,6 +684,11 @@ async def update_todo(
     if not can_update:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized to update this todo")
     
+    # Get updater info early
+    updater = db.query(models.User).filter(models.User.id == user_id).first()
+    updater_username = updater.username if updater else "User"
+    is_admin_updater = updater and updater.role == models.UserRole.ADMIN.value
+
     # Snapshot old values for field history (before any updates)
     old_title = todo_db.title
     old_description = todo_db.description
@@ -728,11 +741,6 @@ async def update_todo(
             changed_fields.append('status')
             status_changed = True
         todo_db.status = todo.status.value
-    
-    # Get updater info early
-    updater = db.query(models.User).filter(models.User.id == user_id).first()
-    updater_username = updater.username if updater else "User"
-    is_admin_updater = updater and updater.role == models.UserRole.ADMIN.value
     
     # Track if assignment changed
     assignment_changed = False
@@ -951,22 +959,30 @@ async def update_todo(
 
     # Urgency notification logic (immediate)
     if todo_db.due_date and todo_db.status != models.TodoStatus.DONE.value:
-        from datetime import datetime, timedelta
-        threshold = datetime.now() + timedelta(days=3)
-        if todo_db.due_date <= threshold:
+        from datetime import datetime, timedelta, timezone
+        # Ensure comparison works by using timezone-aware datetimes
+        now = datetime.now(timezone.utc)
+        threshold = now + timedelta(days=3)
+        
+        # Ensure todo_db.due_date is treated as UTC if it's naive, or convert if aware
+        due_date = todo_db.due_date
+        if due_date.tzinfo is None:
+            due_date = due_date.replace(tzinfo=timezone.utc)
+            
+        if due_date <= threshold:
             user_to_notify_id = todo_db.assigned_to_user_id or todo_db.user_id
             target_user = db.query(models.User).filter(models.User.id == user_to_notify_id).first()
             
             if target_user:
                 message = f"Urgent Reminder: '{todo_db.title}' is due soon!"
-                if todo_db.due_date < datetime.now():
+                if due_date < now:
                     message = f"Alert: '{todo_db.title}' is already OVERDUE!"
                 
                 await create_notification(
                     db, user_to_notify_id, todo_db.id, message,
                     updater_username, target_user.email, todo_db.title
                 )
-                todo_db.reminder_sent_at = datetime.now()
+                todo_db.reminder_sent_at = now
                 db.commit()
 
     return _build_todo_response(todo_db, db)

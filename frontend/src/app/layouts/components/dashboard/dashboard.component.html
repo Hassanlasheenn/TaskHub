@@ -8,7 +8,7 @@
         </div>
 
         <div class="dashboard-content flex-grow-1 d-flex flex-column">
-            <div *ngIf="activeSection !== DashboardSections.CALENDAR && activeSection !== DashboardSections.COMPLETED && activeSection !== DashboardSections.ADMIN_PANEL" class="dashboard-header d-flex justify-content-center align-items-center px-3 py-3 px-sm-4 py-sm-4 px-lg-5 py-lg-4">
+            <div *ngIf="activeSection !== DashboardSections.CALENDAR && activeSection !== DashboardSections.COMPLETED && activeSection !== DashboardSections.MY_ASSIGNED && activeSection !== DashboardSections.USER_MANAGEMENT && activeSection !== DashboardSections.ADMIN_PANEL" class="dashboard-header d-flex justify-content-center align-items-center px-3 py-3 px-sm-4 py-sm-4 px-lg-5 py-lg-4">
                 <h1>{{ timeBasedGreeting }}, {{ (userData?.username | titlecase) }}</h1>
             </div>
             
@@ -24,7 +24,7 @@
                 *ngIf="activeSection === DashboardSections.USER_MANAGEMENT"
             />
 
-            <div *ngIf="activeSection !== DashboardSections.CALENDAR && activeSection !== DashboardSections.ADMIN_PANEL && activeSection !== DashboardSections.USER_MANAGEMENT" class="todo-list-wrapper">
+            <div *ngIf="activeSection !== DashboardSections.CALENDAR && activeSection !== DashboardSections.USER_MANAGEMENT && activeSection !== DashboardSections.ADMIN_PANEL" class="todo-list-wrapper">
                 <!-- Dashboard Summary Cards (Admin Overview) -->
                 <div *ngIf="activeSection === DashboardSections.DASHBOARD && _authService.isAdmin()" class="filters-section">
                     <div class="admin-summary-cards mb-4">
@@ -92,12 +92,12 @@
                     </div>
                 </div>
 
-                <div *ngIf="activeSection === DashboardSections.DASHBOARD" class="filters-section">
+                <div *ngIf="hasActiveTodosInSection" class="filters-section">
                     <app-search-bar
                         placeholder="Search todos by title or description..."
                         (searchChange)="onSearchChange($event)"
                     />
-                    <div *ngIf="todos.length > 0 && filteredTodos.length > 0" class="category-filters">
+                    <div class="category-filters">
                         <button
                             type="button"
                             class="category-filter-btn"

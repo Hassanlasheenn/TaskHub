@@ -28,7 +28,7 @@ export const routes: Routes = [
         canDeactivate: [canDeactivateGuard],
     },
     { path: LayoutPaths.PROFILE, component: ProfileComponent, canActivate: [authGuard], canDeactivate: [canDeactivateGuard] },
-    { path: LayoutPaths.ADMIN, component: AdminComponent, canActivate: [authGuard, adminGuard] },
+    { path: LayoutPaths.ADMIN, component: DashboardComponent, canActivate: [authGuard, adminGuard] },
     { path: AuthPaths.NOT_FOUND, component: NotFoundComponent },
     { path: '**', redirectTo: AuthPaths.NOT_FOUND },
 ];

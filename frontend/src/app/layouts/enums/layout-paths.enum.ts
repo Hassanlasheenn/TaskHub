@@ -7,4 +7,4 @@ export enum LayoutPaths {
     TODO_VIEW = 'todo',
     PROFILE = 'profile',
     ADMIN = 'admin-manage', // Changed from 'admin' to avoid conflict with panel
-}
+    }

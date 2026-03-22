@@ -5,6 +5,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
 from .. import config
+from .link_service import link_service
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -42,115 +43,39 @@ class EmailService:
             return False
 
         try:
-            frontend_url = config.FRONTEND_URL.rstrip("/")
-            verify_link = f"{frontend_url}/verify-email?token={token}"
+            verify_link = link_service.get_verification_link(token, to_email)
 
-            subject = "Verify your Taskrr account"
+            subject = "Action Required: Verify your Taskrr account"
             
-            # HTML Template with correct heading role and font stack
+            # HTML Template with inline styles and system fonts for maximum compatibility
             html_content = f"""
             <!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="utf-8">
-                <style type="text/css">
-                    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Montserrat:wght@400;700&family=Poppins:wght@400;600;700&display=swap');
-                    
-                    body {{ 
-                        font-family: 'Poppins', Helvetica, Arial, sans-serif !important; 
-                        margin: 0; 
-                        padding: 0; 
-                        background-color: {self.bg_light}; 
-                    }}
-                    .container {{ 
-                        max-width: 600px; 
-                        margin: 20px auto; 
-                        background-color: #ffffff; 
-                        border-radius: 16px; 
-                        overflow: hidden; 
-                        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.1); 
-                        border: 1px solid rgba(139, 92, 246, 0.1); 
-                    }}
-                    .header {{ 
-                        background: linear-gradient(135deg, {self.primary_gradient_start} 0%, {self.primary_gradient_end} 100%); 
-                        padding: 40px 30px; 
-                        text-align: center; 
-                        color: #ffffff; 
-                    }}
-                    .logo {{ 
-                        margin: 0; 
-                        font-family: 'Caveat', 'Montserrat', cursive !important; 
-                        font-size: 52px; 
-                        font-weight: 400; 
-                        letter-spacing: 0.05em; 
-                        line-height: 1; 
-                        color: #ffffff !important;
-                        display: block;
-                    }}
-                    .content {{ 
-                        padding: 45px 40px; 
-                        text-align: center; 
-                        color: {self.text_primary}; 
-                        line-height: 1.7; 
-                    }}
-                    .content h2 {{ 
-                        color: {self.text_primary}; 
-                        margin-bottom: 24px; 
-                        font-weight: 700; 
-                        font-size: 24px; 
-                    }}
-                    .content p {{ 
-                        font-size: 16px; 
-                        color: {self.text_secondary}; 
-                    }}
-                    .button-wrapper {{ 
-                        margin: 35px 0; 
-                    }}
-                    .button {{ 
-                        background: linear-gradient(135deg, {self.primary_gradient_start} 0%, {self.primary_gradient_end} 100%); 
-                        color: #ffffff !important; 
-                        padding: 16px 36px; 
-                        text-decoration: none; 
-                        border-radius: 12px; 
-                        font-weight: 600; 
-                        font-size: 16px; 
-                        display: inline-block; 
-                        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3); 
-                    }}
-                    .footer {{ 
-                        background-color: #fcfaff; 
-                        padding: 25px; 
-                        text-align: center; 
-                        color: #94a3b8; 
-                        font-size: 13px; 
-                        border-top: 1px solid rgba(139, 92, 246, 0.05); 
-                    }}
-                    .link-alt {{ 
-                        color: {self.primary_gradient_end}; 
-                        text-decoration: none; 
-                        word-break: break-all; 
-                        font-size: 12px; 
-                        opacity: 0.8; 
-                    }}
-                </style>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>{subject}</title>
             </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h1 class="logo" style="margin: 0; font-family: 'Caveat', 'Montserrat', cursive !important; font-size: 52px; font-weight: 400; letter-spacing: 0.05em; line-height: 1; color: #ffffff !important;">Taskrr</h1>
+            <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: {self.bg_light}; color: {self.text_primary};">
+                <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.1);">
+                    <div style="background: linear-gradient(135deg, {self.primary_gradient_start} 0%, {self.primary_gradient_end} 100%); padding: 40px 30px; text-align: center;">
+                        <h1 style="margin: 0; font-family: 'Georgia', serif; font-size: 48px; font-weight: bold; letter-spacing: 0.05em; color: #ffffff !important;">Taskrr</h1>
                     </div>
-                    <div class="content">
-                        <h2 style="font-family: 'Poppins', sans-serif !important;">Welcome to the team!</h2>
-                        <p style="font-family: 'Poppins', sans-serif !important;">Thank you for joining Taskrr. We're excited to help you organize your life and boost your productivity. To get started, please verify your email address by clicking the button below:</p>
-                        <div class="button-wrapper">
-                            <a href="{verify_link}" class="button" style="font-family: 'Poppins', sans-serif !important;">Verify My Account</a>
+                    <div style="padding: 40px; text-align: center; line-height: 1.6;">
+                        <h2 style="color: {self.text_primary}; margin-bottom: 20px; font-size: 24px;">Welcome to Taskrr!</h2>
+                        <p style="font-size: 16px; color: #4b5563; margin-bottom: 30px;">Thank you for signing up. To complete your registration and start organizing your tasks, please verify your email address by clicking the button below:</p>
+                        
+                        <div style="margin: 35px 0;">
+                            <a href="{verify_link}" style="background-color: {self.primary_gradient_end}; background: linear-gradient(135deg, {self.primary_gradient_start} 0%, {self.primary_gradient_end} 100%); color: #ffffff !important; padding: 16px 36px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);">Verify My Account</a>
                         </div>
-                        <p style="font-size: 14px; color: #94a3b8; margin-top: 30px; font-family: 'Poppins', sans-serif !important;">If the button doesn't work, copy and paste this link into your browser:</p>
-                        <a href="{verify_link}" class="link-alt" style="font-family: 'Poppins', sans-serif !important;">{verify_link}</a>
+                        
+                        <p style="font-size: 14px; color: #94a3b8; margin-top: 30px;">If the button above doesn't work, copy and paste this link into your browser:</p>
+                        <p style="word-break: break-all; font-size: 12px;"><a href="{verify_link}" style="color: {self.primary_gradient_end}; text-decoration: none;">{verify_link}</a></p>
                     </div>
-                    <div class="footer">
-                        <p style="font-family: 'Poppins', sans-serif !important;">© 2026 Taskrr Application. All rights reserved.</p>
-                        <p style="font-family: 'Poppins', sans-serif !important;">If you did not create an account, please ignore this email.</p>
+                    <div style="background-color: #f9fafb; padding: 25px; text-align: center; color: #94a3b8; font-size: 13px; border-top: 1px solid #f3f4f6;">
+                        <p style="margin: 0 0 10px 0;">© 2026 Taskrr Application. All rights reserved.</p>
+                        <p style="margin: 0 0 10px 0;">Taskrr HQ • 123 Productivity Way • Digital City, Web 10101</p>
+                        <p style="margin: 0;">If you did not create an account, you can safely ignore this email.</p>
                     </div>
                 </div>
             </body>
@@ -158,11 +83,19 @@ class EmailService:
             """
 
             msg = MIMEMultipart("alternative")
-            msg['From'] = self.from_email
+            msg['From'] = f"Taskrr <{self.from_email}>"
             msg['To'] = to_email
             msg['Subject'] = subject
+            msg['Auto-Submitted'] = "auto-generated"
+            msg['X-Auto-Response-Suppress'] = "All"
             
-            text_fallback = f"Hello, please verify your Taskrr account by visiting: {verify_link}"
+            text_fallback = (
+                f"Welcome to Taskrr!\n\n"
+                f"Thank you for signing up. Please verify your email address to complete your registration:\n\n"
+                f"{verify_link}\n\n"
+                f"If you did not create an account, please ignore this email.\n\n"
+                f"© 2026 Taskrr Application"
+            )
             msg.attach(MIMEText(text_fallback, 'plain'))
             msg.attach(MIMEText(html_content, 'html'))
 
@@ -192,78 +125,24 @@ class EmailService:
             <html lang="en">
             <head>
                 <meta charset="utf-8">
-                <style type="text/css">
-                    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Montserrat:wght@400;700&family=Poppins:wght@400;600;700&display=swap');
-                    
-                    body {{ 
-                        font-family: 'Poppins', Helvetica, Arial, sans-serif !important; 
-                        margin: 0; 
-                        padding: 0; 
-                        background-color: {self.bg_light}; 
-                    }}
-                    .container {{ 
-                        max-width: 600px; 
-                        margin: 20px auto; 
-                        background-color: #ffffff; 
-                        border-radius: 16px; 
-                        overflow: hidden; 
-                        box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
-                    }}
-                    .header {{ 
-                        background: linear-gradient(135deg, {self.primary_gradient_start} 0%, {self.primary_gradient_end} 100%); 
-                        padding: 30px; 
-                        text-align: center; 
-                        color: #ffffff; 
-                    }}
-                    .logo {{ 
-                        margin: 0; 
-                        font-family: 'Caveat', 'Montserrat', cursive !important; 
-                        font-size: 42px; 
-                        font-weight: 400; 
-                        letter-spacing: 0.05em; 
-                        color: #ffffff !important;
-                        display: block;
-                    }}
-                    .content {{ 
-                        padding: 35px; 
-                        color: {self.text_primary}; 
-                        line-height: 1.6; 
-                    }}
-                    .task-card {{ 
-                        background-color: #fcfaff; 
-                        border-left: 5px solid {self.primary_gradient_end}; 
-                        padding: 20px; 
-                        margin: 25px 0; 
-                        border-radius: 8px; 
-                        font-weight: 600; 
-                        font-size: 18px; 
-                        color: {self.text_primary}; 
-                    }}
-                    .footer {{ 
-                        background-color: #fcfaff; 
-                        padding: 20px; 
-                        text-align: center; 
-                        color: #94a3b8; 
-                        font-size: 12px; 
-                    }}
-                </style>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
             </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h1 class="logo" style="margin: 0; font-family: 'Caveat', 'Montserrat', cursive !important; font-size: 42px; font-weight: 400; letter-spacing: 0.05em; color: #ffffff !important;">Taskrr</h1>
+            <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: {self.bg_light}; color: {self.text_primary};">
+                <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+                    <div style="background: linear-gradient(135deg, {self.primary_gradient_start} 0%, {self.primary_gradient_end} 100%); padding: 30px; text-align: center;">
+                        <h1 style="margin: 0; font-family: 'Georgia', serif; font-size: 42px; font-weight: bold; color: #ffffff !important;">Taskrr</h1>
                     </div>
-                    <div class="content">
-                        <h3 style="font-weight: 700; color: {self.text_primary}; font-family: 'Poppins', sans-serif !important;">New Task Notification</h3>
-                        <p style="font-family: 'Poppins', sans-serif !important;">Hello,</p>
-                        <p style="font-family: 'Poppins', sans-serif !important;">You have been assigned a new task by <strong>{assigned_by}</strong>:</p>
-                        <div class="task-card" style="font-family: 'Poppins', sans-serif !important;">
+                    <div style="padding: 35px; color: {self.text_primary}; line-height: 1.6;">
+                        <h3 style="font-weight: 700; color: {self.text_primary};">New Task Notification</h3>
+                        <p>Hello,</p>
+                        <p>You have been assigned a new task by <strong>{assigned_by}</strong>:</p>
+                        <div style="background-color: #f9fafb; border-left: 5px solid {self.primary_gradient_end}; padding: 20px; margin: 25px 0; border-radius: 8px; font-weight: 600; font-size: 18px; color: {self.text_primary};">
                             {todo_title}
                         </div>
-                        <p style="font-family: 'Poppins', sans-serif !important;">Please check your dashboard to start working on it.</p>
+                        <p>Please check your dashboard to start working on it.</p>
                     </div>
-                    <div class="footer">
-                        <p style="font-family: 'Poppins', sans-serif !important;">© 2026 Taskrr Application. All rights reserved.</p>
+                    <div style="background-color: #f9fafb; padding: 20px; text-align: center; color: #94a3b8; font-size: 12px;">
+                        <p>© 2026 Taskrr Application. All rights reserved.</p>
                     </div>
                 </div>
             </body>
@@ -271,9 +150,10 @@ class EmailService:
             """
 
             msg = MIMEMultipart("alternative")
-            msg['From'] = self.from_email
+            msg['From'] = f"Taskrr <{self.from_email}>"
             msg['To'] = to_email
             msg['Subject'] = subject
+            msg['Auto-Submitted'] = "auto-generated"
             
             text_fallback = f"Hello, you have a new task: {todo_title} (Assigned by: {assigned_by})"
             msg.attach(MIMEText(text_fallback, 'plain'))

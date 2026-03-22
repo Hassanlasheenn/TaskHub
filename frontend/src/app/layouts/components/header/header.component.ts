@@ -63,7 +63,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
             '/' + LayoutPaths.CALENDAR,
             '/' + LayoutPaths.MY_TODOS,
             '/' + LayoutPaths.COMPLETED,
-            '/' + LayoutPaths.ADMIN_PANEL,
             '/' + LayoutPaths.PROFILE,
             '/' + LayoutPaths.ADMIN
         ];

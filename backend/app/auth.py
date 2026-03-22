@@ -4,6 +4,7 @@ import jwt
 from datetime import datetime, timedelta, timezone
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
+from typing import Optional
 from fastapi import HTTPException, status, BackgroundTasks
 from fastapi import APIRouter, Depends, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
@@ -163,11 +164,20 @@ def logout(response: Response = Response()):
 async def verify_email(
     token: str, 
     background_tasks: BackgroundTasks,
+    email: Optional[str] = None,
     db: Session = Depends(database.get_db)
 ):
+    # 1. Try to find user by token
     user = db.query(models.User).filter(models.User.verification_token == token).first()
+    
+    # 2. If not found by token, but email is provided, check if already verified
+    if not user and email:
+        user_by_email = db.query(models.User).filter(models.User.email == email).first()
+        if user_by_email and user_by_email.is_verified:
+            return {"message": "Email already verified successfully. You can now login."}
+    
     if not user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification token")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification token")
     
     user.is_verified = True
     user.verification_token = None

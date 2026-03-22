@@ -88,7 +88,6 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
 
     toggleUserExpansion(userId: number): void {
         const userData = this.usersWithTodos.find(u => u.user.id === userId);
-        // Only allow expansion if user has todos
         if (!userData || userData.todos.length === 0) {
             return;
         }

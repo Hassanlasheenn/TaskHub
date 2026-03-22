@@ -1,9 +1,4 @@
 <div class="admin-panel-container">
-    <div class="admin-panel-header">
-        <h2>Admin Panel - All Users & Todos</h2>
-        <p class="subtitle">View all users and their todo items</p>
-    </div>
-
     <div class="users-grid">
         <div *ngFor="let userData of usersWithTodos; trackBy: trackByUserId" class="user-card">
             <div class="user-card-header" [class.no-todos]="userData.todos.length === 0" (click)="toggleUserExpansion(userData.user.id)">

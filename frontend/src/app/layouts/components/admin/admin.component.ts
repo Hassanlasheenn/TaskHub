@@ -171,7 +171,6 @@ export class AdminComponent implements OnInit, OnDestroy {
             case DashboardSections.CALENDAR: path = LayoutPaths.CALENDAR; break;
             case DashboardSections.MY_ASSIGNED: path = LayoutPaths.MY_TODOS; break;
             case DashboardSections.COMPLETED: path = LayoutPaths.COMPLETED; break;
-            case DashboardSections.ADMIN_PANEL: path = LayoutPaths.ADMIN_PANEL; break;
             case DashboardSections.USER_MANAGEMENT: path = LayoutPaths.ADMIN; break;
             default: path = LayoutPaths.DASHBOARD; break;
         }

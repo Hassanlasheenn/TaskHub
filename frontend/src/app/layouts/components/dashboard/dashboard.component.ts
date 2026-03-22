@@ -363,6 +363,18 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
         ).length;
     }
 
+    get hasActiveTodosInSection(): boolean {
+        if (this.activeSection === DashboardSections.DASHBOARD) {
+            // For admins, the dashboard shows unassigned tasks
+            // For users, it shows all their tasks
+            return this._authService.isAdmin() ? this.unassignedCount > 0 : this.todos.length > 0;
+        }
+        if (this.activeSection === DashboardSections.MY_ASSIGNED) {
+            return this.assignedCount > 0;
+        }
+        return false;
+    }
+
     get sectionTitle(): string {
         switch (this.activeSection) {
             case DashboardSections.COMPLETED:
