@@ -33,25 +33,25 @@ def get_photo_url(request: Request, photo_path: Optional[str]) -> Optional[str]:
     """
     Helper to convert stored path to a full public URL.
     Handles both S3 full URLs and local relative paths.
+    Ensures correct protocol and host when behind a reverse proxy.
     """
     if not photo_path:
         return None
     
     # If it's already a full URL (S3, external) or data URI, return as is
     if photo_path.startswith(("http", "data:")):
-        # Some S3 URLs might be stored without the scheme if not careful, 
-        # but here we assume they are full URLs.
         return photo_path
         
-    # Construct full URL for local files: base_url + /static/profile_pics/filename
-    # Ensure request is available to get the base_url
     try:
-        base_url = str(request.base_url).rstrip("/")
-        # Avoid double /static/profile_pics if it was somehow stored with it
+        # Check for proxy headers to construct the correct base URL
+        proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+        host = request.headers.get("x-forwarded-host", request.url.netloc)
+        base_url = f"{proto}://{host}"
+        
         filename = os.path.basename(photo_path)
         return f"{base_url}/static/profile_pics/{filename}"
     except Exception:
-        # Fallback if request is not available (e.g. in some background tasks)
+        # Fallback if request info is not fully available
         return photo_path
 
 
