@@ -44,8 +44,12 @@ def get_photo_url(request: Request, photo_path: Optional[str]) -> Optional[str]:
         
     try:
         # Check for proxy headers to construct the correct base URL
-        proto = request.headers.get("x-forwarded-proto", request.url.scheme)
-        host = request.headers.get("x-forwarded-host", request.url.netloc)
+        # Priority: X-Forwarded headers -> Host header -> Request URL info
+        proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+        host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+        
+        # If host contains the upstream name, we might still have an issue, 
+        # but the Nginx config fix should handle that.
         base_url = f"{proto}://{host}"
         
         filename = os.path.basename(photo_path)

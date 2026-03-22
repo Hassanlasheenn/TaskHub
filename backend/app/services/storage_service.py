@@ -7,25 +7,35 @@ from botocore.exceptions import ClientError
 from typing import Optional, Tuple
 from PIL import Image, ImageOps
 
+from .. import config
+
 logger = logging.getLogger(__name__)
 
 class S3StorageService:
     def __init__(self):
-        self.bucket_name = os.getenv("AWS_S3_BUCKET_NAME")
-        self.region = os.getenv("AWS_S3_REGION", "eu-north-1")
-        self.access_key = os.getenv("AWS_ACCESS_KEY_ID")
-        self.secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+        # Use values from config.py which has already called load_dotenv()
+        self.bucket_name = config.AWS_S3_BUCKET_NAME
+        self.region = config.AWS_S3_REGION
+        self.access_key = config.AWS_ACCESS_KEY_ID
+        self.secret_key = config.AWS_SECRET_ACCESS_KEY
         
         if not all([self.bucket_name, self.access_key, self.secret_key]):
-            logger.warning("⚠️ S3 credentials not fully configured. Falling back to local storage.")
+            logger.warning("⚠️ S3 credentials not fully configured. Bucket: %s, AccessKey: %s. Falling back to local storage.",
+                           self.bucket_name, "Set" if self.access_key else "Not Set")
             self.s3_client = None
         else:
-            self.s3_client = boto3.client(
-                's3',
-                aws_access_key_id=self.access_key,
-                aws_secret_access_key=self.secret_key,
-                region_name=self.region
-            )
+            try:
+                self.s3_client = boto3.client(
+                    's3',
+                    aws_access_key_id=self.access_key,
+                    aws_secret_access_key=self.secret_key,
+                    region_name=self.region
+                )
+                # Verify bucket exists (optional, but good for early failure)
+                # self.s3_client.head_bucket(Bucket=self.bucket_name)
+            except Exception as e:
+                logger.error(f"❌ Failed to initialize S3 client: {e}")
+                self.s3_client = None
 
     def upload_profile_pic(self, file_content: bytes, filename: str) -> Optional[str]:
         """
@@ -55,16 +65,20 @@ class S3StorageService:
             )
             
             # Construct public URL
-            # Note: Using standard S3 URL format
-            url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{unique_filename}"
+            # Note: For us-east-1 the URL format is slightly different, but this works for most regions
+            if self.region == 'us-east-1':
+                url = f"https://{self.bucket_name}.s3.amazonaws.com/{unique_filename}"
+            else:
+                url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{unique_filename}"
+                
             logger.info(f"✅ Successfully uploaded image to S3: {url}")
             return url
 
         except ClientError as e:
-            logger.error(f"❌ S3 Upload failed: {e}")
+            logger.error(f"❌ S3 Upload failed (ClientError): {e}")
             return None
         except Exception as e:
-            logger.error(f"❌ Image processing failed: {e}")
+            logger.error(f"❌ Image processing or S3 upload failed: {e}")
             return None
 
     def delete_file(self, file_url: str) -> bool:
