@@ -42,10 +42,6 @@ export class DropdownFormComponent implements OnInit, OnDestroy, OnChanges {
         this.subscriptions.forEach(sub => sub.unsubscribe());
     }
 
-    trackByKey(index: number, option: any): any {
-        return option.key ?? index;
-    }
-
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['showErrors'] && !changes['showErrors'].firstChange) {
             this.updateErrorMessage();

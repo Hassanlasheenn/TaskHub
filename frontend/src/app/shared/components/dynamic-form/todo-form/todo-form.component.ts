@@ -136,10 +136,6 @@ export class TodoFormComponent implements OnInit, OnDestroy {
         this._destroy$.complete();
     }
 
-    trackByValue(index: number, item: any): any {
-        return item.value ?? index;
-    }
-
     loadUsers(): void {
         this._userService.getMentionableUsers()
             .pipe(takeUntil(this._destroy$))

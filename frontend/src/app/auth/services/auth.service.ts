@@ -1,4 +1,5 @@
-import { Injectable } from "@angular/core";
+import { Injectable, PLATFORM_ID, inject } from "@angular/core";
+import { isPlatformBrowser } from "@angular/common";
 import { API_URLS } from "../../api.global";
 import { HttpClient } from "@angular/common/http";
 import { Observable, take, BehaviorSubject } from "rxjs";
@@ -16,6 +17,7 @@ export class AuthService {
     private currentUserId: number | null = null;
     private currentUserData: IUserResponse | null = null;
     
+    private readonly _platformId = inject(PLATFORM_ID);
     private _currentUserDataSubject = new BehaviorSubject<IUserResponse | null>(null);
     public readonly currentUserData$ = this._currentUserDataSubject.asObservable();
 
@@ -24,13 +26,15 @@ export class AuthService {
         private readonly _authHttpService: AuthHttpService,
         private readonly _posthogService: PosthogService,
     ) {
-        this.loadUserIdFromStorage();
-        this.loadUserDataFromStorage();
-        this.ensureUserDataLoaded();
+        if (isPlatformBrowser(this._platformId)) {
+            this.loadUserIdFromStorage();
+            this.loadUserDataFromStorage();
+            this.ensureUserDataLoaded();
 
-        // Identify if already logged in
-        if (this.currentUserId) {
-            this._posthogService.identify(this.currentUserId, this.currentUserData);
+            // Identify if already logged in
+            if (this.currentUserId) {
+                this._posthogService.identify(this.currentUserId, this.currentUserData);
+            }
         }
     }
 
@@ -65,17 +69,17 @@ export class AuthService {
     }
 
     getToken(): string | null {
-        // First try sessionStorage (per-tab), then fall back to checking cookies via document.cookie
-        const token = sessionStorage.getItem(this.ACCESS_TOKEN_KEY);
-        if (token) {
-            return token;
+        if (isPlatformBrowser(this._platformId)) {
+            const token = sessionStorage.getItem(this.ACCESS_TOKEN_KEY);
+            if (token) {
+                return token;
+            }
         }
-        // If not in sessionStorage, token is likely in cookies (handled by backend with withCredentials)
         return null;
     }
 
     setToken(token: string): void {
-        if (token) {
+        if (token && isPlatformBrowser(this._platformId)) {
             sessionStorage.setItem(this.ACCESS_TOKEN_KEY, token);
         }
     }
@@ -83,12 +87,14 @@ export class AuthService {
     // ========== User ID Management ==========
     setCurrentUserId(userId: number): void {
         this.currentUserId = userId;
-        sessionStorage.setItem(this.USER_ID_KEY, userId.toString());
-        this._posthogService.identify(userId);
+        if (isPlatformBrowser(this._platformId)) {
+            sessionStorage.setItem(this.USER_ID_KEY, userId.toString());
+            this._posthogService.identify(userId);
+        }
     }
 
     getCurrentUserId(): number | null {
-        if (this.currentUserId === null) {
+        if (this.currentUserId === null && isPlatformBrowser(this._platformId)) {
             this.loadUserIdFromStorage();
         }
         return this.currentUserId;
@@ -98,14 +104,16 @@ export class AuthService {
     setCurrentUserData(userData: IUserResponse): void {
         this.currentUserData = userData;
         this._currentUserDataSubject.next(userData);
-        sessionStorage.setItem(this.USER_DATA_KEY, JSON.stringify(userData));
-        if (this.currentUserId) {
-            this._posthogService.identify(this.currentUserId, userData);
+        if (isPlatformBrowser(this._platformId)) {
+            sessionStorage.setItem(this.USER_DATA_KEY, JSON.stringify(userData));
+            if (this.currentUserId) {
+                this._posthogService.identify(this.currentUserId, userData);
+            }
         }
     }
 
     getCurrentUserData(): IUserResponse | null {
-        if (this.currentUserData === null) {
+        if (this.currentUserData === null && isPlatformBrowser(this._platformId)) {
             this.loadUserDataFromStorage();
             // If still null and we have userId, fetch from API
             if (this.currentUserData === null && this.currentUserId !== null) {
@@ -119,9 +127,11 @@ export class AuthService {
         this.currentUserId = null;
         this.currentUserData = null;
         this._currentUserDataSubject.next(null);
-        sessionStorage.removeItem(this.ACCESS_TOKEN_KEY);
-        sessionStorage.removeItem(this.USER_ID_KEY);
-        sessionStorage.removeItem(this.USER_DATA_KEY);
+        if (isPlatformBrowser(this._platformId)) {
+            sessionStorage.removeItem(this.ACCESS_TOKEN_KEY);
+            sessionStorage.removeItem(this.USER_ID_KEY);
+            sessionStorage.removeItem(this.USER_DATA_KEY);
+        }
     }
 
     // ========== Private Helper Methods ==========
@@ -151,6 +161,7 @@ export class AuthService {
     }
 
     private loadUserIdFromStorage(): void {
+        if (!isPlatformBrowser(this._platformId)) return;
         const storedUserId = sessionStorage.getItem(this.USER_ID_KEY);
         if (storedUserId) {
             const userId = Number.parseInt(storedUserId, 10);
@@ -163,6 +174,7 @@ export class AuthService {
     }
 
     private loadUserDataFromStorage(): void {
+        if (!isPlatformBrowser(this._platformId)) return;
         const storedUserData = sessionStorage.getItem(this.USER_DATA_KEY);
         if (storedUserData) {
             try {

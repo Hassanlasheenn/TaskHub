@@ -76,10 +76,6 @@ export class DatePickerComponent implements OnInit, OnDestroy, OnChanges {
         }
     }
 
-    trackByDate(index: number, date: Date | null): any {
-        return date ? date.getTime() : index;
-    }
-
     private setupValidation(): void {
         const control = this.formGroup.get(this.name);
         if (!control) return;

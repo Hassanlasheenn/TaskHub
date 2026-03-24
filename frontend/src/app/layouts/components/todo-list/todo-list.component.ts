@@ -121,10 +121,6 @@ export class TodoListComponent implements OnInit, OnChanges {
 
     trackById = trackById;
 
-    trackByCategory(index: number, group: { category: string | null; todos: ITodo[] }): string | null {
-        return group.category;
-    }
-
     getPriorityClass(priority: string): string {
         return `priority-${priority}`;
     }

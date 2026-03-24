@@ -1,5 +1,5 @@
-import { CommonModule } from "@angular/common";
-import { Component, Input, OnChanges, OnDestroy, Output, EventEmitter } from "@angular/core";
+import { CommonModule, isPlatformBrowser } from "@angular/common";
+import { Component, Input, OnChanges, OnDestroy, Output, EventEmitter, PLATFORM_ID, inject } from "@angular/core";
 import { animate, style, transition, trigger } from "@angular/animations";
 
 @Component({
@@ -36,6 +36,8 @@ export class SidebarComponent implements OnChanges, OnDestroy {
     @Input() position: 'left' | 'right' = 'right';
     @Output() closed = new EventEmitter<void>();
 
+    private readonly _platformId = inject(PLATFORM_ID);
+
     ngOnChanges(): void {
         this.updateBodyScrollLock();
     }
@@ -59,6 +61,8 @@ export class SidebarComponent implements OnChanges, OnDestroy {
     }
 
     private setBodyScrollLock(lock: boolean): void {
+        if (!isPlatformBrowser(this._platformId)) return;
+
         const overflow = lock ? 'hidden' : '';
         document.documentElement.style.overflow = overflow;
         document.body.style.overflow = overflow;
@@ -85,4 +89,3 @@ export class SidebarComponent implements OnChanges, OnDestroy {
         }
     }
 }
-

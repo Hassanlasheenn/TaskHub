@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Component, OnDestroy, OnInit, inject } from "@angular/core";
 import { FormGroup, ReactiveFormsModule } from "@angular/forms";
 import { HttpErrorResponse } from "@angular/common/http";
 import { SharedModule } from "../../../shared/shared.module";
@@ -13,6 +13,7 @@ import { ILoginPayload, ILoginResponse } from "../../interfaces";
 import { AuthService } from "../../services";
 import { Subject, takeUntil } from "rxjs";
 import { LayoutPaths } from "../../../layouts/enums";
+import { SeoService } from "../../../core/services/seo.service";
 
 @Component({
     selector: 'app-login',
@@ -23,6 +24,7 @@ import { LayoutPaths } from "../../../layouts/enums";
 })
 export class LoginComponent implements OnInit, OnDestroy {
     private readonly _destroy$ = new Subject<void>();
+    private readonly _seoService = inject(SeoService);
     form: FormGroup = new FormGroup({});
     isSubmitted: boolean = false;
     errorSummary: string | null = null;
@@ -59,6 +61,12 @@ export class LoginComponent implements OnInit, OnDestroy {
     ) {}
 
     ngOnInit(): void {
+        this._seoService.updateMetaTags({
+            title: 'Login',
+            description: 'Login to Taskrr to manage your tasks, collaborate with your team, and boost your productivity.',
+            keywords: 'login, taskrr, task management, login to taskrr'
+        });
+
         if (this._authService.isAuthenticated()) {
             this._router.navigate([LayoutPaths.DASHBOARD]);
             return;

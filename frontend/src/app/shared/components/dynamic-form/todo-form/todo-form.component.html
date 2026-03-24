@@ -38,7 +38,7 @@
         <legend class="priority-label">Priority</legend>
         <div class="d-flex flex-column flex-sm-row gap-2">
             <button
-                *ngFor="let priority of priorities; trackBy: trackByValue"
+                *ngFor="let priority of priorities; trackBy: trackById"
                 type="button"
                 class="priority-btn flex-grow-1"
                 [class.selected]="selectedPriority === priority.value"
@@ -62,7 +62,7 @@
                 [(ngModel)]="selectedStatus"
                 [ngModelOptions]="{standalone: true}"
             >
-                <option *ngFor="let status of statuses; trackBy: trackByValue" [value]="status.value">
+                <option *ngFor="let status of statuses; trackBy: trackById" [value]="status.value">
                     {{ status.label }}
                 </option>
             </select>

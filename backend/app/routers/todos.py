@@ -490,13 +490,14 @@ async def create_todo_comment(
 
 
 @router.put("/{todo_id}/comments/{comment_id}", response_model=schemas.CommentResponse)
-def update_todo_comment(
+async def update_todo_comment(
     request: Request,
     todo_id: int,
     comment_id: int,
     user_id: int,
-    body: schemas.CommentCreate,
+    content: str = Form(...),
     delete_attachment: bool = False,
+    attachment: Optional[UploadFile] = File(None),
     db: Session = Depends(database.get_db)
 ):
     """Update a comment. Only the comment author can update."""
@@ -514,20 +515,28 @@ def update_todo_comment(
     if comment_db.user_id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only edit your own comment")
     
-    content = (body.content or "").strip()
-    if not content and not (delete_attachment and comment_db.attachment_url):
-        # We don't allow empty comments unless we are just deleting an attachment 
-        # and there's something else left, but let's just keep it simple: content required.
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Comment content is required")
+    content = (content or "").strip()
+    
+    # Handle attachment replacement or deletion
+    if attachment:
+        # If new attachment, delete old one first
+        if comment_db.attachment_url:
+            storage_service.delete_file(comment_db.attachment_url)
+        
+        file_content = await attachment.read()
+        comment_db.attachment_url = storage_service.upload_file(file_content, attachment.filename or "file")
+        comment_db.attachment_name = attachment.filename
+    elif delete_attachment:
+        if comment_db.attachment_url:
+            storage_service.delete_file(comment_db.attachment_url)
+        comment_db.attachment_url = None
+        comment_db.attachment_name = None
+
+    if not content and not comment_db.attachment_url:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Comment content or attachment is required")
     
     old_content = comment_db.content
     comment_db.content = content
-
-    # Handle attachment deletion
-    if delete_attachment and comment_db.attachment_url:
-        storage_service.delete_file(comment_db.attachment_url)
-        comment_db.attachment_url = None
-        comment_db.attachment_name = None
 
     db.commit()
     db.refresh(comment_db)

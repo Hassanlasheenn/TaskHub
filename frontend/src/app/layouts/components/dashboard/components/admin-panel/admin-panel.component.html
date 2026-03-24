@@ -1,6 +1,6 @@
 <div class="admin-panel-container">
     <div class="users-minimal-list">
-        <div *ngFor="let userData of usersWithTodos; trackBy: trackByUserId" class="user-minimal-row">
+        <div *ngFor="let userData of usersWithTodos; trackBy: trackById" class="user-minimal-row">
             <div class="user-main-info">
                 <h3 class="username">{{ userData.user.username | titlecase }}</h3>
                 <span class="user-role-badge" [class.role-admin]="userData.user.role === 'admin'">

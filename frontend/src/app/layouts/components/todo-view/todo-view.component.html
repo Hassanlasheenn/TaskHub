@@ -57,7 +57,7 @@
                                     [(ngModel)]="todo.status"
                                     aria-label="Status"
                                 >
-                                    <option *ngFor="let opt of statusOptions; trackBy: trackByValue" [value]="opt.value">{{ opt.label }}</option>
+                                    <option *ngFor="let opt of statusOptions; trackBy: trackById" [value]="opt.value">{{ opt.label }}</option>
                                 </select>
                             </div>
                             <!-- Priority: Dropdown for Admin, Badge for User -->
@@ -68,7 +68,7 @@
                                     [(ngModel)]="todo.priority"
                                     aria-label="Priority"
                                 >
-                                    <option *ngFor="let opt of priorityOptions; trackBy: trackByValue" [value]="opt.value">{{ opt.label }}</option>
+                                    <option *ngFor="let opt of priorityOptions; trackBy: trackById" [value]="opt.value">{{ opt.label }}</option>
                                 </select>
                             </div>
                             <ng-template #priorityBadge>
@@ -138,22 +138,95 @@
                                         <textarea [(ngModel)]="editContent" class="todo-view-description-input todo-view-comment-edit-input" rows="3" [disabled]="savingEdit"></textarea>
                                         
                                         <!-- Edit Mode Attachment Preview & Removal -->
-                                        <div *ngIf="editAttachmentUrl" class="edit-attachment-preview mt-2 mb-2">
+                                        <div *ngIf="editAttachmentUrl || selectedEditFile" class="edit-attachment-preview mt-2 mb-2">
                                             <div class="d-flex align-items-center gap-2">
-                                                <div *ngIf="isImage(comment.attachment_name)" class="small-thumbnail">
-                                                    <img [src]="editAttachmentUrl" alt="Attachment thumbnail">
-                                                </div>
-                                                <i *ngIf="!isImage(comment.attachment_name)" class="bi bi-file-earmark"></i>
-                                                <span class="text-secondary small">Attachment attached</span>
+                                                <!-- Case 1: Existing Attachment -->
+                                                <ng-container *ngIf="editAttachmentUrl && !selectedEditFile">
+                                                    <div *ngIf="isImage(comment.attachment_name)" class="small-thumbnail">
+                                                        <img [src]="editAttachmentUrl" alt="Attachment thumbnail">
+                                                    </div>
+                                                    <i *ngIf="!isImage(comment.attachment_name)" class="bi bi-file-earmark"></i>
+                                                    <span class="text-secondary small">Current attachment</span>
+                                                </ng-container>
+
+                                                <!-- Case 2: New Selected Attachment -->
+                                                <ng-container *ngIf="selectedEditFile">
+                                                    <div *ngIf="previewEditSelectedUrl" class="small-thumbnail">
+                                                        <img [src]="previewEditSelectedUrl" alt="New attachment preview">
+                                                    </div>
+                                                    <i *ngIf="!previewEditSelectedUrl" class="bi bi-file-earmark-plus"></i>
+                                                    <span class="text-secondary small">New: {{ selectedEditFile.name }}</span>
+                                                </ng-container>
+
                                                 <button type="button" class="btn-remove-attachment" (click)="removeEditAttachment()" title="Remove attachment">
                                                     <i class="bi bi-x-circle-fill"></i>
                                                 </button>
                                             </div>
                                         </div>
 
-                                        <div class="todo-view-comment-edit-actions">
+                                        <div class="todo-view-comment-edit-actions d-flex align-items-center gap-2">
                                             <button type="button" class="todo-view-comment-edit-cancel" (click)="onCancelEditComment()" [disabled]="savingEdit">Cancel</button>
-                                            <button type="button" class="todo-view-save-btn todo-view-comment-edit-save" (click)="onSaveEditComment()" [disabled]="savingEdit || !editContent?.trim()">{{ savingEdit ? 'Saving...' : 'Save' }}</button>
+                                            <button type="button" class="todo-view-save-btn todo-view-comment-edit-save" (click)="onSaveEditComment()" [disabled]="savingEdit || (!editContent?.trim() && !selectedEditFile && !editAttachmentUrl)">{{ savingEdit ? 'Saving...' : 'Save' }}</button>
+                                            
+                                            <!-- Expandable Extras Menu (Edit) -->
+                                            <div class="comment-extras-container d-flex align-items-center" [class.active]="isExtrasMenuOpen">
+                                                <button
+                                                    type="button"
+                                                    class="extras-toggle-btn"
+                                                    (click)="toggleExtrasMenu()"
+                                                    [title]="isExtrasMenuOpen ? 'Close' : 'Add attachment or emoji'"
+                                                >
+                                                    <i class="bi" [ngClass]="isExtrasMenuOpen ? 'bi-dash-lg' : 'bi-plus-lg'"></i>
+                                                </button>
+
+                                                <div class="extras-content d-flex align-items-center gap-2" *ngIf="isExtrasMenuOpen">
+                                                    <!-- Attachment Button (only if none existing) -->
+                                                    <ng-container *ngIf="!editAttachmentUrl && !selectedEditFile">
+                                                        <input
+                                                            #editFileInput
+                                                            type="file"
+                                                            class="d-none"
+                                                            (change)="onEditFileSelected($event)"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            class="extra-action-btn"
+                                                            (click)="editFileInput.click()"
+                                                            title="Add attachment"
+                                                            [disabled]="savingEdit"
+                                                        >
+                                                            <i class="bi bi-paperclip"></i>
+                                                        </button>
+                                                    </ng-container>
+
+                                                    <!-- Emoji Button -->
+                                                    <div class="emoji-picker-wrap">
+                                                        <button
+                                                            type="button"
+                                                            class="extra-action-btn"
+                                                            (click)="toggleEmojiPicker()"
+                                                            title="Add emoji"
+                                                            [disabled]="savingEdit"
+                                                        >
+                                                            <i class="bi bi-emoji-smile"></i>
+                                                        </button>
+
+                                                        <!-- Emoji Picker Popover -->
+                                                        <div class="emoji-popover" *ngIf="showEmojiPicker">
+                                                            <div class="emoji-grid">
+                                                                <button 
+                                                                    *ngFor="let emoji of commonEmojis; trackBy: trackById" 
+                                                                    type="button" 
+                                                                    class="emoji-btn"
+                                                                    (click)="addEmoji(emoji, true)"
+                                                                >
+                                                                    {{ emoji }}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </ng-container>
@@ -242,21 +315,63 @@
                                     {{ addingComment ? 'Adding...' : 'Add' }}
                                 </button>
                                 
-                                <input
-                                    #fileInput
-                                    type="file"
-                                    class="d-none"
-                                    (change)="onFileSelected($event)"
-                                />
-                                <button
-                                    type="button"
-                                    class="attachment-btn"
-                                    (click)="fileInput.click()"
-                                    title="Add attachment"
-                                    [disabled]="addingComment"
-                                >
-                                    <i class="bi bi-paperclip"></i>
-                                </button>
+                                <!-- Expandable Extras Menu -->
+                                <div class="comment-extras-container d-flex align-items-center" [class.active]="isExtrasMenuOpen">
+                                    <button
+                                        type="button"
+                                        class="extras-toggle-btn"
+                                        (click)="toggleExtrasMenu()"
+                                        [title]="isExtrasMenuOpen ? 'Close' : 'Add attachment or emoji'"
+                                    >
+                                        <i class="bi" [ngClass]="isExtrasMenuOpen ? 'bi-dash-lg' : 'bi-plus-lg'"></i>
+                                    </button>
+
+                                    <div class="extras-content d-flex align-items-center gap-2" *ngIf="isExtrasMenuOpen">
+                                        <!-- Attachment Button -->
+                                        <input
+                                            #fileInput
+                                            type="file"
+                                            class="d-none"
+                                            (change)="onFileSelected($event)"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="extra-action-btn"
+                                            (click)="fileInput.click()"
+                                            title="Add attachment"
+                                            [disabled]="addingComment"
+                                        >
+                                            <i class="bi bi-paperclip"></i>
+                                        </button>
+
+                                        <!-- Emoji Button -->
+                                        <div class="emoji-picker-wrap">
+                                            <button
+                                                type="button"
+                                                class="extra-action-btn"
+                                                (click)="toggleEmojiPicker()"
+                                                title="Add emoji"
+                                                [disabled]="addingComment"
+                                            >
+                                                <i class="bi bi-emoji-smile"></i>
+                                            </button>
+
+                                            <!-- Emoji Picker Popover -->
+                                            <div class="emoji-popover" *ngIf="showEmojiPicker">
+                                                <div class="emoji-grid">
+                                                    <button 
+                                                        *ngFor="let emoji of commonEmojis; trackBy: trackById" 
+                                                        type="button" 
+                                                        class="emoji-btn"
+                                                        (click)="addEmoji(emoji)"
+                                                    >
+                                                        {{ emoji }}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         </ng-container>
@@ -264,7 +379,7 @@
                             <div class="todo-view-history">
                                 <p *ngIf="loadingHistory" class="todo-view-history-loading">Loading history...</p>
                                 <ul *ngIf="!loadingHistory && commentHistory.length > 0" class="todo-view-history-list">
-                                    <ng-container *ngFor="let item of commentHistory; trackBy: trackByHistoryEntry">
+                                    <ng-container *ngFor="let item of commentHistory; trackBy: trackById">
                                         <li *ngIf="item.type === 'comment'" class="todo-view-history-item">
                                             <div class="todo-view-history-header">
                                                 <span class="todo-view-history-action" [attr.data-action]="item.action">{{ getHistoryActionLabel(item.action) }}</span>

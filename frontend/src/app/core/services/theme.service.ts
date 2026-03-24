@@ -1,4 +1,5 @@
- import { Injectable, Renderer2, RendererFactory2 } from "@angular/core";
+ import { Injectable, Renderer2, RendererFactory2, PLATFORM_ID, inject } from "@angular/core";
+import { isPlatformBrowser } from "@angular/common";
 import { BehaviorSubject, Observable } from "rxjs";
 
 export type ThemeMode = 'light' | 'dark';
@@ -8,6 +9,7 @@ export type ThemeMode = 'light' | 'dark';
 })
 export class ThemeService {
     private readonly STORAGE_KEY = 'app-theme';
+    private readonly _platformId = inject(PLATFORM_ID);
     private readonly _theme$ = new BehaviorSubject<ThemeMode>(this.getInitialTheme());
     private readonly _renderer: Renderer2;
 
@@ -40,20 +42,24 @@ export class ThemeService {
     }
 
     private getInitialTheme(): ThemeMode {
-        const savedTheme = localStorage.getItem(this.STORAGE_KEY) as ThemeMode;
-        if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
-            return savedTheme;
-        }
+        if (isPlatformBrowser(this._platformId)) {
+            const savedTheme = localStorage.getItem(this.STORAGE_KEY) as ThemeMode;
+            if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
+                return savedTheme;
+            }
 
-        // Check system preference
-        if (globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches) {
-            return 'dark';
+            // Check system preference
+            if (globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches) {
+                return 'dark';
+            }
         }
 
         return 'dark';
     }
 
     private applyTheme(theme: ThemeMode): void {
+        if (!isPlatformBrowser(this._platformId)) return;
+        
         const body = document.body;
         
         // Add no-transitions class to prevent layout jumps/flashes
@@ -74,14 +80,14 @@ export class ThemeService {
         }
 
         // Remove no-transitions class after a short delay to allow theme change to settle
-        // A simple setTimeout(0) or 10ms is usually enough for the browser to apply classes without transition
         setTimeout(() => {
             this._renderer.removeClass(body, 'no-transitions');
         }, 10);
     }
 
     private saveTheme(theme: ThemeMode): void {
-        localStorage.setItem(this.STORAGE_KEY, theme);
+        if (isPlatformBrowser(this._platformId)) {
+            localStorage.setItem(this.STORAGE_KEY, theme);
+        }
     }
 }
-

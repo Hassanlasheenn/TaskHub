@@ -73,10 +73,6 @@ export class AdminPanelComponent implements OnInit, OnDestroy {
             });
     }
 
-    trackByUserId(index: number, item: IUserWithTodos): number {
-        return item.user.id;
-    }
-
     getCompletedCount(userId: number): number {
         const user = this.usersWithTodos.find(u => u.user.id === userId);
         if (!user) return 0;

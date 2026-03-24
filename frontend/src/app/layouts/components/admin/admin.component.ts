@@ -30,9 +30,10 @@ export class AdminComponent implements OnInit, OnDestroy {
     users: IUserListResponse[] = [];
     currentUserId: number | null = null;
     trackById = trackById;
+    isAdmin: boolean = false;
+    isNavSidebarOpen: boolean = false;
     private isDeleting: boolean = false;
     private hasLoadedUsers: boolean = false;
-    isNavSidebarOpen: boolean = false;
     
     // Filter properties
     searchQuery: string = '';
@@ -52,15 +53,16 @@ export class AdminComponent implements OnInit, OnDestroy {
     ) {}
 
     ngOnInit(): void {
+        this.isAdmin = this._authService.isAdmin();
         this.currentUserId = this._authService.getCurrentUserId();
-        
+
         // Wait for user data to be loaded before verifying admin status
         this._authService.currentUserData$
             .pipe(takeUntil(this._destroy$))
             .subscribe((userData) => {
                 if (userData && !this.hasLoadedUsers) {
                     // Once user data is loaded, verify admin status
-                    if (this._authService.isAdmin()) {
+                    if (this.isAdmin) {
                         this.hasLoadedUsers = true;
                         this.loadUsers();
                     } else {

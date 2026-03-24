@@ -77,9 +77,15 @@ export class TodoService {
             .pipe(take(1));
     }
 
-    updateTodoComment(userId: number, todoId: number, commentId: number, content: string, deleteAttachment: boolean = false): Observable<ITodoComment> {
+    updateTodoComment(userId: number, todoId: number, commentId: number, content: string, deleteAttachment: boolean = false, attachment?: File): Observable<ITodoComment> {
+        const formData = new FormData();
+        formData.append('content', content);
+        if (attachment) {
+            formData.append('attachment', attachment);
+        }
+
         return this._http
-            .put<ITodoComment>(`${this._baseUrl}/${todoId}/comments/${commentId}?user_id=${userId}&delete_attachment=${deleteAttachment}`, { content }, {
+            .put<ITodoComment>(`${this._baseUrl}/${todoId}/comments/${commentId}?user_id=${userId}&delete_attachment=${deleteAttachment}`, formData, {
                 withCredentials: true
             })
             .pipe(take(1));

@@ -22,7 +22,7 @@
             </div>
 
             <div
-                *ngFor="let date of calendarDays; trackBy: trackByDate"
+                *ngFor="let date of calendarDays; trackBy: trackById"
                 class="calendar-day"
                 [class.empty]="date === null"
                 [class.today]="isToday(date)"
@@ -36,7 +36,7 @@
                     <!-- Desktop: Full Badges -->
                     <div class="day-todos" *ngIf="getTodosForDate(date).length > 0">
                         <div
-                            *ngFor="let todo of getTodosForDate(date); trackBy: trackByTodo"
+                            *ngFor="let todo of getTodosForDate(date); trackBy: trackById"
                             class="todo-badge"
                             [ngClass]="getPriorityClass(todo.priority)"
                             [title]="todo.title"
@@ -48,7 +48,7 @@
                     <!-- Mobile: Dot Indicators -->
                     <div class="mobile-todo-dots" *ngIf="getTodosForDate(date).length > 0">
                         <div 
-                            *ngFor="let todo of getTodosForDate(date); trackBy: trackByTodo"
+                            *ngFor="let todo of getTodosForDate(date); trackBy: trackById"
                             class="todo-dot"
                             [ngClass]="getPriorityClass(todo.priority)"
                         ></div>
@@ -79,7 +79,7 @@
                     <div *ngIf="getTodosForHour(hour).length > 0" class="hour-todos-wrapper">
                         <div class="hour-todos">
                             <div
-                                *ngFor="let todo of getTodosForHour(hour); trackBy: trackByTodo"
+                                *ngFor="let todo of getTodosForHour(hour); trackBy: trackById"
                                 class="hour-todo-item"
                                 [ngClass]="getPriorityClass(todo.priority)"
                             >

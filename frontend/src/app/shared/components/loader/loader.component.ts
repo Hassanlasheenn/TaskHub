@@ -1,5 +1,5 @@
-import { Component, OnInit, OnDestroy } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { Component, OnInit, OnDestroy, PLATFORM_ID, inject } from "@angular/core";
+import { CommonModule, isPlatformBrowser } from "@angular/common";
 import { Subject, takeUntil } from "rxjs";
 import { LoaderService } from "../../../core/services/loader.service";
 
@@ -13,6 +13,7 @@ import { LoaderService } from "../../../core/services/loader.service";
 export class LoaderComponent implements OnInit, OnDestroy {
     isLoading: boolean = false;
     private readonly _destroy$ = new Subject<void>();
+    private readonly _platformId = inject(PLATFORM_ID);
 
     constructor(private readonly _loaderService: LoaderService) {}
 
@@ -21,14 +22,17 @@ export class LoaderComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this._destroy$))
             .subscribe(loading => {
                 this.isLoading = loading;
-                document.body.style.overflow = loading ? 'hidden' : '';
+                if (isPlatformBrowser(this._platformId)) {
+                    document.body.style.overflow = loading ? 'hidden' : '';
+                }
             });
     }
 
     ngOnDestroy(): void {
         this._destroy$.next();
         this._destroy$.complete();
-        document.body.style.overflow = '';
+        if (isPlatformBrowser(this._platformId)) {
+            document.body.style.overflow = '';
+        }
     }
 }
-

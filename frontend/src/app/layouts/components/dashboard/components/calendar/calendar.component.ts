@@ -95,10 +95,6 @@ export class CalendarComponent implements OnInit, OnChanges {
         return `${this.monthNames[this.currentMonth]} ${this.currentYear}`;
     }
 
-    trackByDate(index: number, date: Date | null): any {
-        return date ? date.getTime() : index;
-    }
-
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['todos'] && !changes['todos'].firstChange) {
         }
@@ -272,10 +268,6 @@ export class CalendarComponent implements OnInit, OnChanges {
     onViewTodo(todo: ITodo, event: MouseEvent): void {
         event.stopPropagation();
         this.viewTodo.emit(todo);
-    }
-
-    trackByTodo(index: number, todo: ITodo): number {
-        return todo.id;
     }
 }
 

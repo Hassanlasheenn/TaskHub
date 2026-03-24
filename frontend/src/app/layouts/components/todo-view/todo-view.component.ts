@@ -79,14 +79,11 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
     previewAttachmentName: string | null = null;
     editAttachmentUrl: string | null = null;
     shouldDeleteAttachment: boolean = false;
-
-    trackByValue(index: number, item: any): any {
-        return item.value ?? index;
-    }
-
-    trackByHistoryEntry(index: number, item: ITodoHistoryEntry): string | number {
-        return item.id ?? index;
-    }
+    selectedEditFile: File | null = null;
+    previewEditSelectedUrl: string | null = null;
+    isExtrasMenuOpen: boolean = false;
+    showEmojiPicker: boolean = false;
+    readonly commonEmojis = ['😊', '👍', '❤️', '🔥', '😂', '😮', '😢', '✅', '🚀', '✨', '🙏', '💯'];
 
     readonly commentHistoryTabs: ITabItem[] = [
         { id: 'comments', label: 'Comments', icon: 'bi-chat-left-text' },
@@ -206,6 +203,26 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
 
     onNavSidebarClose(): void {
         this.isNavSidebarOpen = false;
+    }
+
+    toggleExtrasMenu(): void {
+        this.isExtrasMenuOpen = !this.isExtrasMenuOpen;
+        if (!this.isExtrasMenuOpen) {
+            this.showEmojiPicker = false;
+        }
+    }
+
+    toggleEmojiPicker(): void {
+        this.showEmojiPicker = !this.showEmojiPicker;
+    }
+
+    addEmoji(emoji: string, isEdit: boolean = false): void {
+        if (isEdit) {
+            this.editContent = (this.editContent ?? '') + emoji;
+        } else {
+            this.newCommentText = (this.newCommentText ?? '') + emoji;
+        }
+        this.showEmojiPicker = false;
     }
 
     isImage(filename?: string | null): boolean {
@@ -460,23 +477,56 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
         this.editContent = '';
         this.editAttachmentUrl = null;
         this.shouldDeleteAttachment = false;
+        if (this.previewEditSelectedUrl) {
+            URL.revokeObjectURL(this.previewEditSelectedUrl);
+        }
+        this.selectedEditFile = null;
+        this.previewEditSelectedUrl = null;
+    }
+
+    onEditFileSelected(event: any): void {
+        const file = event.target.files[0];
+        if (file) {
+            if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                this._toastService.error('File size must be less than 10MB');
+                return;
+            }
+            this.selectedEditFile = file;
+            if (this.isImage(file.name)) {
+                this.previewEditSelectedUrl = URL.createObjectURL(file);
+            } else {
+                this.previewEditSelectedUrl = null;
+            }
+        }
     }
 
     removeEditAttachment(): void {
+        if (this.previewEditSelectedUrl) {
+            URL.revokeObjectURL(this.previewEditSelectedUrl);
+        }
         this.editAttachmentUrl = null;
+        this.selectedEditFile = null;
+        this.previewEditSelectedUrl = null;
         this.shouldDeleteAttachment = true;
     }
 
     onSaveEditComment(): void {
         if (!this.todo || this.editingCommentId == null) return;
         const content = this.editContent?.trim();
-        if (!content && this.shouldDeleteAttachment && !this.editAttachmentUrl) {
+        if (!content && this.shouldDeleteAttachment && !this.selectedEditFile) {
             return;
         }
         const userId = this._authService.getCurrentUserId();
         if (!userId) return;
         this.savingEdit = true;
-        this._todoService.updateTodoComment(userId, this.todo.id, this.editingCommentId, content || '', this.shouldDeleteAttachment).subscribe({
+        this._todoService.updateTodoComment(
+            userId, 
+            this.todo.id, 
+            this.editingCommentId, 
+            content || '', 
+            this.shouldDeleteAttachment,
+            this.selectedEditFile || undefined
+        ).subscribe({
             next: (updated) => {
                 this.comments = this.comments.map((c) => (c.id === updated.id ? updated : c));
                 this.onCancelEditComment();

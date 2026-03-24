@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Component, OnDestroy, OnInit, inject } from "@angular/core";
 import { HttpErrorResponse } from "@angular/common/http";
 import { SharedModule } from "../../../shared/shared.module";
 import { FormGroup, ReactiveFormsModule } from "@angular/forms";
@@ -11,6 +11,7 @@ import { AuthService } from "../../services";
 import { IRegisterPayload, IRegisterResponse } from "../../interfaces";
 import { Subject, takeUntil } from "rxjs";
 import { LayoutPaths } from "../../../layouts/enums";
+import { SeoService } from "../../../core/services/seo.service";
 
 @Component({
     selector: 'app-register',
@@ -21,6 +22,7 @@ import { LayoutPaths } from "../../../layouts/enums";
 })
 export class RegisterComponent implements OnInit, OnDestroy {
     private readonly _destroy$ = new Subject<void>();
+    private readonly _seoService = inject(SeoService);
     form: FormGroup = new FormGroup({});
     isSubmitted: boolean = false;
     errorSummary: string | null = null;
@@ -84,6 +86,12 @@ export class RegisterComponent implements OnInit, OnDestroy {
     ) {}
 
     ngOnInit() {
+        this._seoService.updateMetaTags({
+            title: 'Register',
+            description: 'Create an account on Taskrr to start managing your tasks efficiently and boost your productivity.',
+            keywords: 'register, sign up, taskrr, task management'
+        });
+
         if (this._authService.isAuthenticated()) {
             this._router.navigate([LayoutPaths.DASHBOARD]);
             return;

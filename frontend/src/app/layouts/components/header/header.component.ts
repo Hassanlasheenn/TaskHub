@@ -1,6 +1,6 @@
-import { Component, HostListener, OnInit, OnDestroy } from "@angular/core";
+import { Component, HostListener, OnInit, OnDestroy, PLATFORM_ID, inject } from "@angular/core";
 import { Router, NavigationEnd, RouterLink } from "@angular/router";
-import { NgIf } from "@angular/common";
+import { NgIf, isPlatformBrowser } from "@angular/common";
 import { filter, Subject, takeUntil } from "rxjs";
 import { AuthService } from "../../../auth/services";
 import { NavigationService } from "../../../core/services/navigation.service";
@@ -18,6 +18,7 @@ import { NotificationsComponent } from "../../../shared/components";
 })
 export class HeaderComponent implements OnInit, OnDestroy {
     private readonly _destroy$ = new Subject<void>();
+    private readonly _platformId = inject(PLATFORM_ID);
     isDropdownOpen = false;
     isAuthenticated = false;
     isAdmin = false;
@@ -56,21 +57,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
 
     private updateMobileMenuVisibility(): void {
-        const url = this._router.url.split('?')[0];
-        const dashboardPrefixes = [
-            '/' + LayoutPaths.DASHBOARD,
-            '/home',
-            '/' + LayoutPaths.COMPLETED,
-            '/' + LayoutPaths.CALENDAR,
-            '/' + LayoutPaths.ADMIN,
-            '/' + LayoutPaths.TODO_VIEW,
-            '/' + LayoutPaths.USER_DETAILS
-        ];
-        
-        // Check if on dashboard or related paths (including dynamic ones)
-        this.showMobileMenu = this.isAuthenticated && dashboardPrefixes.some(prefix => 
-            url === prefix || (prefix !== '/' && url.startsWith(prefix + '/'))
-        );
+        // The list icon should be fixed and shown on small screen and mobile web view
+        // as long as the user is authenticated.
+        this.showMobileMenu = this.isAuthenticated;
     }
 
     toggleMobileMenu(): void {
@@ -106,6 +95,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void {
+        if (!isPlatformBrowser(this._platformId)) return;
+
         const target = event.target as HTMLElement;
         
         if (target.closest('.dropdown') || !document.body.contains(target)) {
