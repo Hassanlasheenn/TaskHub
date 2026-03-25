@@ -365,3 +365,24 @@ jobs:
           if [ "${{ needs.detect-changes.outputs.frontend }}" == "true" ]; then
             echo "Frontend will be available at: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           fi
+
+  deploy-aws:
+    name: Deploy to AWS
+    needs: [detect-changes]
+    if: |
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to AWS via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USER }}
+          key: ${{ secrets.AWS_SSH_KEY }}
+          script: |
+            cd ~/TaskHub
+            git fetch origin master
+            git reset --hard origin/master
+            docker compose -f docker-compose.prod.yml up -d --build
+            docker image prune -f
