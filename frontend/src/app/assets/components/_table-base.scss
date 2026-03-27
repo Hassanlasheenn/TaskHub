@@ -57,6 +57,12 @@
                 &:focus-within {
                     z-index: 100;
                 }
+
+                // Elevate z-index when a dropdown or date-picker is open inside
+                &:has(.dropdown-form__popup),
+                &:has(.date-picker__popup) {
+                    z-index: 100 !important;
+                }
             }
 
             td {
