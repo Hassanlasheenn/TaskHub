@@ -107,7 +107,7 @@ async def startup_event():
 environment = os.getenv("ENVIRONMENT", "development").lower()
 
 if environment == "production":
-    # Production: Only allow Vercel production domain
+    # Production: Only allow AWS production domains
     # You can add multiple production domains separated by commas in ALLOWED_ORIGINS
     allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
     if allowed_origins_env:

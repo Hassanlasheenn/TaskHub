@@ -56,13 +56,23 @@ class S3StorageService:
             # Optimize image before upload
             optimized_content = self._optimize_image(file_content)
             
-            # Upload to S3
-            self.s3_client.put_object(
-                Bucket=self.bucket_name,
-                Key=unique_filename,
-                Body=optimized_content,
-                ContentType='image/jpeg'
-            )
+            # Upload to S3 with ACL fallback
+            try:
+                self.s3_client.put_object(
+                    Bucket=self.bucket_name,
+                    Key=unique_filename,
+                    Body=optimized_content,
+                    ContentType='image/jpeg',
+                    ACL='public-read'
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ Could not set ACL='public-read', retrying without ACL: {e}")
+                self.s3_client.put_object(
+                    Bucket=self.bucket_name,
+                    Key=unique_filename,
+                    Body=optimized_content,
+                    ContentType='image/jpeg'
+                )
             
             # Construct public URL
             # Note: For us-east-1 the URL format is slightly different, but this works for most regions
@@ -75,10 +85,12 @@ class S3StorageService:
             return url
 
         except ClientError as e:
-            logger.error(f"❌ S3 Upload failed (ClientError): {e}")
+            error_code = e.response['Error']['Code']
+            error_message = e.response['Error']['Message']
+            logger.error(f"❌ S3 Upload failed (ClientError): {error_code} - {error_message}")
             return None
         except Exception as e:
-            logger.error(f"❌ Image processing or S3 upload failed: {e}")
+            logger.error(f"❌ Image processing or S3 upload failed: {str(e)}", exc_info=True)
             return None
 
     def upload_file(self, file_content: bytes, filename: str, folder: str = "attachments") -> Optional[str]:
@@ -100,13 +112,23 @@ class S3StorageService:
             elif ext == '.pdf': content_type = 'application/pdf'
             elif ext in ['.doc', '.docx']: content_type = 'application/msword'
             
-            # Upload to S3
-            self.s3_client.put_object(
-                Bucket=self.bucket_name,
-                Key=unique_filename,
-                Body=file_content,
-                ContentType=content_type
-            )
+            # Upload to S3 with ACL fallback
+            try:
+                self.s3_client.put_object(
+                    Bucket=self.bucket_name,
+                    Key=unique_filename,
+                    Body=file_content,
+                    ContentType=content_type,
+                    ACL='public-read'
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ Could not set ACL='public-read' for file, retrying without ACL: {e}")
+                self.s3_client.put_object(
+                    Bucket=self.bucket_name,
+                    Key=unique_filename,
+                    Body=file_content,
+                    ContentType=content_type
+                )
             
             # Construct public URL
             if self.region == 'us-east-1':
@@ -118,7 +140,7 @@ class S3StorageService:
             return url
 
         except Exception as e:
-            logger.error(f"❌ S3 General upload failed: {e}")
+            logger.error(f"❌ S3 General upload failed: {str(e)}", exc_info=True)
             return None
 
     def delete_file(self, file_url: str) -> bool:
