@@ -3,7 +3,6 @@ import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { Subject, takeUntil, forkJoin } from "rxjs";
 import { AdminService, IUserWithTodos } from "../../../core/services/admin.service";
-import { LoaderService } from "../../../core/services/loader.service";
 import { ToastService } from "../../../core/services/toast.service";
 import { AuthService } from "../../../auth/services/auth.service";
 import { TodoService } from "../../../core/services/todo.service";
@@ -34,10 +33,14 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
     isAdmin: boolean = false;
     viewMode: 'grid' | 'table' = 'grid';
 
+    tableTodos: ITodo[] = [];
+    tableTotal: number = 0;
+    tablePage: number = 1;
+    tablePageSize: number = 5;
+
     constructor(
         private readonly _route: ActivatedRoute,
         private readonly _adminService: AdminService,
-        private readonly _loaderService: LoaderService,
         private readonly _toastService: ToastService,
         private readonly _router: Router,
         private readonly _navService: NavigationService,
@@ -65,6 +68,28 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
     setViewMode(mode: 'grid' | 'table'): void {
         this.viewMode = mode;
         localStorage.setItem('dashboardViewMode', mode);
+        if (mode === 'table') {
+            this.tablePage = 1;
+            this.loadTableTodos();
+        }
+    }
+
+    loadTableTodos(): void {
+        if (!this.userData) return;
+        const skip = (this.tablePage - 1) * this.tablePageSize;
+        this.tableTodos = this.userData.todos.slice(skip, skip + this.tablePageSize) as ITodo[];
+        this.tableTotal = this.userData.todos.length;
+    }
+
+    onTablePageChange(page: number): void {
+        this.tablePage = page;
+        this.loadTableTodos();
+    }
+
+    onTablePageSizeChange(size: number): void {
+        this.tablePageSize = size;
+        this.tablePage = 1;
+        this.loadTableTodos();
     }
 
     onEditTodo(todo: ITodo | ITodoResponse): void {
@@ -83,6 +108,11 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
                         this.userData.todos[index] = { ...this.userData.todos[index], ...response };
                         this.userData.todos = [...this.userData.todos];
                     }
+                }
+                const tableIndex = this.tableTodos.findIndex(t => t.id === event.id);
+                if (tableIndex !== -1) {
+                    this.tableTodos[tableIndex] = { ...this.tableTodos[tableIndex], ...response };
+                    this.tableTodos = [...this.tableTodos];
                 }
                 this._toastService.success('Todo updated successfully');
             },
@@ -106,7 +136,6 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this._destroy$))
         .subscribe(result => {
             if (result.confirmed) {
-                this._loaderService.show();
                 this._todoService.deleteTodo(userId, todo.id).subscribe({
                     next: (response) => {
                         if (this.userData) {
@@ -116,12 +145,11 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
                                 this.userData = { ...this.userData, todos: [...this.userData.todos] };
                             }
                         }
-                        this._loaderService.hide();
+                        this.tableTodos = this.tableTodos.filter(t => t.id !== todo.id);
                         this._toastService.success(response?.message || 'Todo deleted successfully');
                     },
                     error: (error) => {
                         this._toastService.error(error?.error?.detail || 'Failed to delete todo');
-                        this._loaderService.hide();
                     }
                 });
             }
@@ -130,12 +158,10 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
 
     loadUserData(): void {
         if (!this.userId) return;
-        
+
         const currentUserId = this._authService.getCurrentUserId();
         if (!currentUserId) return;
 
-        this._loaderService.show();
-        
         const requests = {
             usersWithTodos: this._adminService.getUsersWithTodos(),
             allTodos: this._todoService.getTodos(currentUserId)
@@ -149,14 +175,17 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
                     if (found) {
                         this.userData = found;
                         this.allTodos = allTodos.todos;
+                        
+                        // Load table todos if in table mode
+                        if (this.viewMode === 'table') {
+                            this.loadTableTodos();
+                        }
                     } else {
                         this._toastService.error('User not found');
                         this._router.navigate(['/']);
                     }
-                    this._loaderService.hide();
                 },
                 error: (error) => {
-                    this._loaderService.hide();
                     this._toastService.error(error?.error?.detail || 'Failed to load user details');
                 }
             });

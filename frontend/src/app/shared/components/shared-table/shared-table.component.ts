@@ -10,13 +10,14 @@ import { DropdownFormComponent } from "../form-fields/dropdown/dropdown.componen
 import { DatePickerComponent } from "../form-fields/date-picker/date-picker.component";
 import { IFieldControl } from "../../interfaces";
 import { InputTypes } from "../../enums";
+import { PaginationComponent } from "../pagination/pagination.component";
 
 @Component({
     selector: 'app-shared-table',
     templateUrl: './shared-table.component.html',
     styleUrls: ['./shared-table.component.scss'],
     standalone: true,
-    imports: [CommonModule, RouterLink, FormsModule, DropdownFormComponent, DatePickerComponent]
+    imports: [CommonModule, RouterLink, FormsModule, DropdownFormComponent, DatePickerComponent, PaginationComponent]
 })
 export class SharedTableComponent implements AfterViewChecked {
     @ViewChildren('titleInput') titleInputs!: QueryList<ElementRef<HTMLInputElement>>;
@@ -39,6 +40,18 @@ export class SharedTableComponent implements AfterViewChecked {
 
     @Output() roleChange = new EventEmitter<{ userId: number; role: 'user' | 'admin' }>();
     @Output() deleteUser = new EventEmitter<number>();
+
+    // --- Pagination inputs/outputs ---
+    @Input() totalItems: number = 0;
+    @Input() currentPage: number = 1;
+    @Input() pageSize: number = 5;
+
+    @Output() pageChange = new EventEmitter<number>();
+    @Output() pageSizeChange = new EventEmitter<number>();
+
+    get showPagination(): boolean {
+        return this.totalItems > 0;
+    }
 
     readonly LayoutPaths = LayoutPaths;
     trackById: TrackByFunction<any> = trackById;

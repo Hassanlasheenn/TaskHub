@@ -289,10 +289,15 @@
                 <!-- Table View for Dashboard Section -->
                 <div *ngIf="activeSection === DashboardSections.DASHBOARD && viewMode === 'table'" class="table-view-container">
                     <app-shared-table
-                        [todos]="filteredTodos"
+                        [todos]="tableTodos"
                         [isAdmin]="isAdmin"
+                        [totalItems]="tableTotal"
+                        [currentPage]="tablePage"
+                        [pageSize]="tablePageSize"
                         (update)="onTodoUpdate($event)"
                         (delete)="onDeleteTodo($event)"
+                        (pageChange)="onTablePageChange($event)"
+                        (pageSizeChange)="onTablePageSizeChange($event)"
                     />
                 </div>
 

@@ -15,8 +15,13 @@
         <app-shared-table
             [users]="filteredUsers"
             [currentUserId]="currentUserId"
+            [totalItems]="totalUsers"
+            [currentPage]="page"
+            [pageSize]="pageSize"
             (roleChange)="onRoleChange($event)"
             (deleteUser)="onDeleteUser($event)"
+            (pageChange)="onPageChange($event)"
+            (pageSizeChange)="onPageSizeChange($event)"
             emptyMessage="No users found matching your criteria"
         />
     </app-card>

@@ -51,6 +51,10 @@ class UserListResponse(BaseModel):
 class UserRoleUpdate(BaseModel):
     role: Literal["user", "admin"]
 
+class UserListPaginatedResponse(BaseModel):
+    users: List[UserListResponse]
+    total: int
+
 class LoginResponse(BaseModel):
     token_type: str = "bearer"
     access_token: Optional[str] = None  # Optional for backward compatibility, but included for header-based auth

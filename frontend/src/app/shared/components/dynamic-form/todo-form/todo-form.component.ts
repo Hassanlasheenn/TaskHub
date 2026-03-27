@@ -246,6 +246,7 @@ export class TodoFormComponent implements OnInit, OnDestroy {
             if (this.isAdmin) {
                 this.fields[userFieldIndex].options = [{ key: null, value: 'Unassigned' }, ...userOptions];
             } else {
+                // For non-admins, ensure Unassigned is NOT an option
                 this.fields[userFieldIndex].options = userOptions;
             }
         }

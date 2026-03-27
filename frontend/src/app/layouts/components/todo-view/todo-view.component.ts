@@ -24,7 +24,7 @@ import { DatePickerComponent } from "../../../shared/components/form-fields/date
 import { InputFormComponent } from "../../../shared/components/form-fields/input/input.component";
 import { ReactiveFormService } from "../../../shared/services/reactive-form.service";
 import { IFieldControl } from "../../../shared/interfaces";
-import { InputTypes } from "../../../shared/enums";
+import { InputTypes, ValidatorTypes } from "../../../shared/enums";
 
 import { DynamicFormComponent } from "../../../shared/components/dynamic-form/dynamic-form.component";
 
@@ -201,6 +201,14 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
             return;
         }
 
+        // Set required status based on admin role
+        if (!this.isAdmin) {
+            this.assigneeField.required = true;
+            this.assigneeField.validations = [
+                { type: ValidatorTypes.REQUIRED, message: 'Assignee is required' }
+            ];
+        }
+
         this.todoForm = this._formService.initializeForm([
             this.assigneeField,
             this.statusField,
@@ -295,10 +303,16 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
                     });
                 }
                 
-                this.assigneeField.options = [
-                    { key: null, value: 'Unassigned' },
-                    ...this.mentionableUsers.map(u => ({ key: u.id, value: u.username }))
-                ];
+                const userOptions = this.mentionableUsers.map(u => ({ key: u.id, value: u.username }));
+                
+                if (this.isAdmin) {
+                    this.assigneeField.options = [
+                        { key: null, value: 'Unassigned' },
+                        ...userOptions
+                    ];
+                } else {
+                    this.assigneeField.options = userOptions;
+                }
             },
             error: () => { this.mentionableUsers = []; },
         });

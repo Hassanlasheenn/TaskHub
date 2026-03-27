@@ -4,7 +4,6 @@ import { Subject, takeUntil } from "rxjs";
 import { AdminService } from "../../../core/services/admin.service";
 import { AuthService } from "../../../auth/services";
 import { ToastService } from "../../../core/services/toast.service";
-import { LoaderService } from "../../../core/services/loader.service";
 import { ConfirmationDialogService } from "../../../core/services/confirmation-dialog.service";
 import { IUserListResponse } from "../../../auth/interfaces";
 import { CardComponent } from "../../../shared/components/card/card.component";
@@ -30,6 +29,9 @@ import { SharedTableComponent } from "../../../shared/components/shared-table/sh
 export class AdminComponent implements OnInit, OnDestroy {
     private readonly _destroy$ = new Subject<void>();
     users: IUserListResponse[] = [];
+    totalUsers: number = 0;
+    page: number = 1;
+    pageSize: number = 5;
     currentUserId: number | null = null;
     isAdmin: boolean = false;
     private isDeleting: boolean = false;
@@ -68,7 +70,6 @@ export class AdminComponent implements OnInit, OnDestroy {
         private readonly _adminService: AdminService,
         public readonly _authService: AuthService,
         private readonly _toastService: ToastService,
-        private readonly _loaderService: LoaderService,
         private readonly _confirmationDialog: ConfirmationDialogService,
         private readonly _posthogService: PosthogService,
         private readonly _router: Router,
@@ -109,20 +110,30 @@ export class AdminComponent implements OnInit, OnDestroy {
     }
 
     loadUsers(): void {
-        this._loaderService.show();
-        this._adminService.listUsers()
+        const skip = (this.page - 1) * this.pageSize;
+        this._adminService.listUsers(skip, this.pageSize)
             .pipe(takeUntil(this._destroy$))
             .subscribe({
-                next: (users) => {
-                    this.users = users;
-                    this._loaderService.hide();
+                next: (response) => {
+                    this.users = response.users;
+                    this.totalUsers = response.total;
                 },
                 error: (error) => {
-                    this._loaderService.hide();
                     const errorMessage = error?.error?.detail || error?.message || 'Failed to load users';
                     this._toastService.error(errorMessage);
                 }
             });
+    }
+
+    onPageChange(page: number): void {
+        this.page = page;
+        this.loadUsers();
+    }
+
+    onPageSizeChange(size: number): void {
+        this.pageSize = size;
+        this.page = 1;
+        this.loadUsers();
     }
 
     get filteredUsers(): IUserListResponse[] {
@@ -166,18 +177,15 @@ export class AdminComponent implements OnInit, OnDestroy {
             next: (result) => {
                 if (result.confirmed && !this.isDeleting) {
                     this.isDeleting = true;
-                    this._loaderService.show();
                     this._adminService.deleteUser(userId)
                         .pipe(takeUntil(this._destroy$))
                         .subscribe({
                             next: () => {
-                                this.users = this.users.filter(user => user.id !== userId);
-                                this._loaderService.hide();
                                 this.isDeleting = false;
                                 this._toastService.success('User deleted successfully');
+                                this.loadUsers();
                             },
                             error: (error) => {
-                                this._loaderService.hide();
                                 this.isDeleting = false;
                                 this._toastService.error(error?.error?.detail || 'Failed to delete user');
                             }
@@ -188,17 +196,14 @@ export class AdminComponent implements OnInit, OnDestroy {
     }
 
     onRoleChange(event: { userId: number; role: 'user' | 'admin' }): void {
-        this._loaderService.show();
         this._adminService.updateUserRole(event.userId, event.role)
             .pipe(takeUntil(this._destroy$))
             .subscribe({
                 next: () => {
-                    this._loaderService.hide();
                     this._toastService.success(`User role updated to ${event.role}`);
                     this.loadUsers();
                 },
                 error: (error) => {
-                    this._loaderService.hide();
                     this._toastService.error(error?.error?.detail || 'Failed to update user role');
                 }
             });

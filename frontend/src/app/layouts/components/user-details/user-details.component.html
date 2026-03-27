@@ -265,10 +265,15 @@
                 <!-- Table View -->
                 <div *ngIf="viewMode === 'table'" class="table-view-container">
                     <app-shared-table
-                        [todos]="userTodos"
+                        [todos]="tableTodos"
                         [isAdmin]="isAdmin"
+                        [totalItems]="tableTotal"
+                        [currentPage]="tablePage"
+                        [pageSize]="tablePageSize"
                         (update)="onUpdateTodo($event)"
                         (delete)="onDeleteTodo($event)"
+                        (pageChange)="onTablePageChange($event)"
+                        (pageSizeChange)="onTablePageSizeChange($event)"
                     />
                 </div>
             </div>        </div>

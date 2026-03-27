@@ -167,4 +167,13 @@
             </ng-template>
         </table>
     </div>
+
+    <app-pagination
+        *ngIf="showPagination"
+        [currentPage]="currentPage"
+        [pageSize]="pageSize"
+        [totalItems]="totalItems"
+        (pageChange)="pageChange.emit($event)"
+        (pageSizeChange)="pageSizeChange.emit($event)"
+    />
 </div>

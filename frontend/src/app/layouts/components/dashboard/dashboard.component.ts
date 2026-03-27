@@ -1,7 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, OnDestroy, ViewChild } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
-import { Subject, takeUntil, debounceTime, Observable, map } from "rxjs";
+import { Subject, takeUntil, debounceTime, Observable, map, forkJoin } from "rxjs";
 import { AuthService } from "../../../auth/services";
 import { TodoService } from "../../../core/services/todo.service";
 import { NotificationService } from "../../../core/services/notification.service";
@@ -63,6 +63,12 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
     isAdmin: boolean = false;
     viewMode: 'grid' | 'table' = 'grid';
 
+    // Table-view pagination state (separate from grid data)
+    tableTodos: ITodo[] = [];
+    tableTotal: number = 0;
+    tablePage: number = 1;
+    tablePageSize: number = 5;
+
     constructor(
         public readonly _authService: AuthService,
         private readonly _todoService: TodoService,
@@ -83,6 +89,9 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
         this.isAdmin = this._authService.isAdmin();
         this.userData = this._authService.getCurrentUserData();
         this.loadTodos();
+        if (this.viewMode === 'table') {
+            this.loadTableTodos();
+        }
         this._syncSectionWithUrl();
 
         // Listen to route changes for back/forward support
@@ -108,15 +117,17 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
         const userId = this._authService.getCurrentUserId();
         if (!userId) return;
 
-        this._todoService.getTodos(userId).subscribe({
-            next: (response) => {
-                this.todos = [...(response.todos as ITodo[])];
-                this.totalTodos = response.total;
-            },
-            error: (error) => {
-                this._toastService.error(error?.error?.detail || 'Failed to load todos');
-            }
-        });
+        this._todoService.getTodos(userId)
+            .pipe(takeUntil(this._destroy$))
+            .subscribe({
+                next: (response) => {
+                    this.todos = [...(response.todos as ITodo[])];
+                    this.totalTodos = response.total;
+                },
+                error: (error) => {
+                    this._toastService.error(error?.error?.detail || 'Failed to load todos');
+                }
+            });
     }
 
     get sidebarTitle(): string {
@@ -209,6 +220,11 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
                             this.todos[index] = { ...this.todos[index], is_deleted: true };
                             this.todos = [...this.todos];
                         }
+                        const tableIndex = this.tableTodos.findIndex(t => t.id === todo.id);
+                        if (tableIndex !== -1) {
+                            this.tableTodos[tableIndex] = { ...this.tableTodos[tableIndex], is_deleted: true };
+                            this.tableTodos = [...this.tableTodos];
+                        }
                         this._toastService.success(response?.message || 'Todo deleted successfully');
                         this._posthogService.capture('todo_deleted', { todo_id: todo.id });
                     },
@@ -249,6 +265,11 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
                     if (index !== -1) {
                         this.todos[index] = { ...this.todos[index], ...response } as ITodo;
                         this.todos = [...this.todos];
+                    }
+                    const tableIndex = this.tableTodos.findIndex(t => t.id === event.id);
+                    if (tableIndex !== -1) {
+                        this.tableTodos[tableIndex] = { ...this.tableTodos[tableIndex], ...response } as ITodo;
+                        this.tableTodos = [...this.tableTodos];
                     }
                     this.isSidebarOpen = false;
                     this.editingTodo = null;
@@ -319,6 +340,38 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
         this.viewMode = mode;
         localStorage.setItem('dashboardViewMode', mode);
         this._posthogService.capture('dashboard_view_mode_changed', { mode });
+        if (mode === 'table') {
+            this.tablePage = 1;
+            this.loadTableTodos();
+        }
+    }
+
+    loadTableTodos(): void {
+        const userId = this._authService.getCurrentUserId();
+        if (!userId) return;
+        const skip = (this.tablePage - 1) * this.tablePageSize;
+        this._todoService.getTodos(userId, skip, this.tablePageSize)
+            .pipe(takeUntil(this._destroy$))
+            .subscribe({
+                next: (response) => {
+                    this.tableTodos = response.todos as ITodo[];
+                    this.tableTotal = response.total;
+                },
+                error: (error) => {
+                    this._toastService.error(error?.error?.detail || 'Failed to load todos');
+                }
+            });
+    }
+
+    onTablePageChange(page: number): void {
+        this.tablePage = page;
+        this.loadTableTodos();
+    }
+
+    onTablePageSizeChange(size: number): void {
+        this.tablePageSize = size;
+        this.tablePage = 1;
+        this.loadTableTodos();
     }
 
     isSectionCollapsed(section: string): boolean {
@@ -466,7 +519,9 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
                 break;
             case DashboardSections.DASHBOARD:
                 if (!isAdmin) {
-                    filtered = filtered.filter(todo => todo.assigned_to_user_id === userId);
+                    filtered = filtered.filter(todo => 
+                        todo.assigned_to_user_id === userId || todo.user_id === userId
+                    );
                 }
                 break;
             default:
@@ -548,7 +603,9 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
                 break;
             case DashboardSections.DASHBOARD:
                 if (!isAdmin) {
-                    filtered = filtered.filter(todo => todo.assigned_to_user_id === userId);
+                    filtered = filtered.filter(todo => 
+                        todo.assigned_to_user_id === userId || todo.user_id === userId
+                    );
                 }
                 break;
             default:

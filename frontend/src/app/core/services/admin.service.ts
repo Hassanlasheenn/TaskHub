@@ -11,15 +11,20 @@ export interface IUserWithTodos {
     todo_count: number;
 }
 
+export interface IUserListPaginatedResponse {
+    users: IUserListResponse[];
+    total: number;
+}
+
 @Injectable({
     providedIn: 'root',
 })
 export class AdminService {
     constructor(private readonly _http: HttpClient) {}
 
-    listUsers(): Observable<IUserListResponse[]> {
+    listUsers(skip: number = 0, limit: number = 5): Observable<IUserListPaginatedResponse> {
         return this._http
-            .get<IUserListResponse[]>(API_URLS.admin.listUsers, {
+            .get<IUserListPaginatedResponse>(`${API_URLS.admin.listUsers}?skip=${skip}&limit=${limit}`, {
                 withCredentials: true
             })
             .pipe(take(1));

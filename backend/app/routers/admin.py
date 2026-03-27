@@ -11,54 +11,28 @@ from ..utils import get_photo_url
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
-@router.get("/users", response_model=List[schemas.UserListResponse])
+@router.get("/users", response_model=schemas.UserListPaginatedResponse)
 def list_users(
     request: Request,
+    skip: int = 0,
+    limit: int = 10,
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_current_admin_user)
 ):
-    cached = cache_get(PREFIX_ADMIN_USERS)
-    if cached is not None:
-        result = []
-        for item in cached:
-            item['photo'] = get_photo_url(request, item.get('photo'))
-            # Ensure role is always present
-            if not item.get('role'):
-                item['role'] = 'user'
-            try:
-                result.append(schemas.UserListResponse(**item))
-            except Exception as e:
-                # Log error and skip invalid items
-                import logging
-                logging.getLogger(__name__).error(f"Cache data error for user {item.get('id')}: {e}")
-                continue
-        return result
-        
-    users = db.query(models.User).all()
-    result = []
-    for user in users:
-        result.append(schemas.UserListResponse(
+    total = db.query(models.User).count()
+    users = db.query(models.User).order_by(models.User.id.asc()).offset(skip).limit(limit).all()
+    result = [
+        schemas.UserListResponse(
             id=user.id,
             username=user.username,
             email=user.email,
             photo=get_photo_url(request, user.profile_pic),
             role=getattr(user, 'role', 'user') or 'user',
             is_verified=user.is_verified
-        ))
-    
-    # Cache raw paths
-    cache_data = []
-    for user in users:
-        cache_data.append({
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "photo": user.profile_pic,
-            "role": getattr(user, 'role', 'user') or 'user',
-            "is_verified": user.is_verified
-        })
-    cache_set(PREFIX_ADMIN_USERS, cache_data, CACHE_TTL_USER_LISTS)
-    return result
+        )
+        for user in users
+    ]
+    return schemas.UserListPaginatedResponse(users=result, total=total)
 
 
 @router.delete("/users/{user_id}")

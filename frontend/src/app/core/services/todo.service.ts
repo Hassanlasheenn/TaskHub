@@ -12,9 +12,9 @@ export class TodoService {
 
     constructor(private readonly _http: HttpClient) {}
 
-    getTodos(userId: number): Observable<ITodoListResponse> {
+    getTodos(userId: number, skip: number = 0, limit: number = 100): Observable<ITodoListResponse> {
         return this._http
-            .get<ITodoListResponse>(`${this._baseUrl}?user_id=${userId}`, {
+            .get<ITodoListResponse>(`${this._baseUrl}?user_id=${userId}&assignee_id=${userId}&skip=${skip}&limit=${limit}`, {
                 withCredentials: true
             })
             .pipe(take(1));

@@ -1,0 +1,53 @@
+<div class="pagination-bar">
+    <div class="pagination-size" [class.pagination-dimmed]="isDisabled">
+        <span class="pagination-label">Rows:</span>
+        <button
+            *ngFor="let size of pageSizeOptions"
+            type="button"
+            [class.active]="pageSize === size"
+            [disabled]="isDisabled"
+            (click)="onSizeChange(size)"
+        >
+            {{ size }}
+        </button>
+    </div>
+
+    <span class="pagination-info">
+        Showing {{ startItem }}–{{ endItem }} of {{ totalItems }}
+    </span>
+
+    <div class="pagination-controls" [class.pagination-dimmed]="isDisabled">
+        <button
+            type="button"
+            class="nav-btn"
+            [disabled]="isDisabled || currentPage === 1"
+            (click)="onPageChange(currentPage - 1)"
+            title="Previous page"
+        >
+            <i class="bi bi-chevron-left"></i>
+        </button>
+
+        <ng-container *ngFor="let p of pages">
+            <span *ngIf="p === null" class="pagination-ellipsis">···</span>
+            <button
+                *ngIf="p !== null"
+                type="button"
+                [class.active]="p === currentPage"
+                [disabled]="isDisabled"
+                (click)="onPageChange(p)"
+            >
+                {{ p }}
+            </button>
+        </ng-container>
+
+        <button
+            type="button"
+            class="nav-btn"
+            [disabled]="isDisabled || currentPage === totalPages"
+            (click)="onPageChange(currentPage + 1)"
+            title="Next page"
+        >
+            <i class="bi bi-chevron-right"></i>
+        </button>
+    </div>
+</div>
