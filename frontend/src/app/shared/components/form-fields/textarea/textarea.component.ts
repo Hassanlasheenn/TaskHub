@@ -1,11 +1,13 @@
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, Input, OnInit, OnDestroy, OnChanges, Output, SimpleChanges } from "@angular/core";
+import { Component, EventEmitter, Input, OnInit, OnDestroy, OnChanges, Output, SimpleChanges, ViewChild, ElementRef } from "@angular/core";
 import { FormGroup, ReactiveFormsModule, AbstractControl } from "@angular/forms";
 import { ICustomStyle, IFieldControl } from "../../../interfaces";
 import { InputTypes } from "../../../enums";
 import { ReactiveFormService } from "../../../services/reactive-form.service";
 import { Subscription } from "rxjs";
 import { PasteImageDirective } from "../../../directives/paste-image.directive";
+import { ImageUploadService } from "../../../../core/services/image-upload.service";
+import { ToastService } from "../../../../core/services/toast.service";
 
 @Component({
     selector: 'app-textarea-form',
@@ -15,6 +17,7 @@ import { PasteImageDirective } from "../../../directives/paste-image.directive";
     imports: [CommonModule, ReactiveFormsModule, PasteImageDirective]
 })
 export class TextareaFormComponent implements OnInit, OnDestroy, OnChanges {
+    @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
     @Input() label: string = '';
     @Input() placeholder?: string;
     @Input() value: string = '';
@@ -28,6 +31,7 @@ export class TextareaFormComponent implements OnInit, OnDestroy, OnChanges {
     @Input() showImagePreviews: boolean = true;
     @Input() imagePreviewMode: 'grid' | 'carousel' | 'filmstrip' = 'grid';
     @Input() disableInternalLightbox: boolean = false;
+    @Input() showAttachHint: boolean = false;
 
     @Output() previewActiveChange = new EventEmitter<boolean>();
     @Output() imageClick = new EventEmitter<string>();
@@ -41,7 +45,9 @@ export class TextareaFormComponent implements OnInit, OnDestroy, OnChanges {
     private readonly subscriptions: Subscription[] = [];
 
     constructor(
-        private readonly formService: ReactiveFormService
+        private readonly formService: ReactiveFormService,
+        private readonly _imageUploadService: ImageUploadService,
+        private readonly _toastService: ToastService
     ) {}
 
     ngOnInit() {
@@ -209,6 +215,48 @@ export class TextareaFormComponent implements OnInit, OnDestroy, OnChanges {
                 console.error('Download failed:', err);
                 window.open(url, '_blank');
             });
+    }
+
+    onAttachIconClick(): void {
+        this.fileInput.nativeElement.click();
+    }
+
+    onFileSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+
+        // Check if it is an image
+        if (!file.type.startsWith('image/')) {
+            this._toastService.error('Only image files are allowed');
+            return;
+        }
+
+        this.isUploading = true;
+        this._imageUploadService.uploadImage(file).subscribe({
+            next: (url: string) => {
+                this.isUploading = false;
+                this._insertMarkdownAtCursor(`![image](${url})`);
+                input.value = ''; // Reset input
+            },
+            error: (err) => {
+                this.isUploading = false;
+                this._toastService.error(err?.error?.detail || 'Failed to upload image');
+                input.value = '';
+            }
+        });
+    }
+
+    private _insertMarkdownAtCursor(markdown: string): void {
+        const control = this.control;
+        if (!control) return;
+
+        const currentValue = control.value || '';
+        const newValue = currentValue ? `${currentValue}\n${markdown}` : markdown;
+        
+        control.setValue(newValue, { emitEvent: true });
+        control.markAsDirty();
+        this.updateErrorMessage();
     }
 
     private _setBodyScrollLock(lock: boolean): void {

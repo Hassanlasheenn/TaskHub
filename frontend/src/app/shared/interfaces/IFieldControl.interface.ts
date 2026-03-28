@@ -20,6 +20,7 @@ export interface IFieldControl {
     showImagePreviews?: boolean;
     imagePreviewMode?: 'grid' | 'carousel' | 'filmstrip';
     disableInternalLightbox?: boolean;
+    showAttachHint?: boolean;
 }
 
 export interface IDropdownOptions {

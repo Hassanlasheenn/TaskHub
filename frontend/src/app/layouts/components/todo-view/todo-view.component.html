@@ -138,6 +138,26 @@
                                     <div class="todo-view-comment-edit">
                                         <div class="composite-comment-input mb-2">
                                             <textarea [value]="stripImageMarkdown(editContent)" class="todo-view-description-input todo-view-comment-edit-input mb-0" rows="3" [disabled]="savingEdit" appPasteImage (imageUploading)="isCommentImageUploading = $event" (input)="onEditCommentVisibleInput($event)"></textarea>
+                                            
+                                            <!-- Attachment Hint Icon for Edit Comment -->
+                                            <button
+                                                type="button"
+                                                class="todo-view-attach-hint"
+                                                (click)="onEditCommentAttachClick(comment.id)"
+                                                title="Click to upload or paste images here"
+                                                [disabled]="savingEdit || isCommentImageUploading"
+                                            >
+                                                <i class="bi bi-paperclip"></i>
+                                            </button>
+
+                                            <!-- Hidden File Input for Edit Comment Attachments -->
+                                            <input
+                                                [id]="'edit-comment-file-input-' + comment.id"
+                                                type="file"
+                                                class="d-none"
+                                                accept="image/*"
+                                                (change)="onEditCommentFileSelected($event, comment.id)"
+                                            />
                                             <div class="todo-view-comment-uploading" *ngIf="isCommentImageUploading">
                                                 <span class="spinner-border spinner-border-sm" role="status"></span>
                                                 <span>Uploading image...</span>
@@ -302,6 +322,26 @@
                                         appPasteImage
                                         (imageUploading)="isCommentImageUploading = $event"
                                     ></textarea>
+
+                                    <!-- Attachment Hint Icon for Comment -->
+                                    <button
+                                        type="button"
+                                        class="todo-view-attach-hint"
+                                        (click)="onCommentAttachClick()"
+                                        title="Click to upload or paste images here"
+                                        [disabled]="addingComment || isCommentImageUploading"
+                                    >
+                                        <i class="bi bi-paperclip"></i>
+                                    </button>
+
+                                    <!-- Hidden File Input for Comment Attachments -->
+                                    <input
+                                        id="comment-file-input"
+                                        type="file"
+                                        class="d-none"
+                                        accept="image/*"
+                                        (change)="onCommentFileSelected($event)"
+                                    />
                                     
                                     <div class="todo-view-comment-uploading" *ngIf="isCommentImageUploading">
                                         <span class="spinner-border spinner-border-sm" role="status"></span>

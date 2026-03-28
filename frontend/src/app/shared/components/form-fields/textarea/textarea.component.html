@@ -51,6 +51,27 @@
                 <span class="spinner-border spinner-border-sm" role="status"></span>
                 <span>Uploading image…</span>
             </div>
+
+            <!-- Attachment Hint Icon -->
+            <button
+                *ngIf="showAttachHint"
+                type="button"
+                class="textarea-form__attach-hint"
+                (click)="onAttachIconClick()"
+                title="Click to upload or paste images here"
+                [disabled]="isUploading"
+            >
+                <i class="bi bi-paperclip"></i>
+            </button>
+
+            <!-- Hidden File Input for Attachments -->
+            <input
+                #fileInput
+                type="file"
+                class="d-none"
+                accept="image/*"
+                (change)="onFileSelected($event)"
+            />
         </div>
 
         <ng-container *ngIf="showImagePreviews && computedImageUrls.length > 0">

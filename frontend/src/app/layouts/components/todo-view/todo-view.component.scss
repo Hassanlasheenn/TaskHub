@@ -1447,6 +1447,46 @@
     }
 }
 
+.todo-view-attach-hint {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    color: var(--text-secondary);
+    opacity: 0.4;
+    background: transparent;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+
+    &:hover:not(:disabled) {
+        opacity: 1;
+        background: rgba(107, 207, 209, 0.1);
+        color: var(--primary-gradient-start);
+    }
+
+    &:disabled {
+        cursor: default;
+        opacity: 0.2;
+    }
+
+    i {
+        font-size: 1.1rem;
+        transform: rotate(45deg);
+        display: inline-block;
+    }
+}
+
+.todo-view-comment-input-wrapper:hover .todo-view-attach-hint,
+.composite-comment-input:hover .todo-view-attach-hint {
+    opacity: 0.7;
+}
+
 .composite-comment-input {
     border: 1px solid var(--card-border-color);
     border-radius: 10px;
@@ -1487,7 +1527,6 @@
         padding: 0.25rem;
         border-radius: 8px;
         box-shadow: none;
-        border: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     .textarea-form__filmstrip-img-wrapper {

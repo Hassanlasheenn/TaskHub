@@ -61,6 +61,7 @@
                     [showImagePreviews]="field.showImagePreviews !== false"
                     [imagePreviewMode]="field.imagePreviewMode || 'grid'"
                     [disableInternalLightbox]="field.disableInternalLightbox ?? false"
+                    [showAttachHint]="field.showAttachHint ?? false"
                     (previewActiveChange)="previewActiveChange.emit($event)"
                     (imageClick)="imageClick.emit($event)"
                 />

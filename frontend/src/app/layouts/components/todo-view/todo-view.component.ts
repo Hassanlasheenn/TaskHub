@@ -7,6 +7,7 @@ import { map, takeUntil } from "rxjs/operators";
 import { AuthService } from "../../../auth/services/auth.service";
 import { UserService } from "../../../core/services/user.service";
 import { TodoService } from "../../../core/services/todo.service";
+import { ImageUploadService } from "../../../core/services/image-upload.service";
 import { IUserListResponse } from "../../../auth/interfaces";
 import { LoaderService } from "../../../core/services/loader.service";
 import { ToastService } from "../../../core/services/toast.service";
@@ -99,7 +100,8 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
         value: '',
         validations: [],
         imagePreviewMode: 'filmstrip',
-        disableInternalLightbox: true
+        disableInternalLightbox: true,
+        showAttachHint: true
     };
 
     dueDateField: IFieldControl = {
@@ -180,7 +182,8 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
         private readonly _cdr: ChangeDetectorRef,
         private readonly _navService: NavigationService,
         private readonly _posthogService: PosthogService,
-        private readonly _formService: ReactiveFormService
+        private readonly _formService: ReactiveFormService,
+        private readonly _imageUploadService: ImageUploadService
     ) {}
 
     canDeactivate(): boolean | Observable<boolean> {
@@ -431,6 +434,68 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
 
     onCommentInputBlur(): void {
         setTimeout(() => this._closeMentionDropdown(), 200);
+    }
+
+    onCommentAttachClick(): void {
+        const input = document.getElementById('comment-file-input') as HTMLInputElement;
+        input?.click();
+    }
+
+    onCommentFileSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            this._toastService.error('Only image files are allowed');
+            return;
+        }
+
+        this.isCommentImageUploading = true;
+        this._imageUploadService.uploadImage(file).subscribe({
+            next: (url: string) => {
+                this.isCommentImageUploading = false;
+                const currentText = this.newCommentText || '';
+                this.newCommentText = currentText ? `${currentText}\n![image](${url})` : `![image](${url})`;
+                input.value = '';
+            },
+            error: (err) => {
+                this.isCommentImageUploading = false;
+                this._toastService.error(err?.error?.detail || 'Failed to upload image');
+                input.value = '';
+            }
+        });
+    }
+
+    onEditCommentAttachClick(commentId: number): void {
+        const input = document.getElementById(`edit-comment-file-input-${commentId}`) as HTMLInputElement;
+        input?.click();
+    }
+
+    onEditCommentFileSelected(event: Event, commentId: number): void {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            this._toastService.error('Only image files are allowed');
+            return;
+        }
+
+        this.isCommentImageUploading = true;
+        this._imageUploadService.uploadImage(file).subscribe({
+            next: (url: string) => {
+                this.isCommentImageUploading = false;
+                const currentText = this.editContent || '';
+                this.editContent = currentText ? `${currentText}\n![image](${url})` : `![image](${url})`;
+                input.value = '';
+            },
+            error: (err) => {
+                this.isCommentImageUploading = false;
+                this._toastService.error(err?.error?.detail || 'Failed to upload image');
+                input.value = '';
+            }
+        });
     }
 
     setCommentHistoryTab(tab: string): void {

@@ -17,7 +17,7 @@
 
         textarea {
             width: 100%;
-            padding: 0.875rem 1rem;
+            padding: 0.875rem 1rem 1.5rem 1rem;
             font-size: 1rem;
             font-family: 'Poppins', sans-serif;
             color: var(--text-primary);
@@ -86,6 +86,45 @@
 
     &__wrapper {
         position: relative;
+    }
+
+    &__attach-hint {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        color: var(--text-secondary);
+        opacity: 0.4;
+        background: transparent;
+        border: none;
+        padding: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+
+        &:hover:not(:disabled) {
+            opacity: 1;
+            background: rgba(107, 207, 209, 0.1);
+            color: var(--primary-gradient-start);
+        }
+
+        &:disabled {
+            cursor: default;
+            opacity: 0.2;
+        }
+
+        i {
+            font-size: 1.1rem;
+            transform: rotate(45deg);
+            display: inline-block;
+        }
+    }
+
+    &__wrapper:hover &__attach-hint {
+        opacity: 0.7;
     }
 
     &__hidden-control {

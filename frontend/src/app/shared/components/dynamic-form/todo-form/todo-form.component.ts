@@ -61,7 +61,8 @@ export class TodoFormComponent implements OnInit, OnDestroy {
             required: false,
             validations: [],
             showImagePreviews: true,
-            imagePreviewMode: 'carousel'
+            imagePreviewMode: 'carousel',
+            showAttachHint: true
         },
         {
             label: 'Category',
