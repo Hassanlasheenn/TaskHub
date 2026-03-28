@@ -96,12 +96,13 @@
                             <app-dynamic-form
                                 [form]="todoForm"
                                 [fields]="[descriptionField]"
+                                (previewActiveChange)="descriptionPreviewOpen = $event"
                             />
                         </div>
                     </div>
                 </form>
 
-                <div class="todo-view-body" style="padding-top: 0;">
+                <div class="todo-view-body" style="padding-top: 0;" *ngIf="!descriptionPreviewOpen">
                     <div class="todo-view-comments">
                         <app-tabs
                             [tabs]="commentHistoryTabs"
@@ -134,7 +135,27 @@
                                 </div>
                                 <ng-container *ngIf="editingCommentId === comment.id; else commentContent">
                                     <div class="todo-view-comment-edit">
-                                        <textarea [(ngModel)]="editContent" class="todo-view-description-input todo-view-comment-edit-input" rows="3" [disabled]="savingEdit"></textarea>
+                                        <div class="composite-comment-input mb-2">
+                                            <textarea [value]="stripImageMarkdown(editContent)" class="todo-view-description-input todo-view-comment-edit-input mb-0" rows="3" [disabled]="savingEdit" appPasteImage (imageUploading)="isCommentImageUploading = $event" (input)="onEditCommentVisibleInput($event)"></textarea>
+                                            <div class="todo-view-comment-uploading" *ngIf="isCommentImageUploading">
+                                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                                <span>Uploading image...</span>
+                                            </div>
+
+                                            <!-- Image previews for editing comment -->
+                                            <div *ngIf="editCommentImageUrls.length > 0" class="comment-image-previews p-2 border-top">
+                                                <div class="textarea-form__filmstrip-track">
+                                                    <div *ngFor="let url of editCommentImageUrls; let i = index" class="textarea-form__filmstrip-item">
+                                                        <div class="textarea-form__filmstrip-img-wrapper">
+                                                            <img [src]="url" class="textarea-form__filmstrip-img" (click)="openPreview(url, 'Comment Image', $event)" />
+                                                            <button type="button" class="textarea-form__preview-remove textarea-form__preview-remove--filmstrip" (click)="removeImageFromEditComment(url)">
+                                                                <i class="bi bi-x"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                         
                                         <!-- Edit Mode Attachment Preview & Removal -->
                                         <div *ngIf="editAttachmentUrl || selectedEditFile" class="edit-attachment-preview mt-2 mb-2">
@@ -230,12 +251,22 @@
                                     </div>
                                 </ng-container>
                                 <ng-template #commentContent>
-                                    <p class="todo-view-comment-content">
+                                    <div class="todo-view-comment-content">
                                         <ng-container *ngFor="let seg of (comment.content | parseMentions); trackBy: trackById">
                                             <ng-container *ngIf='seg.type === "text"'>{{ seg.value }}</ng-container>
                                             <span *ngIf='seg.type === "mention"' class="todo-view-comment-mention">{{ seg.value }}</span>
+                                            
+                                            <!-- Render image segments -->
+                                            <div *ngIf='seg.type === "image"' class="todo-view-comment-attachment mt-2">
+                                                <div class="attachment-thumbnail" (click)="openPreview(seg.value, 'Image', $event)">
+                                                    <img [src]="seg.value" alt="Image in comment" />
+                                                    <div class="thumbnail-overlay">
+                                                        <i class="bi bi-zoom-in"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </ng-container>
-                                    </p>
+                                    </div>
                                     <!-- Attachment in comment -->
                                     <div *ngIf="comment.attachment_url" class="todo-view-comment-attachment mt-2">
                                         <!-- Image Thumbnail -->
@@ -252,39 +283,64 @@
                         </ul>
                         <div class="todo-view-comment-form">
                             <label for="new-comment" class="todo-view-label">Add a comment</label>
-                            <div class="todo-view-comment-input-wrapper">
-                                <textarea
-                                    #newCommentInput
-                                    id="new-comment"
-                                    class="todo-view-description-input todo-view-comment-input"
-                                    [(ngModel)]="newCommentText"
-                                    placeholder="Write a comment..."
-                                    rows="3"
-                                    [disabled]="addingComment"
-                                    aria-label="New comment"
-                                    (input)="onNewCommentInput()"
-                                    (keydown)="onNewCommentKeydown($event)"
-                                    (blur)="onCommentInputBlur()"
-                                ></textarea>
-                                <div
-                                    *ngIf="showMentionDropdown"
-                                    class="todo-view-mention-dropdown"
-                                    role="listbox"
-                                    aria-label="Mention a user"
-                                >
-                                    <button
-                                        *ngFor="let user of mentionableUsersFiltered; let i = index; trackBy: trackById"
-                                        type="button"
-                                        class="todo-view-mention-item"
-                                        [class.todo-view-mention-item--active]="i === highlightedMentionIndex"
-                                        role="option"
-                                        [attr.aria-selected]="i === highlightedMentionIndex ? 'true' : 'false'"
-                                        (mousedown)="$event.preventDefault(); selectMention(user)"
+                            
+                            <div class="composite-comment-input mb-3">
+                                <div class="todo-view-comment-input-wrapper mb-0">
+                                    <textarea
+                                        #newCommentInput
+                                        id="new-comment"
+                                        class="todo-view-description-input todo-view-comment-input"
+                                        [value]="stripImageMarkdown(newCommentText)"
+                                        placeholder="Write a comment..."
+                                        rows="3"
+                                        [disabled]="addingComment"
+                                        aria-label="New comment"
+                                        (input)="onNewCommentVisibleInput($event)"
+                                        (keydown)="onNewCommentKeydown($event)"
+                                        (blur)="onCommentInputBlur()"
+                                        appPasteImage
+                                        (imageUploading)="isCommentImageUploading = $event"
+                                    ></textarea>
+                                    
+                                    <div class="todo-view-comment-uploading" *ngIf="isCommentImageUploading">
+                                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                                        <span>Uploading image...</span>
+                                    </div>
+
+                                    <div
+                                        *ngIf="showMentionDropdown"
+                                        class="todo-view-mention-dropdown"
+                                        role="listbox"
+                                        aria-label="Mention a user"
                                     >
-                                        <i class="bi bi-person-circle todo-view-mention-avatar"></i>
-                                        <span class="todo-view-mention-username">{{ user.username }}</span>
-                                    </button>
-                                    <p *ngIf="mentionableUsersFiltered.length === 0" class="todo-view-mention-empty">No users match</p>
+                                        <button
+                                            *ngFor="let user of mentionableUsersFiltered; let i = index; trackBy: trackById"
+                                            type="button"
+                                            class="todo-view-mention-item"
+                                            [class.todo-view-mention-item--active]="i === highlightedMentionIndex"
+                                            role="option"
+                                            [attr.aria-selected]="i === highlightedMentionIndex ? 'true' : 'false'"
+                                            (mousedown)="$event.preventDefault(); selectMention(user)"
+                                        >
+                                            <i class="bi bi-person-circle todo-view-mention-avatar"></i>
+                                            <span class="todo-view-mention-username">{{ user.username }}</span>
+                                        </button>
+                                        <p *ngIf="mentionableUsersFiltered.length === 0" class="todo-view-mention-empty">No users match</p>
+                                    </div>
+                                </div>
+
+                                <!-- Image previews for new comment (now inside composite container) -->
+                                <div *ngIf="newCommentImageUrls.length > 0" class="comment-image-previews p-2 border-top">
+                                    <div class="textarea-form__filmstrip-track">
+                                        <div *ngFor="let url of newCommentImageUrls; let i = index" class="textarea-form__filmstrip-item">
+                                            <div class="textarea-form__filmstrip-img-wrapper">
+                                                <img [src]="url" class="textarea-form__filmstrip-img" (click)="openPreview(url, 'Comment Image', $event)" />
+                                                <button type="button" class="textarea-form__preview-remove textarea-form__preview-remove--filmstrip" (click)="removeImageFromNewComment(url)">
+                                                    <i class="bi bi-x"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -385,12 +441,12 @@
                                                 <span class="todo-view-history-user-badge">{{ item.username }}</span>
                                                 <span *ngIf="item.created_at && formatDate(item.created_at) as itemDate" class="todo-view-history-date">{{ itemDate.date }} {{ itemDate.time }}</span>
                                             </div>
-                                            <div *ngIf="item.action === 'created' && item.content_after" class="todo-view-history-content">{{ item.content_after }}</div>
+                                            <div *ngIf="item.action === 'created' && item.content_after" class="todo-view-history-content">{{ stripImageMarkdown(item.content_after) }}</div>
                                             <div *ngIf="item.action === 'updated'" class="todo-view-history-diff">
-                                                <p *ngIf="item.content_before" class="todo-view-history-before"><span class="todo-view-history-label">Before:</span> {{ item.content_before }}</p>
-                                                <p *ngIf="item.content_after" class="todo-view-history-after"><span class="todo-view-history-label">After:</span> {{ item.content_after }}</p>
+                                                <p *ngIf="item.content_before" class="todo-view-history-before"><span class="todo-view-history-label">Before:</span> {{ stripImageMarkdown(item.content_before) }}</p>
+                                                <p *ngIf="item.content_after" class="todo-view-history-after"><span class="todo-view-history-label">After:</span> {{ stripImageMarkdown(item.content_after) }}</p>
                                             </div>
-                                            <div *ngIf="item.action === 'deleted' && item.content_before" class="todo-view-history-content todo-view-history-deleted">{{ item.content_before }}</div>
+                                            <div *ngIf="item.action === 'deleted' && item.content_before" class="todo-view-history-content todo-view-history-deleted">{{ stripImageMarkdown(item.content_before) }}</div>
                                         </li>
                                         <li *ngIf="item.type === 'field'" class="todo-view-history-item">
                                             <div class="todo-view-history-header">
@@ -399,8 +455,8 @@
                                                 <span *ngIf="item.created_at && formatDate(item.created_at) as itemDate" class="todo-view-history-date">{{ itemDate.date }} {{ itemDate.time }}</span>
                                             </div>
                                             <div class="todo-view-history-diff">
-                                                <p *ngIf="item.old_value != null" class="todo-view-history-before"><span class="todo-view-history-label">From:</span> {{ item.old_value }}</p>
-                                                <p *ngIf="item.new_value != null" class="todo-view-history-after"><span class="todo-view-history-label">To:</span> {{ item.new_value }}</p>
+                                                <p *ngIf="item.old_value != null" class="todo-view-history-before"><span class="todo-view-history-label">From:</span> {{ stripImageMarkdown(item.old_value) }}</p>
+                                                <p *ngIf="item.new_value != null" class="todo-view-history-after"><span class="todo-view-history-label">To:</span> {{ stripImageMarkdown(item.new_value) }}</p>
                                             </div>
                                         </li>
                                     </ng-container>
@@ -415,21 +471,53 @@
     </div>
 </section>
 
-<!-- Attachment Preview Overlay -->
+<!-- Attachment Preview Overlay (Unified Slider) -->
 <div class="attachment-preview-overlay" *ngIf="previewAttachmentUrl" (click)="closePreview()">
     <div class="preview-content" (click)="$event.stopPropagation()">
-        <button type="button" class="close-preview" (click)="closePreview()">
+        <button type="button" class="close-preview" (click)="closePreview()" aria-label="Close preview">
             <i class="bi bi-x-lg"></i>
         </button>
-        <div class="preview-image-wrapper">
-            <img [src]="previewAttachmentUrl" [alt]="previewAttachmentName" class="preview-image" />
-        </div>
-        <div class="preview-footer">
-            <span class="file-name">{{ previewAttachmentName }}</span>
-            <a [href]="previewAttachmentUrl" download class="download-link">
-                <i class="bi bi-download"></i>
-                Download
-            </a>
+        
+        <div class="preview-slider-container">
+            <div class="preview-image-wrapper">
+                <img [src]="previewAttachmentUrl" [alt]="previewAttachmentName" class="preview-image" />
+                
+                <!-- Navigation Arrows -->
+                <button
+                    *ngIf="allImageUrls.length > 1"
+                    type="button"
+                    class="preview-nav-btn preview-nav-btn--prev"
+                    (click)="prevPreview()"
+                    [disabled]="previewCarouselIndex === 0"
+                    aria-label="Previous image"
+                >
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <button
+                    *ngIf="allImageUrls.length > 1"
+                    type="button"
+                    class="preview-nav-btn preview-nav-btn--next"
+                    (click)="nextPreview()"
+                    [disabled]="previewCarouselIndex === allImageUrls.length - 1"
+                    aria-label="Next image"
+                >
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+
+            <!-- Counter & Footer -->
+            <div class="preview-footer">
+                <div class="preview-info">
+                    <span class="file-name">{{ previewAttachmentName }}</span>
+                    <span class="preview-counter" *ngIf="allImageUrls.length > 1">
+                        {{ previewCarouselIndex + 1 }} / {{ allImageUrls.length }}
+                    </span>
+                </div>
+                <a [href]="previewAttachmentUrl" download class="download-link">
+                    <i class="bi bi-download"></i>
+                    Download
+                </a>
+            </div>
         </div>
     </div>
 </div>

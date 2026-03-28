@@ -93,7 +93,7 @@ class S3StorageService:
             logger.error(f"❌ Image processing or S3 upload failed: {str(e)}", exc_info=True)
             return None
 
-    def upload_file(self, file_content: bytes, filename: str, folder: str = "attachments") -> Optional[str]:
+    def upload_file(self, file_content: bytes, filename: str, folder: str = "attachments", content_type: Optional[str] = None) -> Optional[str]:
         """
         Uploads a general file to S3.
         Returns the full S3 URL or None if failed.
@@ -105,12 +105,13 @@ class S3StorageService:
             # Generate unique filename to avoid collisions
             ext = os.path.splitext(filename)[1].lower()
             unique_filename = f"{folder}/{uuid.uuid4().hex}{ext}"
-            
-            # Detect content type (simplistic)
-            content_type = 'application/octet-stream'
-            if ext in ['.jpg', '.jpeg', '.png', '.webp']: content_type = 'image/jpeg'
-            elif ext == '.pdf': content_type = 'application/pdf'
-            elif ext in ['.doc', '.docx']: content_type = 'application/msword'
+
+            # Use provided content_type, or detect from extension
+            if not content_type:
+                content_type = 'application/octet-stream'
+                if ext in ['.jpg', '.jpeg', '.png', '.webp']: content_type = 'image/jpeg'
+                elif ext == '.pdf': content_type = 'application/pdf'
+                elif ext in ['.doc', '.docx']: content_type = 'application/msword'
             
             # Upload to S3 with ACL fallback
             try:

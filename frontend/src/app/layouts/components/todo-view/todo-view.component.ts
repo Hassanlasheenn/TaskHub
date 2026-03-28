@@ -27,6 +27,7 @@ import { IFieldControl } from "../../../shared/interfaces";
 import { InputTypes, ValidatorTypes } from "../../../shared/enums";
 
 import { DynamicFormComponent } from "../../../shared/components/dynamic-form/dynamic-form.component";
+import { PasteImageDirective } from "../../../shared/directives/paste-image.directive";
 
 @Component({
     selector: 'app-todo-view',
@@ -40,13 +41,15 @@ import { DynamicFormComponent } from "../../../shared/components/dynamic-form/dy
         ParseMentionsPipe, 
         TabsComponent,
         DropdownFormComponent,
-        DynamicFormComponent
+        DynamicFormComponent,
+        PasteImageDirective
     ],
 })
 export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactivate {
     private readonly _destroy$ = new Subject<void>();
     todo: ITodo | null = null;
     saving = false;
+    isCommentImageUploading = false;
     
     todoForm: FormGroup = new FormGroup({});
     
@@ -94,7 +97,8 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
         label: 'Description',
         type: InputTypes.TEXTAREA,
         value: '',
-        validations: []
+        validations: [],
+        imagePreviewMode: 'filmstrip'
     };
 
     dueDateField: IFieldControl = {
@@ -129,6 +133,7 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
     previewSelectedUrl: string | null = null;
     previewAttachmentUrl: string | null = null;
     previewAttachmentName: string | null = null;
+    previewCarouselIndex: number = 0;
     editAttachmentUrl: string | null = null;
     shouldDeleteAttachment: boolean = false;
     selectedEditFile: File | null = null;
@@ -137,6 +142,7 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
     showEmojiPicker: boolean = false;
     readonly commonEmojis = ['😊', '👍', '❤️', '🔥', '😂', '😮', '😢', '✅', '🚀', '✨', '🙏', '💯'];
     InputTypes = InputTypes;
+    descriptionPreviewOpen = false;
 
     readonly commentHistoryTabs: ITabItem[] = [
         { id: 'comments', label: 'Comments', icon: 'bi-chat-left-text' },
@@ -276,15 +282,70 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
         return !!ext && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
     }
 
+    get allImageUrls(): string[] {
+        const urls: string[] = [];
+        
+        // Add images from description
+        if (this.todo?.description) {
+            urls.push(...this._extractImageUrls(this.todo.description));
+        }
+
+        // Add images from comments
+        this.comments.forEach(c => {
+            // From markdown in content
+            const mdUrls = this._extractImageUrls(c.content);
+            urls.push(...mdUrls);
+            
+            // From file attachment
+            if (c.attachment_url && this.isImage(c.attachment_name)) {
+                urls.push(c.attachment_url);
+            }
+        });
+        
+        return [...new Set(urls)];
+    }
+
     openPreview(url: string, name: string, event: MouseEvent): void {
         event.preventDefault();
         this.previewAttachmentUrl = url;
         this.previewAttachmentName = name;
+        
+        const allUrls = this.allImageUrls;
+        this.previewCarouselIndex = allUrls.indexOf(url);
+        if (this.previewCarouselIndex === -1) {
+            this.previewCarouselIndex = 0;
+        }
+        this._setBodyScrollLock(true);
     }
 
     closePreview(): void {
         this.previewAttachmentUrl = null;
         this.previewAttachmentName = null;
+        this._setBodyScrollLock(false);
+    }
+
+    prevPreview(): void {
+        const urls = this.allImageUrls;
+        if (this.previewCarouselIndex > 0) {
+            this.previewCarouselIndex--;
+            this.previewAttachmentUrl = urls[this.previewCarouselIndex];
+            this.previewAttachmentName = 'Image';
+        }
+    }
+
+    nextPreview(): void {
+        const urls = this.allImageUrls;
+        if (this.previewCarouselIndex < urls.length - 1) {
+            this.previewCarouselIndex++;
+            this.previewAttachmentUrl = urls[this.previewCarouselIndex];
+            this.previewAttachmentName = 'Image';
+        }
+    }
+
+    private _setBodyScrollLock(lock: boolean): void {
+        const overflow = lock ? 'hidden' : '';
+        document.documentElement.style.overflow = overflow;
+        document.body.style.overflow = overflow;
     }
 
     private _loadMentionableUsers(): void {
@@ -355,6 +416,91 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
             case 'updated': return 'Edited comment';
             case 'deleted': return 'Deleted comment';
             default: return action;
+        }
+    }
+
+    stripImageMarkdown(text: string | null | undefined): string {
+        if (!text) return '';
+        return text.replace(/\n?!\[image\]\([^)]+\)/g, '').trimEnd();
+    }
+
+    get newCommentImageUrls(): string[] {
+        return this._extractImageUrls(this.newCommentText);
+    }
+
+    get editCommentImageUrls(): string[] {
+        return this._extractImageUrls(this.editContent);
+    }
+
+    private _extractImageUrls(value: string): string[] {
+        if (!value) return [];
+        const regex = /!\[image\]\(([^)]+)\)/g;
+        const urls: string[] = [];
+        let match;
+        while ((match = regex.exec(value)) !== null) {
+            urls.push(match[1]);
+        }
+        return urls;
+    }
+
+    removeImageFromNewComment(url: string): void {
+        this.newCommentText = this._removeImageFromText(this.newCommentText, url);
+    }
+
+    removeImageFromEditComment(url: string): void {
+        this.editContent = this._removeImageFromText(this.editContent, url);
+    }
+
+    private _removeImageFromText(text: string, url: string): string {
+        const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return text.replace(new RegExp(`\\n?!\\[image\\]\\(${escaped}\\)`, 'g'), '');
+    }
+
+    onNewCommentVisibleInput(event: Event): void {
+        const el = event.target as HTMLTextAreaElement;
+        const textPart = el.value;
+        const imageUrls = this._extractImageUrls(this.newCommentText);
+        
+        const pastedUrls: string[] = [];
+        const imgRegex = /!\[image\]\(([^)]+)\)/g;
+        let m;
+        while ((m = imgRegex.exec(textPart)) !== null) {
+            pastedUrls.push(m[1]);
+        }
+        
+        if (pastedUrls.length > 0) {
+            const cleanText = textPart.replace(/\n?!\[image\]\([^)]+\)/g, '');
+            const allUrls = [...new Set([...imageUrls, ...pastedUrls])];
+            const imagePart = allUrls.length > 0 ? '\n' + allUrls.map(u => `![image](${u})`).join('\n') : '';
+            this.newCommentText = cleanText + imagePart;
+            el.value = cleanText;
+        } else {
+            const imagePart = imageUrls.length > 0 ? '\n' + imageUrls.map(u => `![image](${u})`).join('\n') : '';
+            this.newCommentText = textPart + imagePart;
+        }
+    }
+
+    onEditCommentVisibleInput(event: Event): void {
+        const el = event.target as HTMLTextAreaElement;
+        const textPart = el.value;
+        const imageUrls = this._extractImageUrls(this.editContent);
+        
+        const pastedUrls: string[] = [];
+        const imgRegex = /!\[image\]\(([^)]+)\)/g;
+        let m;
+        while ((m = imgRegex.exec(textPart)) !== null) {
+            pastedUrls.push(m[1]);
+        }
+        
+        if (pastedUrls.length > 0) {
+            const cleanText = textPart.replace(/\n?!\[image\]\([^)]+\)/g, '');
+            const allUrls = [...new Set([...imageUrls, ...pastedUrls])];
+            const imagePart = allUrls.length > 0 ? '\n' + allUrls.map(u => `![image](${u})`).join('\n') : '';
+            this.editContent = cleanText + imagePart;
+            el.value = cleanText;
+        } else {
+            const imagePart = imageUrls.length > 0 ? '\n' + imageUrls.map(u => `![image](${u})`).join('\n') : '';
+            this.editContent = textPart + imagePart;
         }
     }
 

@@ -54,12 +54,14 @@ export class TodoFormComponent implements OnInit, OnDestroy {
         },
         {
             label: 'Description',
-            type: InputTypes.TEXT,
+            type: InputTypes.TEXTAREA,
             formControlName: 'description',
-            placeholder: 'Enter description (optional)',
+            placeholder: 'Enter description',
             value: '',
             required: false,
             validations: [],
+            showImagePreviews: true,
+            imagePreviewMode: 'carousel'
         },
         {
             label: 'Category',

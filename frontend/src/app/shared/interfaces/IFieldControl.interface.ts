@@ -17,6 +17,8 @@ export interface IFieldControl {
     onPhotoSelected?: (file: File) => void;
     minDate?: string;
     maxDate?: string;
+    showImagePreviews?: boolean;
+    imagePreviewMode?: 'grid' | 'carousel' | 'filmstrip';
 }
 
 export interface IDropdownOptions {

@@ -2,13 +2,53 @@
 
     <!-- ========== Filter Bar (Todo Mode only) ========== -->
     <div *ngIf="!isUsersMode" class="table-filter-bar">
-        <div class="filter-fields-wrapper">
-            <app-dynamic-form
-                [fields]="filterFields"
-                [form]="filterForm"
-                [isFilter]="true"
-                [layout]="'inline'"
-            />
+        <div class="filter-grid">
+            <div class="filter-field">
+                <label class="filter-field__label">Title</label>
+                <app-input-form
+                    [formGroup]="filterForm"
+                    name="title"
+                    [isFilter]="true"
+                    placeholder="Search by title..."
+                    [type]="InputTypes.TEXT"
+                />
+            </div>
+            <div class="filter-field">
+                <label class="filter-field__label">Priority</label>
+                <app-dropdown-form
+                    [formGroup]="filterForm"
+                    [name]="filterFields[1].formControlName"
+                    [isFilter]="true"
+                    [field]="filterFields[1]"
+                />
+            </div>
+            <div class="filter-field">
+                <label class="filter-field__label">Status</label>
+                <app-dropdown-form
+                    [formGroup]="filterForm"
+                    [name]="filterFields[2].formControlName"
+                    [isFilter]="true"
+                    [field]="filterFields[2]"
+                />
+            </div>
+            <div class="filter-field">
+                <label class="filter-field__label">Created from</label>
+                <app-date-picker
+                    [formGroup]="filterForm"
+                    [name]="filterFields[3].formControlName"
+                    [isFilter]="true"
+                    [field]="filterFields[3]"
+                />
+            </div>
+            <div class="filter-field">
+                <label class="filter-field__label">Created to</label>
+                <app-date-picker
+                    [formGroup]="filterForm"
+                    [name]="filterFields[4].formControlName"
+                    [isFilter]="true"
+                    [field]="filterFields[4]"
+                />
+            </div>
         </div>
         <button
             *ngIf="hasActiveFilters"

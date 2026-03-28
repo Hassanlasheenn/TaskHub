@@ -37,6 +37,7 @@ export class DynamicFormComponent implements OnChanges {
     @Output() photoSelected = new EventEmitter<{ fieldName: string; file: File }>();
     @Output() errorSummaryChange = new EventEmitter<string | null>();
     @Output() photoRemoved = new EventEmitter<string>();
+    @Output() previewActiveChange = new EventEmitter<boolean>();
     
     trackById = trackById;
     InputTypes = InputTypes;

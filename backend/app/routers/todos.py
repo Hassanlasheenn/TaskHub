@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
+from ..dependencies import get_current_user
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, and_
 from typing import List, Optional
@@ -1143,4 +1144,28 @@ async def delete_todo(
     if todo.assigned_to_user_id:
         invalidate_todo_list_for_user(todo.assigned_to_user_id)
     invalidate_admin_users_with_todos()
+
+
+@router.post("/upload-image")
+async def upload_todo_image(
+    user_id: int,
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user)
+):
+    if current_user.id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+    allowed_types = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only image files are allowed")
+
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Image must be under 10MB")
+
+    url = storage_service.upload_file(content, file.filename or "pasted-image.png", folder="todo_images", content_type=file.content_type)
+    if not url:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to upload image")
+
+    return {"url": url}
     return {"message": "Todo deleted successfully"}

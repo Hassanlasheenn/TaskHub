@@ -155,6 +155,24 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
     }
 
     onSidebarClose(): void {
+        if (this.todoFormComponent?.hasChanges()) {
+            this._confirmationDialog.show({
+                title: 'Unsaved Changes',
+                message: 'You have unsaved changes in your todo. Are you sure you want to discard them?',
+                confirmText: 'Discard',
+                cancelText: 'Keep Editing',
+                confirmButtonClass: 'btn-danger'
+            }).pipe(takeUntil(this._destroy$)).subscribe(result => {
+                if (result.confirmed) {
+                    this._closeSidebarInternal();
+                }
+            });
+        } else {
+            this._closeSidebarInternal();
+        }
+    }
+
+    private _closeSidebarInternal(): void {
         this.isSidebarOpen = false;
         this.editingTodo = null;
         if (this.todoFormComponent) {
@@ -170,14 +188,13 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
             .pipe(takeUntil(this._destroy$))
             .subscribe({
                 next: (newTodo) => {
-                    this.todos = [newTodo as ITodo, ...this.todos];
-                    this.totalTodos++;
-                    this.isSidebarOpen = false;
-                    if (this.todoFormComponent) {
-                        this.todoFormComponent.resetForm();
+                    this._closeSidebarInternal();
+                    this.loadTodos();
+                    if (this.viewMode === 'table') {
+                        this.loadTableTodos();
                     }
                     this._toastService.success('Todo created successfully');
-                    this._posthogService.capture('todo_created', { 
+                    this._posthogService.capture('todo_created', {
                         category: newTodo.category,
                         priority: newTodo.priority
                     });
@@ -262,23 +279,13 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
             .pipe(takeUntil(this._destroy$))
             .subscribe({
                 next: (response: any) => {
-                    const index = this.todos.findIndex(t => t.id === event.id);
-                    if (index !== -1) {
-                        this.todos[index] = { ...this.todos[index], ...response } as ITodo;
-                        this.todos = [...this.todos];
-                    }
-                    const tableIndex = this.tableTodos.findIndex(t => t.id === event.id);
-                    if (tableIndex !== -1) {
-                        this.tableTodos[tableIndex] = { ...this.tableTodos[tableIndex], ...response } as ITodo;
-                        this.tableTodos = [...this.tableTodos];
-                    }
-                    this.isSidebarOpen = false;
-                    this.editingTodo = null;
-                    if (this.todoFormComponent) {
-                        this.todoFormComponent.resetForm();
+                    this._closeSidebarInternal();
+                    this.loadTodos();
+                    if (this.viewMode === 'table') {
+                        this.loadTableTodos();
                     }
                     this._toastService.success('Todo updated successfully');
-                    this._posthogService.capture('todo_updated', { 
+                    this._posthogService.capture('todo_updated', {
                         todo_id: event.id,
                         status: event.data.status,
                         priority: event.data.priority

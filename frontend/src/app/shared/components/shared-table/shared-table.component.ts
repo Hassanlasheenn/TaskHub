@@ -9,17 +9,17 @@ import { trackById } from "../../helpers/trackByFn.helper";
 import { LayoutPaths } from "../../../layouts/enums/layout-paths.enum";
 import { DropdownFormComponent } from "../form-fields/dropdown/dropdown.component";
 import { DatePickerComponent } from "../form-fields/date-picker/date-picker.component";
+import { InputFormComponent } from "../form-fields/input/input.component";
 import { IFieldControl } from "../../interfaces";
 import { InputTypes } from "../../enums";
 import { PaginationComponent } from "../pagination/pagination.component";
-import { DynamicFormComponent } from "../dynamic-form/dynamic-form.component";
 
 @Component({
     selector: 'app-shared-table',
     templateUrl: './shared-table.component.html',
     styleUrls: ['./shared-table.component.scss'],
     standalone: true,
-    imports: [CommonModule, RouterLink, FormsModule, DropdownFormComponent, DatePickerComponent, PaginationComponent, DynamicFormComponent]
+    imports: [CommonModule, RouterLink, FormsModule, DropdownFormComponent, DatePickerComponent, InputFormComponent, PaginationComponent]
 })
 export class SharedTableComponent implements AfterViewChecked, OnInit, OnDestroy {
     @ViewChildren('titleInput') titleInputs!: QueryList<ElementRef<HTMLInputElement>>;
@@ -140,6 +140,7 @@ export class SharedTableComponent implements AfterViewChecked, OnInit, OnDestroy
     }
 
     readonly LayoutPaths = LayoutPaths;
+    readonly InputTypes = InputTypes;
     trackById: TrackByFunction<any> = trackById;
 
     get isUsersMode(): boolean {

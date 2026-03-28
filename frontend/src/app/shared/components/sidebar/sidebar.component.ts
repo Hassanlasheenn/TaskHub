@@ -1,6 +1,6 @@
 import { CommonModule, isPlatformBrowser } from "@angular/common";
 import { Component, Input, OnChanges, OnDestroy, Output, EventEmitter, PLATFORM_ID, inject } from "@angular/core";
-import { animate, style, transition, trigger } from "@angular/animations";
+import { animate, state, style, transition, trigger } from "@angular/animations";
 
 @Component({
     selector: 'app-sidebar',
@@ -10,11 +10,12 @@ import { animate, style, transition, trigger } from "@angular/animations";
     imports: [CommonModule],
     animations: [
         trigger('slideInOut', [
-            transition(':enter', [
-                style({ transform: '{{initialTransform}}' }),
-                animate('300ms ease-out', style({ transform: 'translateX(0)' }))
-            ], { params: { initialTransform: 'translateX(100%)' } }),
-            transition(':leave', [
+            state('void', style({ transform: '{{initialTransform}}' }), { params: { initialTransform: 'translateX(100%)' } }),
+            state('*', style({ transform: 'none' })),
+            transition('void => *', [
+                animate('300ms ease-out')
+            ]),
+            transition('* => void', [
                 animate('300ms ease-in', style({ transform: '{{exitTransform}}' }))
             ], { params: { exitTransform: 'translateX(100%)' } })
         ]),

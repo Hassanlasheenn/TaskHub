@@ -1,17 +1,18 @@
 import { CommonModule } from "@angular/common";
-import { Component, Input, OnInit, OnDestroy, OnChanges, SimpleChanges } from "@angular/core";
+import { Component, EventEmitter, Input, OnInit, OnDestroy, OnChanges, Output, SimpleChanges } from "@angular/core";
 import { FormGroup, ReactiveFormsModule, AbstractControl } from "@angular/forms";
 import { ICustomStyle, IFieldControl } from "../../../interfaces";
 import { InputTypes } from "../../../enums";
 import { ReactiveFormService } from "../../../services/reactive-form.service";
 import { Subscription } from "rxjs";
+import { PasteImageDirective } from "../../../directives/paste-image.directive";
 
 @Component({
     selector: 'app-textarea-form',
     templateUrl: './textarea.component.html',
     styleUrls: ['./textarea.component.scss'],
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule]
+    imports: [CommonModule, ReactiveFormsModule, PasteImageDirective]
 })
 export class TextareaFormComponent implements OnInit, OnDestroy, OnChanges {
     @Input() label: string = '';
@@ -24,10 +25,19 @@ export class TextareaFormComponent implements OnInit, OnDestroy, OnChanges {
     @Input() field?: IFieldControl;
     @Input() showErrors: boolean = false;
     @Input() rows: number = 3;
-    
+    @Input() showImagePreviews: boolean = true;
+    @Input() imagePreviewMode: 'grid' | 'carousel' | 'filmstrip' = 'grid';
+
+    @Output() previewActiveChange = new EventEmitter<boolean>();
+
+    isUploading: boolean = false;
+    previewUrl: string | null = null;
+    carouselIndex = 0;
+    galleryOpen = false;
+
     errorMessage: string | null = null;
     private readonly subscriptions: Subscription[] = [];
-    
+
     constructor(
         private readonly formService: ReactiveFormService
     ) {}
@@ -70,15 +80,32 @@ export class TextareaFormComponent implements OnInit, OnDestroy, OnChanges {
         return !!(control && control.invalid && (this.showErrors || (control.touched && control.dirty)));
     }
 
+    // Clean text (no image markdown) shown in the visible textarea
+    get cleanDisplayValue(): string {
+        const value = this.control?.value || '';
+        return value.replace(/\n?!\[image\]\(https?:\/\/[^)]+\)/g, '').trimEnd();
+    }
+
+    // Image URLs extracted from the control value
+    get computedImageUrls(): string[] {
+        if (!this.showImagePreviews) return [];
+        const value = this.control?.value || '';
+        const regex = /!\[image\]\((https?:\/\/[^)]+)\)/g;
+        const urls: string[] = [];
+        let match: RegExpExecArray | null;
+        while ((match = regex.exec(value)) !== null) {
+            urls.push(match[1]);
+        }
+        return urls;
+    }
+
     getInputClasses(): { [key: string]: boolean } {
         const classes: { [key: string]: boolean } = {
             'input-error': this.isInvalid
         };
-        
         if (this.customInputClass) {
             classes[this.customInputClass] = true;
         }
-        
         return classes;
     }
 
@@ -86,5 +113,122 @@ export class TextareaFormComponent implements OnInit, OnDestroy, OnChanges {
         if (this.field) {
             this.errorMessage = this.formService.getValidationError(this.control, this.field, this.showErrors);
         }
+    }
+
+    // Called from the visible textarea when showImagePreviews = true
+    onVisibleTextareaInput(event: Event): void {
+        const el = event.target as HTMLTextAreaElement;
+        const inputValue = el.value;
+
+        // If the paste directive inserted image markdown, strip it from the visible textarea
+        const hasImageMarkdown = /!\[image\]\(https?:\/\/[^)]+\)/.test(inputValue);
+        let textPart = inputValue;
+        const newUrls: string[] = [];
+
+        if (hasImageMarkdown) {
+            const imgRegex = /!\[image\]\((https?:\/\/[^)]+)\)/g;
+            let m;
+            while ((m = imgRegex.exec(inputValue)) !== null) {
+                newUrls.push(m[1]);
+            }
+            textPart = inputValue.replace(/\n?!\[image\]\(https?:\/\/[^)]+\)/g, '');
+            el.value = textPart;
+        }
+
+        // Preserve existing image URLs already in the control
+        const existingUrls = this._extractImageUrls(this.control?.value || '');
+        const allUrls = [...new Set([...existingUrls, ...newUrls])];
+        const imagePart = allUrls.length > 0 ? '\n' + allUrls.map(u => `![image](${u})`).join('\n') : '';
+
+        this.control?.setValue(textPart + imagePart, { emitEvent: false });
+        this.control?.markAsDirty();
+        this.updateErrorMessage();
+    }
+
+    onVisibleTextareaBlur(): void {
+        this.control?.markAsTouched();
+        this.updateErrorMessage();
+    }
+
+    onImageUploading(uploading: boolean): void {
+        this.isUploading = uploading;
+    }
+
+    openGallery(): void {
+        this.galleryOpen = true;
+        this.previewActiveChange.emit(true);
+    }
+
+    closeGallery(): void {
+        this.galleryOpen = false;
+        if (!this.previewUrl) {
+            this.previewActiveChange.emit(false);
+        }
+    }
+
+    openPreview(url: string): void {
+        this.previewUrl = url;
+        this.carouselIndex = this.computedImageUrls.indexOf(url);
+        if (this.carouselIndex === -1) this.carouselIndex = 0;
+        this.previewActiveChange.emit(true);
+        this._setBodyScrollLock(true);
+    }
+
+    closePreview(): void {
+        this.previewUrl = null;
+        if (!this.galleryOpen) {
+            this.previewActiveChange.emit(false);
+        }
+        this._setBodyScrollLock(false);
+    }
+
+    private _setBodyScrollLock(lock: boolean): void {
+        const overflow = lock ? 'hidden' : '';
+        document.documentElement.style.overflow = overflow;
+        document.body.style.overflow = overflow;
+    }
+
+    removeImage(url: string): void {
+        const control = this.control;
+        if (!control) return;
+        const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const newValue = (control.value as string).replace(new RegExp(`\\n?!\\[image\\]\\(${escaped}\\)`, 'g'), '');
+        control.setValue(newValue);
+        control.markAsDirty();
+        // Keep carousel index in bounds after removal
+        const remaining = this.computedImageUrls.length;
+        if (this.carouselIndex >= remaining && this.carouselIndex > 0) {
+            this.carouselIndex = remaining - 1;
+        }
+        if (remaining === 0) {
+            this.galleryOpen = false;
+            this.previewActiveChange.emit(false);
+        }
+    }
+
+    nextSlide(): void {
+        if (this.carouselIndex < this.computedImageUrls.length - 1) {
+            this.carouselIndex++;
+        }
+    }
+
+    prevSlide(): void {
+        if (this.carouselIndex > 0) {
+            this.carouselIndex--;
+        }
+    }
+
+    goToSlide(index: number): void {
+        this.carouselIndex = index;
+    }
+
+    private _extractImageUrls(value: string): string[] {
+        const regex = /!\[image\]\((https?:\/\/[^)]+)\)/g;
+        const urls: string[] = [];
+        let match;
+        while ((match = regex.exec(value)) !== null) {
+            urls.push(match[1]);
+        }
+        return urls;
     }
 }

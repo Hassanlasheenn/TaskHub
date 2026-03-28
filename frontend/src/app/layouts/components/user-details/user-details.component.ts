@@ -143,20 +143,9 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
         if (!userId) return;
 
         this._todoService.updateTodo(userId, event.id, event.data).subscribe({
-            next: (response: any) => {
-                if (this.userData) {
-                    const index = this.userData.todos.findIndex(t => t.id === event.id);
-                    if (index !== -1) {
-                        this.userData.todos[index] = { ...this.userData.todos[index], ...response };
-                        this.userData.todos = [...this.userData.todos];
-                    }
-                }
-                const tableIndex = this.tableTodos.findIndex(t => t.id === event.id);
-                if (tableIndex !== -1) {
-                    this.tableTodos[tableIndex] = { ...this.tableTodos[tableIndex], ...response };
-                    this.tableTodos = [...this.tableTodos];
-                }
+            next: () => {
                 this._toastService.success('Todo updated successfully');
+                this.loadUserData();
             },
             error: (error: any) => {
                 this._toastService.error(error?.error?.detail || 'Failed to update todo');

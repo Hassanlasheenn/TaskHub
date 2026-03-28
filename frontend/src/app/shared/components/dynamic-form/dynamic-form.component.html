@@ -58,6 +58,9 @@
                     [customInputClass]="field.customInputClass"
                     [field]="field"
                     [showErrors]="isSubmitted"
+                    [showImagePreviews]="field.showImagePreviews !== false"
+                    [imagePreviewMode]="field.imagePreviewMode || 'grid'"
+                    (previewActiveChange)="previewActiveChange.emit($event)"
                 />
             </div>
 

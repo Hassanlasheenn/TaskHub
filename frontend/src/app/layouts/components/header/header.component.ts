@@ -38,11 +38,22 @@ export class HeaderComponent implements OnInit, OnDestroy {
     ngOnInit(): void {
         this.checkAuthentication();
         this.updateMobileMenuVisibility();
-        
+
         this._themeService.theme$
             .pipe(takeUntil(this._destroy$))
             .subscribe(theme => {
                 this.currentTheme = theme;
+            });
+
+        // Keep header in sync whenever user data changes (e.g. profile photo update)
+        this._authService.currentUserData$
+            .pipe(takeUntil(this._destroy$))
+            .subscribe(userData => {
+                this.userPhoto = userData?.photo || null;
+                this.userEmail = userData?.email || '';
+                this.isAuthenticated = !!userData;
+                this.isAdmin = userData?.role === 'admin';
+                this.updateMobileMenuVisibility();
             });
 
         this._router.events

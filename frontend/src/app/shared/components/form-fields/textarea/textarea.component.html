@@ -5,15 +5,252 @@
             {{ errorMessage }}
         </div>
     </div>
-    
+
     <div class="textarea-form__input" [formGroup]="formGroup">
-        <textarea
-            [id]="'textarea-' + name"
-            [formControlName]="name"
-            [placeholder]="placeholder || ''"
-            [ngClass]="getInputClasses()"
-            [ngStyle]="customInputStyle"
-            [rows]="rows"
-        ></textarea>
+        <div class="textarea-form__wrapper">
+
+            <!-- ── Image-preview mode ──────────────────────────────────────── -->
+            <ng-container *ngIf="showImagePreviews">
+                <!-- Hidden control — holds full value (text + image markdown) for form submission -->
+                <textarea
+                    [formControlName]="name"
+                    class="textarea-form__hidden-control"
+                    tabindex="-1"
+                    aria-hidden="true"
+                ></textarea>
+
+                <!-- Visible textarea — shows clean text, no raw image markdown -->
+                <textarea
+                    [id]="'textarea-' + name"
+                    [value]="cleanDisplayValue"
+                    [placeholder]="placeholder || ''"
+                    [ngClass]="getInputClasses()"
+                    [ngStyle]="customInputStyle"
+                    [rows]="rows"
+                    (input)="onVisibleTextareaInput($event)"
+                    (blur)="onVisibleTextareaBlur()"
+                    appPasteImage
+                    (imageUploading)="onImageUploading($event)"
+                ></textarea>
+            </ng-container>
+
+            <!-- ── Standard mode (no image preview) ──────────────────────── -->
+            <textarea
+                *ngIf="!showImagePreviews"
+                [id]="'textarea-' + name"
+                [formControlName]="name"
+                [placeholder]="placeholder || ''"
+                [ngClass]="getInputClasses()"
+                [ngStyle]="customInputStyle"
+                [rows]="rows"
+                appPasteImage
+                (imageUploading)="onImageUploading($event)"
+            ></textarea>
+
+            <div class="textarea-form__uploading-overlay" *ngIf="isUploading">
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+                <span>Uploading image…</span>
+            </div>
+        </div>
+
+        <ng-container *ngIf="showImagePreviews && computedImageUrls.length > 0">
+
+            <!-- ── GRID mode: compact trigger strip ───────────────────────── -->
+            <div *ngIf="imagePreviewMode === 'grid'" class="textarea-form__image-strip" (click)="openPreview(computedImageUrls[0])">
+                <div class="textarea-form__strip-thumbs">
+                    <img
+                        *ngFor="let url of computedImageUrls.slice(0, 3)"
+                        [src]="url"
+                        alt="Image thumbnail"
+                        class="textarea-form__strip-thumb"
+                    />
+                    <div *ngIf="computedImageUrls.length > 3" class="textarea-form__strip-more">
+                        +{{ computedImageUrls.length - 3 }}
+                    </div>
+                </div>
+                <span class="textarea-form__strip-label">
+                    <i class="bi bi-images"></i>
+                    {{ computedImageUrls.length }} image{{ computedImageUrls.length > 1 ? 's' : '' }} attached — click to view
+                </span>
+            </div>
+
+            <!-- ── CAROUSEL preview (todo-view) ──────────────────────────── -->
+            <div *ngIf="imagePreviewMode === 'carousel'" class="textarea-form__carousel">
+                <div class="textarea-form__carousel-track-wrapper">
+                    <div
+                        class="textarea-form__carousel-track"
+                        [style.transform]="'translateX(-' + carouselIndex * 100 + '%)'"
+                    >
+                        <div
+                            *ngFor="let url of computedImageUrls; let i = index"
+                            class="textarea-form__carousel-slide"
+                        >
+                            <div class="textarea-form__carousel-img-wrapper">
+                                <img
+                                    [src]="url"
+                                    [alt]="'Image ' + (i + 1)"
+                                    class="textarea-form__carousel-img"
+                                />
+                                <button
+                                    type="button"
+                                    class="textarea-form__preview-remove textarea-form__preview-remove--carousel"
+                                    (click)="removeImage(url)"
+                                    title="Remove image"
+                                    aria-label="Remove image"
+                                >
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button
+                    *ngIf="computedImageUrls.length > 1"
+                    type="button"
+                    class="textarea-form__carousel-arrow textarea-form__carousel-arrow--prev"
+                    (click)="prevSlide()"
+                    [class.disabled]="carouselIndex === 0"
+                    aria-label="Previous image"
+                >
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <button
+                    *ngIf="computedImageUrls.length > 1"
+                    type="button"
+                    class="textarea-form__carousel-arrow textarea-form__carousel-arrow--next"
+                    (click)="nextSlide()"
+                    [class.disabled]="carouselIndex === computedImageUrls.length - 1"
+                    aria-label="Next image"
+                >
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+
+                <span *ngIf="computedImageUrls.length > 1" class="textarea-form__carousel-counter">
+                    {{ carouselIndex + 1 }} / {{ computedImageUrls.length }}
+                </span>
+
+                <div *ngIf="computedImageUrls.length > 1" class="textarea-form__carousel-dots">
+                    <button
+                        *ngFor="let url of computedImageUrls; let i = index"
+                        type="button"
+                        class="textarea-form__carousel-dot"
+                        [class.active]="i === carouselIndex"
+                        (click)="goToSlide(i)"
+                        [attr.aria-label]="'Go to image ' + (i + 1)"
+                    ></button>
+                </div>
+            </div>
+
+            <!-- ── FILMSTRIP mode (side-by-side horizontal scroll) ────────── -->
+            <div *ngIf="imagePreviewMode === 'filmstrip'" class="textarea-form__filmstrip">
+                <div class="textarea-form__filmstrip-track">
+                    <div
+                        *ngFor="let url of computedImageUrls; let i = index"
+                        class="textarea-form__filmstrip-item"
+                    >
+                        <div class="textarea-form__filmstrip-item-header">
+                            <span class="textarea-form__filmstrip-item-title">Image {{ i + 1 }}</span>
+                        </div>
+                        <div class="textarea-form__filmstrip-img-wrapper">
+                            <img
+                                [src]="url"
+                                [alt]="'Image ' + (i + 1)"
+                                class="textarea-form__filmstrip-img"
+                                (click)="openPreview(url)"
+                                title="Click to preview"
+                            />
+                            <button
+                                type="button"
+                                class="textarea-form__preview-remove textarea-form__preview-remove--filmstrip"
+                                (click)="removeImage(url)"
+                                title="Remove image"
+                                aria-label="Remove image"
+                            >
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </ng-container>
     </div>
 </section>
+
+<!-- ── Full-page gallery overlay (grid mode) ─────────────────────────────── -->
+<div class="textarea-form__gallery-overlay" *ngIf="galleryOpen" (click)="closeGallery()">
+    <div class="textarea-form__gallery-panel" (click)="$event.stopPropagation()">
+        <div class="textarea-form__gallery-header">
+            <span class="textarea-form__gallery-title">
+                <i class="bi bi-images"></i>
+                {{ computedImageUrls.length }} image{{ computedImageUrls.length > 1 ? 's' : '' }}
+            </span>
+            <button type="button" class="textarea-form__gallery-close" (click)="closeGallery()" aria-label="Close gallery">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <div class="textarea-form__gallery-grid">
+            <div *ngFor="let url of computedImageUrls; let i = index" class="textarea-form__gallery-item">
+                <img
+                    [src]="url"
+                    [alt]="'Image ' + (i + 1)"
+                    class="textarea-form__gallery-img"
+                    (click)="openPreview(url)"
+                    title="Click to preview full size"
+                />
+                <div class="textarea-form__gallery-item-overlay">
+                    <i class="bi bi-zoom-in"></i>
+                </div>
+                <button
+                    type="button"
+                    class="textarea-form__gallery-remove"
+                    (click)="removeImage(url)"
+                    title="Remove image"
+                    aria-label="Remove image"
+                >
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image lightbox (full-size view with navigation) -->
+<div class="textarea-form__lightbox" *ngIf="showImagePreviews && previewUrl" (click)="closePreview()">
+    <div class="textarea-form__lightbox-content" (click)="$event.stopPropagation()">
+        <button type="button" class="textarea-form__lightbox-close" (click)="closePreview()" aria-label="Close preview">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        
+        <div class="textarea-form__lightbox-slider">
+            <img [src]="computedImageUrls[carouselIndex]" alt="Image preview" class="textarea-form__lightbox-img" />
+            
+            <button
+                *ngIf="computedImageUrls.length > 1"
+                type="button"
+                class="textarea-form__carousel-arrow textarea-form__carousel-arrow--prev"
+                (click)="prevSlide()"
+                [class.disabled]="carouselIndex === 0"
+                aria-label="Previous image"
+            >
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <button
+                *ngIf="computedImageUrls.length > 1"
+                type="button"
+                class="textarea-form__carousel-arrow textarea-form__carousel-arrow--next"
+                (click)="nextSlide()"
+                [class.disabled]="carouselIndex === computedImageUrls.length - 1"
+                aria-label="Next image"
+            >
+                <i class="bi bi-chevron-right"></i>
+            </button>
+            
+            <div class="textarea-form__carousel-counter" *ngIf="computedImageUrls.length > 1">
+                {{ carouselIndex + 1 }} / {{ computedImageUrls.length }}
+            </div>
+        </div>
+    </div>
+</div>
