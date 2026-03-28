@@ -20,7 +20,7 @@ from ..cache import (
     PREFIX_TODO_COMMENTS,
 )
 from ..config import CACHE_TTL_TODO_LIST, CACHE_TTL_TODO_DETAIL, CACHE_TTL_TODO_COMMENTS
-from ..utils import get_photo_url
+from ..utils import get_photo_url, get_full_url
 from ..services.storage_service import S3StorageService
 from ..services.rate_limiter import RateLimiter
 
@@ -1149,6 +1149,7 @@ async def delete_todo(
 @router.post("/upload-image")
 async def upload_todo_image(
     user_id: int,
+    request: Request,
     file: UploadFile = File(...),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -1167,5 +1168,7 @@ async def upload_todo_image(
     if not url:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to upload image")
 
-    return {"url": url}
+    # Convert to full URL (handles local fallback)
+    full_url = get_full_url(request, url)
+    return {"url": full_url}
     return {"message": "Todo deleted successfully"}
