@@ -1,11 +1,11 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, OnDestroy, ViewChild } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
-import { Subject, takeUntil, debounceTime, Observable, map, forkJoin } from "rxjs";
+import { Subject, takeUntil, debounceTime, Observable, map } from "rxjs";
 import { AuthService } from "../../../auth/services";
 import { TodoService } from "../../../core/services/todo.service";
 import { NotificationService } from "../../../core/services/notification.service";
-import { ITodo, ITodoCreate, ITodoUpdate } from "../../../core/interfaces/todo.interface";
+import { ITodo, ITodoCreate, ITodoFilter, ITodoUpdate } from "../../../core/interfaces/todo.interface";
 import { trackById } from "../../../shared/helpers/trackByFn.helper";
 import { ToastService } from "../../../core/services/toast.service";
 import { ConfirmationDialogService } from "../../../core/services/confirmation-dialog.service";
@@ -68,6 +68,9 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
     tableTotal: number = 0;
     tablePage: number = 1;
     tablePageSize: number = 5;
+    tableSortOrder: 'asc' | 'desc' = 'desc';
+    tableFilter: ITodoFilter = {};
+    private _tableLoadId = 0;
 
     constructor(
         public readonly _authService: AuthService,
@@ -117,17 +120,15 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
         const userId = this._authService.getCurrentUserId();
         if (!userId) return;
 
-        this._todoService.getTodos(userId)
-            .pipe(takeUntil(this._destroy$))
-            .subscribe({
-                next: (response) => {
-                    this.todos = [...(response.todos as ITodo[])];
-                    this.totalTodos = response.total;
-                },
-                error: (error) => {
-                    this._toastService.error(error?.error?.detail || 'Failed to load todos');
-                }
-            });
+        this._todoService.getTodos(userId).pipe(takeUntil(this._destroy$)).subscribe({
+            next: (response) => {
+                this.todos = response.todos as ITodo[];
+                this.totalTodos = response.total;
+            },
+            error: (error) => {
+                this._toastService.error(error?.error?.detail || 'Failed to load todos');
+            }
+        });
     }
 
     get sidebarTitle(): string {
@@ -350,17 +351,19 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
         const userId = this._authService.getCurrentUserId();
         if (!userId) return;
         const skip = (this.tablePage - 1) * this.tablePageSize;
-        this._todoService.getTodos(userId, skip, this.tablePageSize)
-            .pipe(takeUntil(this._destroy$))
-            .subscribe({
-                next: (response) => {
-                    this.tableTodos = response.todos as ITodo[];
-                    this.tableTotal = response.total;
-                },
-                error: (error) => {
-                    this._toastService.error(error?.error?.detail || 'Failed to load todos');
-                }
-            });
+        const loadId = ++this._tableLoadId;
+
+        this._todoService.getTodos(userId, skip, this.tablePageSize, this.tableSortOrder, this.tableFilter).pipe(takeUntil(this._destroy$)).subscribe({
+            next: (response) => {
+                if (loadId !== this._tableLoadId) return;
+                this.tableTodos = response.todos as ITodo[];
+                this.tableTotal = response.total;
+            },
+            error: (error) => {
+                if (loadId !== this._tableLoadId) return;
+                this._toastService.error(error?.error?.detail || 'Failed to load todos');
+            }
+        });
     }
 
     onTablePageChange(page: number): void {
@@ -370,6 +373,18 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
 
     onTablePageSizeChange(size: number): void {
         this.tablePageSize = size;
+        this.tablePage = 1;
+        this.loadTableTodos();
+    }
+
+    onTableSortChange(order: 'asc' | 'desc'): void {
+        this.tableSortOrder = order;
+        this.tablePage = 1;
+        this.loadTableTodos();
+    }
+
+    onTableFilterChange(filter: ITodoFilter): void {
+        this.tableFilter = filter;
         this.tablePage = 1;
         this.loadTableTodos();
     }

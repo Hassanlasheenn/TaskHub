@@ -22,7 +22,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     const httpBackend = inject(HttpBackend);
 
     const isRefreshCall = req.url.includes('/refresh');
-    const isAuthCall = req.url.includes('/login') || req.url.includes('/register');
+    const isAuthCall = req.url.includes('/login') || req.url.includes('/register') || req.url.includes('/logout');
 
     // Add Authorization header from sessionStorage token (multi-tab support)
     const token = authService.getToken();
@@ -38,7 +38,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             }
 
             const currentUrl = router.url;
-            const isLoginPage = currentUrl === '/' || currentUrl.includes('/login');
+            const isLoginPage = currentUrl.includes('/login');
             if (isLoginPage) {
                 return throwError(() => error);
             }
@@ -62,8 +62,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
             // User is inactive — logout immediately without a dialog
             if (!userActivityService.isUserActive()) {
-                authService.clearCurrentUser();
-                router.navigate(['/']);
+                authService.logout().subscribe({ error: () => {} });
+                router.navigate(['/login']);
                 return throwError(() => error);
             }
 
@@ -75,8 +75,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                     if (choice === 'logout') {
                         sessionExpiryDialog.isRefreshing = false;
                         sessionExpiryDialog.refreshResult$.next(false);
-                        authService.clearCurrentUser();
-                        router.navigate(['/']);
+                        authService.logout().subscribe({ error: () => {} });
+                        router.navigate(['/login']);
                         return throwError(() => error);
                     }
 
@@ -104,8 +104,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                         catchError(refreshError => {
                             sessionExpiryDialog.isRefreshing = false;
                             sessionExpiryDialog.refreshResult$.next(false);
-                            authService.clearCurrentUser();
-                            router.navigate(['/']);
+                            authService.logout().subscribe({ error: () => {} });
+                            router.navigate(['/login']);
                             return throwError(() => refreshError);
                         })
                     );

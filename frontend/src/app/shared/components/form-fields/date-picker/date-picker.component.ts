@@ -30,6 +30,7 @@ export class DatePickerComponent implements OnInit, OnDestroy, OnChanges, Contro
     @Input() field?: IFieldControl;
     @Input() showErrors: boolean = false;
     @Input() minDate: string = '';
+    @Input() maxDate: string = '';
     @Input() isFilter: boolean = false;
     @Input() isBadge: boolean = false;
 
@@ -73,6 +74,12 @@ export class DatePickerComponent implements OnInit, OnDestroy, OnChanges, Contro
     }
 
     ngOnInit() {
+        if (this.field?.minDate) {
+            this.minDate = this.field.minDate;
+        }
+        if (this.field?.maxDate) {
+            this.maxDate = this.field.maxDate;
+        }
         if (this.formGroup && this.name) {
             this.setupValidation();
         }
@@ -203,9 +210,17 @@ export class DatePickerComponent implements OnInit, OnDestroy, OnChanges, Contro
 
     isDateDisabled(date: Date | null): boolean {
         if (!date) return false;
-        const min = new Date(this.minDate);
-        min.setHours(0, 0, 0, 0);
-        return date < min;
+        if (this.minDate) {
+            const min = new Date(this.minDate);
+            min.setHours(0, 0, 0, 0);
+            if (date < min) return true;
+        }
+        if (this.maxDate) {
+            const max = new Date(this.maxDate);
+            max.setHours(23, 59, 59, 999);
+            if (date > max) return true;
+        }
+        return false;
     }
 
     isToday(date: Date | null): boolean {

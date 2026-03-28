@@ -15,6 +15,8 @@ export interface IFieldControl {
     icon?: string;
     photoUrl?: string | null;
     onPhotoSelected?: (file: File) => void;
+    minDate?: string;
+    maxDate?: string;
 }
 
 export interface IDropdownOptions {

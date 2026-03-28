@@ -1,8 +1,9 @@
 import { CommonModule } from "@angular/common";
-import { AfterViewChecked, Component, ElementRef, EventEmitter, Input, Output, QueryList, TrackByFunction, ViewChildren } from "@angular/core";
-import { FormsModule } from "@angular/forms";
+import { AfterViewChecked, Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, QueryList, TrackByFunction, ViewChildren } from "@angular/core";
+import { FormsModule, FormGroup, FormControl } from "@angular/forms";
 import { RouterLink } from "@angular/router";
-import { ITodo, ITodoUpdate } from "../../../core/interfaces/todo.interface";
+import { Subject, debounceTime, distinctUntilChanged, takeUntil } from "rxjs";
+import { ITodo, ITodoFilter, ITodoUpdate } from "../../../core/interfaces/todo.interface";
 import { IUserListResponse } from "../../../auth/interfaces";
 import { trackById } from "../../helpers/trackByFn.helper";
 import { LayoutPaths } from "../../../layouts/enums/layout-paths.enum";
@@ -11,19 +12,21 @@ import { DatePickerComponent } from "../form-fields/date-picker/date-picker.comp
 import { IFieldControl } from "../../interfaces";
 import { InputTypes } from "../../enums";
 import { PaginationComponent } from "../pagination/pagination.component";
+import { DynamicFormComponent } from "../dynamic-form/dynamic-form.component";
 
 @Component({
     selector: 'app-shared-table',
     templateUrl: './shared-table.component.html',
     styleUrls: ['./shared-table.component.scss'],
     standalone: true,
-    imports: [CommonModule, RouterLink, FormsModule, DropdownFormComponent, DatePickerComponent, PaginationComponent]
+    imports: [CommonModule, RouterLink, FormsModule, DropdownFormComponent, DatePickerComponent, PaginationComponent, DynamicFormComponent]
 })
-export class SharedTableComponent implements AfterViewChecked {
+export class SharedTableComponent implements AfterViewChecked, OnInit, OnDestroy {
     @ViewChildren('titleInput') titleInputs!: QueryList<ElementRef<HTMLInputElement>>;
     @ViewChildren('customCatInput') customCatInputs!: QueryList<ElementRef<HTMLInputElement>>;
     private shouldFocusTitleInput = false;
     private shouldFocusCustomCatInput = false;
+    private readonly _filterDestroy$ = new Subject<void>();
 
     @Input() emptyMessage: string = 'No data found.';
 
@@ -33,6 +36,7 @@ export class SharedTableComponent implements AfterViewChecked {
 
     @Output() update = new EventEmitter<{ id: number; data: ITodoUpdate }>();
     @Output() delete = new EventEmitter<ITodo>();
+    @Output() filterChange = new EventEmitter<ITodoFilter>();
 
     // --- Users mode inputs ---
     @Input() users: IUserListResponse[] = [];
@@ -48,6 +52,88 @@ export class SharedTableComponent implements AfterViewChecked {
 
     @Output() pageChange = new EventEmitter<number>();
     @Output() pageSizeChange = new EventEmitter<number>();
+    @Output() sortChange = new EventEmitter<'asc' | 'desc'>();
+
+    sortOrder: 'asc' | 'desc' = 'desc';
+    hasActiveFilters = false;
+
+    private static _getDateStr(daysOffset: number = 0): string {
+        const d = new Date();
+        d.setDate(d.getDate() + daysOffset);
+        return d.toISOString().split('T')[0];
+    }
+
+    private readonly _todayStr = SharedTableComponent._getDateStr(0);
+    private readonly _defaultFromStr = SharedTableComponent._getDateStr(-5);
+
+    // --- Filter form ---
+    filterForm = new FormGroup({
+        title: new FormControl<string>(''),
+        priority: new FormControl<string | null>(null),
+        status: new FormControl<string | null>(null),
+        created_from: new FormControl<string | null>(this._defaultFromStr),
+        created_to: new FormControl<string | null>(this._todayStr),
+    });
+
+    filterFields: IFieldControl[] = [
+        {
+            label: 'Title',
+            type: InputTypes.TEXT,
+            formControlName: 'title',
+            placeholder: 'Search by title...',
+            value: '',
+            validations: []
+        },
+        {
+            label: 'Priority',
+            type: InputTypes.DROPDOWN,
+            formControlName: 'priority',
+            placeholder: 'All priorities',
+            value: null,
+            options: [
+                { key: null, value: 'All' },
+                { key: 'low', value: 'Low' },
+                { key: 'medium', value: 'Medium' },
+                { key: 'high', value: 'High' }
+            ],
+            validations: []
+        },
+        {
+            label: 'Status',
+            type: InputTypes.DROPDOWN,
+            formControlName: 'status',
+            placeholder: 'All statuses',
+            value: null,
+            options: [
+                { key: null, value: 'All' },
+                { key: 'new', value: 'New' },
+                { key: 'inProgress', value: 'In Progress' },
+                { key: 'paused', value: 'Paused' },
+                { key: 'done', value: 'Done' }
+            ],
+            validations: []
+        },
+        {
+            label: 'Created from',
+            type: InputTypes.DATE,
+            formControlName: 'created_from',
+            placeholder: 'From date',
+            value: null,
+            validations: [],
+            minDate: '2000-01-01',
+            maxDate: this._todayStr
+        },
+        {
+            label: 'Created to',
+            type: InputTypes.DATE,
+            formControlName: 'created_to',
+            placeholder: 'To date',
+            value: null,
+            validations: [],
+            minDate: '2000-01-01',
+            maxDate: this._todayStr
+        }
+    ];
 
     get showPagination(): boolean {
         return this.totalItems > 0;
@@ -66,6 +152,69 @@ export class SharedTableComponent implements AfterViewChecked {
 
     isCurrentUser(userId: number): boolean {
         return userId === this.currentUserId;
+    }
+
+    ngOnInit(): void {
+        const initial = this.filterForm.getRawValue();
+        this.hasActiveFilters = this._checkHasActiveFilters(initial);
+
+        // Title: wait for user to stop typing
+        this.filterForm.get('title')!.valueChanges.pipe(
+            debounceTime(400),
+            distinctUntilChanged(),
+            takeUntil(this._filterDestroy$)
+        ).subscribe(() => this._emitCurrentFilter());
+
+        // Dropdowns + date pickers: react immediately
+        (['priority', 'status', 'created_from', 'created_to'] as const).forEach(field => {
+            this.filterForm.get(field)!.valueChanges.pipe(
+                distinctUntilChanged(),
+                takeUntil(this._filterDestroy$)
+            ).subscribe(() => this._emitCurrentFilter());
+        });
+
+        // Always emit initial filter — default dates applied even without showing Clear button
+        this.filterChange.emit(this._buildFilter(initial));
+    }
+
+    private _emitCurrentFilter(): void {
+        const value = this.filterForm.getRawValue();
+        this.hasActiveFilters = this._checkHasActiveFilters(value);
+        this.filterChange.emit(this._buildFilter(value));
+    }
+
+    private _buildFilter(value: any): ITodoFilter {
+        const filter: ITodoFilter = {};
+        if (value.title?.trim()) filter.title = value.title.trim();
+        if (value.priority) filter.priority = value.priority;
+        if (value.status) filter.status = value.status;
+        if (value.created_from) filter.created_from = value.created_from;
+        if (value.created_to) filter.created_to = value.created_to;
+        return filter;
+    }
+
+    ngOnDestroy(): void {
+        this._filterDestroy$.next();
+        this._filterDestroy$.complete();
+    }
+
+    // Clear restores the default date range, hiding the Clear button again
+    clearFilters(): void {
+        this.filterForm.setValue({
+            title: '',
+            priority: null,
+            status: null,
+            created_from: this._defaultFromStr,
+            created_to: this._todayStr
+        });
+    }
+
+    // Active = deviated from default state (not just "any value is truthy")
+    private _checkHasActiveFilters(value: any): boolean {
+        const datesAreDefault =
+            value.created_from === this._defaultFromStr &&
+            value.created_to === this._todayStr;
+        return !!(value.title?.trim() || value.priority || value.status || !datesAreDefault);
     }
 
     // --- Todo mode helpers ---
@@ -116,7 +265,7 @@ export class SharedTableComponent implements AfterViewChecked {
 
     getCategoryField(todo: ITodo): IFieldControl {
         const categoryValue = todo.category || '';
-        
+
         return {
             label: 'Category',
             type: InputTypes.DROPDOWN,
@@ -169,6 +318,20 @@ export class SharedTableComponent implements AfterViewChecked {
     getDueDateValue(dateString?: string): string {
         if (!dateString) return '';
         return dateString.split('T')[0];
+    }
+
+    formatCreatedAt(dateString?: string): string {
+        if (!dateString) return '—';
+        return new Date(dateString).toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    }
+
+    toggleSort(): void {
+        this.sortOrder = this.sortOrder === 'desc' ? 'asc' : 'desc';
+        this.sortChange.emit(this.sortOrder);
     }
 
     // --- Title inline edit ---

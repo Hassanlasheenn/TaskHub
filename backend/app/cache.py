@@ -44,7 +44,7 @@ PREFIX_USERS_ROLE_USER = "users:role:user"
 PREFIX_USER_PROFILE = "user:"
 PREFIX_ADMIN_USERS = "admin:users"
 PREFIX_ADMIN_USERS_WITH_TODOS = "admin:users-with-todos"
-PREFIX_TODOS_LIST = "todos:list:"
+PREFIX_TODOS_LIST = "todos:list:v2:"
 PREFIX_TODO_DETAIL = "todo:"
 PREFIX_TODO_COMMENTS = "todos:comments:"
 

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, and_
 from typing import List, Optional
+from datetime import datetime
 from .. import database, models, schemas
 from ..routers.notifications import create_notification
 from ..services.notification_service import notification_manager
@@ -34,33 +35,49 @@ def get_todos(
     user_id: int,
     skip: int = 0,
     limit: int = 100,
+    sort_order: str = "desc",
+    title: Optional[str] = None,
+    priority: Optional[str] = None,
+    status: Optional[str] = None,
+    created_from: Optional[str] = None,
+    created_to: Optional[str] = None,
     db: Session = Depends(database.get_db)
 ):
-    cache_key = f"{PREFIX_TODOS_LIST}{user_id}:{skip}:{limit}"
-    cached = cache_get(cache_key)
-    if cached is not None:
-        return schemas.TodoListResponse(
-            todos=[schemas.TodoResponse(**t) for t in cached["todos"]],
-            total=cached["total"],
-        )
-    todos = db.query(models.Todo).filter(
-        and_(
-            or_(
-                models.Todo.user_id == user_id,
-                models.Todo.assigned_to_user_id == user_id
-            ),
-            models.Todo.is_deleted == False
-        )
-    ).distinct().order_by(models.Todo.order_index.asc()).offset(skip).limit(limit).all()
-    total = db.query(models.Todo).filter(
-        and_(
-            or_(
-                models.Todo.user_id == user_id,
-                models.Todo.assigned_to_user_id == user_id
-            ),
-            models.Todo.is_deleted == False
-        )
-    ).count()
+    sort_order = sort_order.lower() if sort_order.lower() in ("asc", "desc") else "desc"
+    has_filters = any([title, priority, status, created_from, created_to])
+    cache_key = f"{PREFIX_TODOS_LIST}{user_id}:{skip}:{limit}:{sort_order}:{title or ''}:{priority or ''}:{status or ''}:{created_from or ''}:{created_to or ''}"
+    if not has_filters:
+        cached = cache_get(cache_key)
+        if cached is not None:
+            return schemas.TodoListResponse(
+                todos=[schemas.TodoResponse(**t) for t in cached["todos"]],
+                total=cached["total"],
+            )
+    todo_filter = and_(
+        models.Todo.assigned_to_user_id == user_id,
+        models.Todo.is_deleted == False
+    )
+    if title:
+        todo_filter = and_(todo_filter, models.Todo.title.ilike(f"%{title}%"))
+    if priority:
+        todo_filter = and_(todo_filter, models.Todo.priority == priority)
+    if status:
+        todo_filter = and_(todo_filter, models.Todo.status == status)
+    if created_from:
+        try:
+            from_dt = datetime.strptime(created_from, "%Y-%m-%d")
+            todo_filter = and_(todo_filter, models.Todo.created_at >= from_dt)
+        except ValueError:
+            pass
+    if created_to:
+        try:
+            to_dt = datetime.strptime(created_to, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            todo_filter = and_(todo_filter, models.Todo.created_at <= to_dt)
+        except ValueError:
+            pass
+    order_expr = models.Todo.created_at.desc() if sort_order == "desc" else models.Todo.created_at.asc()
+    todos = db.query(models.Todo).filter(todo_filter).distinct().order_by(order_expr).offset(skip).limit(limit).all()
+    total = db.query(models.Todo).filter(todo_filter).count()
     todo_responses = []
     for todo in todos:
         assigned_to_username = None
@@ -87,11 +104,12 @@ def get_todos(
             "assigned_to_username": assigned_to_username
         }
         todo_responses.append(schemas.TodoResponse(**todo_dict))
-    cache_set(
-        cache_key,
-        {"todos": [t.model_dump(mode="json") for t in todo_responses], "total": total},
-        CACHE_TTL_TODO_LIST,
-    )
+    if not has_filters:
+        cache_set(
+            cache_key,
+            {"todos": [t.model_dump(mode="json") for t in todo_responses], "total": total},
+            CACHE_TTL_TODO_LIST,
+        )
     return schemas.TodoListResponse(todos=todo_responses, total=total)
 
 
@@ -1118,8 +1136,7 @@ async def delete_todo(
                     )
                 )
 
-    todo.is_deleted = True
-
+    db.delete(todo)
     db.commit()
     invalidate_todo_detail(todo_id)
     invalidate_todo_list_for_user(todo.user_id)

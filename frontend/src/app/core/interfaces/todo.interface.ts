@@ -110,3 +110,10 @@ export interface ITodoHistoryResponse {
     history: ITodoHistoryEntry[];
 }
 
+export interface ITodoFilter {
+    title?: string;
+    priority?: string;
+    status?: string;
+    created_from?: string;
+    created_to?: string;
+}

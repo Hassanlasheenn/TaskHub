@@ -1,12 +1,12 @@
 import { Component, OnInit, OnDestroy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
-import { Subject, takeUntil, forkJoin } from "rxjs";
+import { Subject, takeUntil } from "rxjs";
 import { AdminService, IUserWithTodos } from "../../../core/services/admin.service";
 import { ToastService } from "../../../core/services/toast.service";
 import { AuthService } from "../../../auth/services/auth.service";
 import { TodoService } from "../../../core/services/todo.service";
-import { ITodoResponse, ITodo, ITodoUpdate } from "../../../core/interfaces/todo.interface";
+import { ITodoResponse, ITodo, ITodoFilter, ITodoUpdate } from "../../../core/interfaces/todo.interface";
 import { LayoutPaths } from "../../enums/layout-paths.enum";
 import { trackById } from "../../../shared/helpers/trackByFn.helper";
 import { DashboardSections } from "../../enums/dashboard-sections.enum";
@@ -37,6 +37,8 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
     tableTotal: number = 0;
     tablePage: number = 1;
     tablePageSize: number = 5;
+    tableSortOrder: 'asc' | 'desc' = 'desc';
+    tableFilter: ITodoFilter = {};
 
     constructor(
         private readonly _route: ActivatedRoute,
@@ -76,9 +78,37 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
 
     loadTableTodos(): void {
         if (!this.userData) return;
+        let todos = [...this.userData.todos];
+
+        // Apply filters client-side
+        if (this.tableFilter.title) {
+            const search = this.tableFilter.title.toLowerCase();
+            todos = todos.filter(t => t.title.toLowerCase().includes(search));
+        }
+        if (this.tableFilter.priority) {
+            todos = todos.filter(t => t.priority === this.tableFilter.priority);
+        }
+        if (this.tableFilter.status) {
+            todos = todos.filter(t => t.status === this.tableFilter.status);
+        }
+        if (this.tableFilter.created_from) {
+            const from = new Date(this.tableFilter.created_from);
+            todos = todos.filter(t => t.created_at && new Date(t.created_at) >= from);
+        }
+        if (this.tableFilter.created_to) {
+            const to = new Date(this.tableFilter.created_to);
+            to.setHours(23, 59, 59, 999);
+            todos = todos.filter(t => t.created_at && new Date(t.created_at) <= to);
+        }
+
+        const sorted = todos.sort((a, b) => {
+            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return this.tableSortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+        });
+        this.tableTotal = sorted.length;
         const skip = (this.tablePage - 1) * this.tablePageSize;
-        this.tableTodos = this.userData.todos.slice(skip, skip + this.tablePageSize) as ITodo[];
-        this.tableTotal = this.userData.todos.length;
+        this.tableTodos = sorted.slice(skip, skip + this.tablePageSize) as ITodo[];
     }
 
     onTablePageChange(page: number): void {
@@ -88,6 +118,18 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
 
     onTablePageSizeChange(size: number): void {
         this.tablePageSize = size;
+        this.tablePage = 1;
+        this.loadTableTodos();
+    }
+
+    onTableSortChange(order: 'asc' | 'desc'): void {
+        this.tableSortOrder = order;
+        this.tablePage = 1;
+        this.loadTableTodos();
+    }
+
+    onTableFilterChange(filter: ITodoFilter): void {
+        this.tableFilter = filter;
         this.tablePage = 1;
         this.loadTableTodos();
     }
@@ -159,24 +201,14 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
     loadUserData(): void {
         if (!this.userId) return;
 
-        const currentUserId = this._authService.getCurrentUserId();
-        if (!currentUserId) return;
-
-        const requests = {
-            usersWithTodos: this._adminService.getUsersWithTodos(),
-            allTodos: this._todoService.getTodos(currentUserId)
-        };
-
-        forkJoin(requests)
+        this._adminService.getUsersWithTodos()
             .pipe(takeUntil(this._destroy$))
             .subscribe({
-                next: ({ usersWithTodos, allTodos }) => {
+                next: (usersWithTodos) => {
                     const found = usersWithTodos.find(u => u.user.id === this.userId);
                     if (found) {
                         this.userData = found;
-                        this.allTodos = allTodos.todos;
-                        
-                        // Load table todos if in table mode
+                        this.allTodos = usersWithTodos.flatMap(u => u.todos);
                         if (this.viewMode === 'table') {
                             this.loadTableTodos();
                         }

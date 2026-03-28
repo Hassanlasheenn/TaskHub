@@ -1,4 +1,27 @@
 <div class="table-view-container">
+
+    <!-- ========== Filter Bar (Todo Mode only) ========== -->
+    <div *ngIf="!isUsersMode" class="table-filter-bar">
+        <div class="filter-fields-wrapper">
+            <app-dynamic-form
+                [fields]="filterFields"
+                [form]="filterForm"
+                [isFilter]="true"
+                [layout]="'inline'"
+            />
+        </div>
+        <button
+            *ngIf="hasActiveFilters"
+            type="button"
+            class="clear-filters-btn"
+            (click)="clearFilters()"
+            title="Clear all filters"
+        >
+            <i class="bi bi-x-circle"></i>
+            <span>Clear</span>
+        </button>
+    </div>
+
     <div class="custom-table-wrapper">
         <table class="custom-table">
             <!-- ========== Users Mode ========== -->
@@ -60,6 +83,10 @@
                         <th>Priority</th>
                         <th>Category</th>
                         <th>Due Date</th>
+                        <th class="created-col sortable" (click)="toggleSort()">
+                            Created
+                            <i class="bi" [class.bi-arrow-down-short]="sortOrder === 'desc'" [class.bi-arrow-up-short]="sortOrder === 'asc'"></i>
+                        </th>
                         <th class="actions-col">Actions</th>
                     </tr>
                 </thead>
@@ -149,6 +176,7 @@
                                 [class.disabled-field]="todo.is_deleted"
                             />
                         </td>
+                        <td data-label="Created">{{ formatCreatedAt(todo.created_at) }}</td>
                         <td class="actions-cell" data-label="Actions">
                             <div class="table-actions">
                                 <button (click)="onDelete(todo)" class="table-action-btn delete" title="Delete"
@@ -159,7 +187,7 @@
                         </td>
                     </tr>
                     <tr *ngIf="todos.length === 0">
-                        <td colspan="6" class="empty-row-cell">
+                        <td colspan="7" class="empty-row-cell">
                             <div class="empty-table-msg">{{ emptyMessage }}</div>
                         </td>
                     </tr>

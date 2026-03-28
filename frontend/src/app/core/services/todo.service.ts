@@ -2,7 +2,7 @@ import { HttpClient } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { Observable, take } from "rxjs";
 import { API_BASE_URL } from "../../api.global";
-import { ITodoCreate, ITodoUpdate, ITodoResponse, ITodoListResponse, ITodoComment, ITodoCommentListResponse, ITodoCommentHistoryResponse, ITodoHistoryResponse } from "../interfaces/todo.interface";
+import { ITodoCreate, ITodoUpdate, ITodoResponse, ITodoListResponse, ITodoComment, ITodoCommentListResponse, ITodoCommentHistoryResponse, ITodoHistoryResponse, ITodoFilter } from "../interfaces/todo.interface";
 
 @Injectable({
     providedIn: 'root',
@@ -12,9 +12,21 @@ export class TodoService {
 
     constructor(private readonly _http: HttpClient) {}
 
-    getTodos(userId: number, skip: number = 0, limit: number = 100): Observable<ITodoListResponse> {
+    getTodos(userId: number, skip: number = 0, limit: number = 100, sortOrder: 'asc' | 'desc' = 'desc', filter?: ITodoFilter): Observable<ITodoListResponse> {
+        let url = `${this._baseUrl}?user_id=${userId}&skip=${skip}&limit=${limit}&sort_order=${sortOrder}`;
+        if (filter?.title) url += `&title=${encodeURIComponent(filter.title)}`;
+        if (filter?.priority) url += `&priority=${encodeURIComponent(filter.priority)}`;
+        if (filter?.status) url += `&status=${encodeURIComponent(filter.status)}`;
+        if (filter?.created_from) url += `&created_from=${filter.created_from}`;
+        if (filter?.created_to) url += `&created_to=${filter.created_to}`;
         return this._http
-            .get<ITodoListResponse>(`${this._baseUrl}?user_id=${userId}&assignee_id=${userId}&skip=${skip}&limit=${limit}`, {
+            .get<ITodoListResponse>(url, { withCredentials: true })
+            .pipe(take(1));
+    }
+
+    getAssignedTodos(userId: number, skip: number = 0, limit: number = 100): Observable<ITodoListResponse> {
+        return this._http
+            .get<ITodoListResponse>(`${this._baseUrl}?assigned_user_id=${userId}&skip=${skip}&limit=${limit}`, {
                 withCredentials: true
             })
             .pipe(take(1));

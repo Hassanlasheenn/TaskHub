@@ -212,17 +212,25 @@ export class TodoFormComponent implements OnInit, OnDestroy {
     }
 
     loadUsers(): void {
+        if (!this.isAdmin) {
+            this.updateUserDropdownField();
+            if (this.isEditMode && this.editingTodo) {
+                this.populateFormData(this.editingTodo);
+            }
+            return;
+        }
+
         this._userService.getMentionableUsers()
             .pipe(takeUntil(this._destroy$))
             .subscribe({
                 next: (users) => {
                     this.users = users;
                     this.updateUserDropdownField();
-                    
+
                     if (!this.form.get('assigned_to_user_id')) {
                         this.form = this._formService.initializeForm(this.fields);
                     }
-                    
+
                     if (this.isEditMode && this.editingTodo) {
                         this.populateFormData(this.editingTodo);
                     }
@@ -236,18 +244,25 @@ export class TodoFormComponent implements OnInit, OnDestroy {
     updateUserDropdownField(): void {
         const userFieldIndex = this.fields.findIndex(f => f.formControlName === 'assigned_to_user_id');
         if (userFieldIndex !== -1) {
-            const userOptions = this.users.map(user => ({ key: user.id, value: user.username }));
-            
             const currentUser = this._authService.getCurrentUserData();
-            if (currentUser && !this.users.some(u => u.id === currentUser.id)) {
-                userOptions.unshift({ key: currentUser.id, value: `${currentUser.username} (Me)` });
-            }
-            
+
             if (this.isAdmin) {
+                const userOptions = this.users.map(user => ({ key: user.id, value: user.username }));
+                if (currentUser && !this.users.some(u => u.id === currentUser.id)) {
+                    userOptions.unshift({ key: currentUser.id, value: `${currentUser.username} (Me)` });
+                }
                 this.fields[userFieldIndex].options = [{ key: null, value: 'Unassigned' }, ...userOptions];
             } else {
-                // For non-admins, ensure Unassigned is NOT an option
-                this.fields[userFieldIndex].options = userOptions;
+                // Non-admins can only assign to themselves
+                const selfOption = currentUser
+                    ? [{ key: currentUser.id, value: `${currentUser.username} (Me)` }]
+                    : [];
+                this.fields[userFieldIndex].options = selfOption;
+
+                // Auto-select self if no value is set
+                if (currentUser && !this.form.get('assigned_to_user_id')?.value) {
+                    this.form.get('assigned_to_user_id')?.setValue(currentUser.id, { emitEvent: false });
+                }
             }
         }
     }

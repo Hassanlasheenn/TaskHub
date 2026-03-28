@@ -183,7 +183,8 @@ def get_users_with_todos(
             or_(
                 models.Todo.user_id == user.id,
                 models.Todo.assigned_to_user_id == user.id
-            )
+            ),
+            models.Todo.is_deleted == False
         ).order_by(models.Todo.order_index.asc()).all()
         
         todo_responses = []
