@@ -317,7 +317,14 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
         const userId = this._authService.getCurrentUserId();
         if (!userId) return;
 
-        this._todoService.updateTodo(userId, event.todo.id, { status: event.newStatus as ITodo['status'] })
+        const updateData: any = { status: event.newStatus as ITodo['status'] };
+        
+        // If it was unassigned, assign it to the current user who is moving it
+        if (!event.todo.assigned_to_user_id) {
+            updateData.assigned_to_user_id = userId;
+        }
+
+        this._todoService.updateTodo(userId, event.todo.id, updateData)
             .pipe(takeUntil(this._destroy$))
             .subscribe({
                 next: (updatedTodo) => {
@@ -326,7 +333,7 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
                         this.todos[idx] = { ...this.todos[idx], ...updatedTodo } as ITodo;
                         this.todos = [...this.todos];
                     }
-                    this._toastService.success(`Status updated to ${event.newStatus}`);
+                    this._toastService.success(`Status updated to ${event.newStatus}${!event.todo.assigned_to_user_id ? ' and assigned to you' : ''}`);
                 },
                 error: () => {
                     this._toastService.error('Failed to update status');

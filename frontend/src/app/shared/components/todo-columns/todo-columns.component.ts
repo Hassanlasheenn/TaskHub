@@ -60,15 +60,11 @@ export class TodoColumnsComponent implements OnChanges {
             const sig = this.todos.map(t => `${t.id}:${t.status}`).join(',');
             if (sig !== this._todosSignature || changes['showUnassigned']) {
                 this._todosSignature = sig;
-                // When the unassigned column is visible, keep unassigned todos out of
-                // the status columns so they don't appear in two places at once.
-                const assigned = this.showUnassigned
-                    ? this.todos.filter(t => t.assigned_to_user_id)
-                    : this.todos;
-                this._new        = assigned.filter(t => t.status === 'new');
-                this._inProgress = assigned.filter(t => t.status === 'inProgress');
-                this._paused     = assigned.filter(t => t.status === 'paused');
-                this._done       = assigned.filter(t => t.status === 'done');
+                // Distribute todos into status columns.
+                this._new        = this.todos.filter(t => t.status === 'new');
+                this._inProgress = this.todos.filter(t => t.status === 'inProgress');
+                this._paused     = this.todos.filter(t => t.status === 'paused');
+                this._done       = this.todos.filter(t => t.status === 'done');
             }
         }
         if (changes['unassignedTodos']) {
