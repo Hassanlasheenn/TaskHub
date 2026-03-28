@@ -98,7 +98,8 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
         type: InputTypes.TEXTAREA,
         value: '',
         validations: [],
-        imagePreviewMode: 'filmstrip'
+        imagePreviewMode: 'filmstrip',
+        disableInternalLightbox: true
     };
 
     dueDateField: IFieldControl = {
@@ -285,9 +286,10 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
     get allImageUrls(): string[] {
         const urls: string[] = [];
         
-        // Add images from description
-        if (this.todo?.description) {
-            urls.push(...this._extractImageUrls(this.todo.description));
+        // Add images from current description (form value)
+        const currentDescription = this.todoForm.get('description')?.value || this.todo?.description;
+        if (currentDescription) {
+            urls.push(...this._extractImageUrls(currentDescription));
         }
 
         // Add images from comments
@@ -305,8 +307,10 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
         return [...new Set(urls)];
     }
 
-    openPreview(url: string, name: string, event: MouseEvent): void {
-        event.preventDefault();
+    openPreview(url: string, name: string, event?: MouseEvent): void {
+        if (event && event.preventDefault) {
+            event.preventDefault();
+        }
         this.previewAttachmentUrl = url;
         this.previewAttachmentName = name;
         
@@ -322,6 +326,30 @@ export class TodoViewComponent implements OnInit, OnDestroy, CanComponentDeactiv
         this.previewAttachmentUrl = null;
         this.previewAttachmentName = null;
         this._setBodyScrollLock(false);
+    }
+
+    downloadImage(url: string | null, filename: string | null): void {
+        if (!url) return;
+        
+        const name = filename || 'downloaded-image';
+        
+        fetch(url)
+            .then(response => response.blob())
+            .then(blob => {
+                const blobUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(blobUrl);
+            })
+            .catch(err => {
+                console.error('Download failed:', err);
+                // Fallback: try opening in new tab if fetch fails
+                window.open(url, '_blank');
+            });
     }
 
     prevPreview(): void {

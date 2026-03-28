@@ -5,8 +5,8 @@
 html {
   font-size: 16px;
   background: var(--bg-primary);
-  min-height: 100dvh;
-  overflow-x: hidden;
+  height: 100dvh;
+  overflow: hidden;
   scrollbar-width: none;
 }
 
@@ -14,10 +14,10 @@ body {
   margin: 0;
   padding: 0;
   background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
   font-family: 'Poppins', sans-serif;
   position: relative;
-  overflow-x: hidden;
   color: var(--text-primary);
   transition: color 0.3s ease;
   scrollbar-width: none;
@@ -46,20 +46,13 @@ body {
 app-root {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  height: 100dvh;
   background: transparent;
-  padding: var(--header-top-margin, 1.25rem) 1.25rem 0 1.25rem;
+  padding: 0 !important;
   position: relative;
   z-index: 1;
   box-sizing: border-box;
-
-  @media (max-width: 768px) {
-    padding: var(--header-top-margin, 1rem) 1rem 0 1rem;
-  }
-
-  @media (max-width: 576px) {
-    padding: var(--header-top-margin, 0.75rem) 0.75rem 0 0.75rem;
-  }
+  overflow: hidden;
 }
 
 * {

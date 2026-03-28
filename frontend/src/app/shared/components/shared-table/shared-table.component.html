@@ -240,6 +240,7 @@
         *ngIf="showPagination"
         [currentPage]="currentPage"
         [pageSize]="pageSize"
+        [pageSizeOptions]="pageSizeOptions"
         [totalItems]="totalItems"
         (pageChange)="pageChange.emit($event)"
         (pageSizeChange)="pageSizeChange.emit($event)"

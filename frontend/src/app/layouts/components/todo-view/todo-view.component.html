@@ -97,12 +97,13 @@
                                 [form]="todoForm"
                                 [fields]="[descriptionField]"
                                 (previewActiveChange)="descriptionPreviewOpen = $event"
+                                (imageClick)="openPreview($event, 'Description Image')"
                             />
                         </div>
                     </div>
                 </form>
 
-                <div class="todo-view-body" style="padding-top: 0;" *ngIf="!descriptionPreviewOpen">
+                <div class="todo-view-body" style="padding-top: 0;">
                     <div class="todo-view-comments">
                         <app-tabs
                             [tabs]="commentHistoryTabs"
@@ -513,10 +514,10 @@
                         {{ previewCarouselIndex + 1 }} / {{ allImageUrls.length }}
                     </span>
                 </div>
-                <a [href]="previewAttachmentUrl" download class="download-link">
+                <button type="button" (click)="downloadImage(previewAttachmentUrl, previewAttachmentName)" class="download-link">
                     <i class="bi bi-download"></i>
                     Download
-                </a>
+                </button>
             </div>
         </div>
     </div>

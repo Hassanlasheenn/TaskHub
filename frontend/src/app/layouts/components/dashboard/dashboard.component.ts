@@ -22,7 +22,7 @@ import { TodoFormComponent } from "../../../shared/components/dynamic-form/todo-
 import { SharedTableComponent } from "../../../shared/components/shared-table/shared-table.component";
 import { CanComponentDeactivate } from "../../../auth/guards/can-deactivate.guard";
 import { PosthogService } from "../../../core/services";
-import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from "@angular/cdk/drag-drop";
+import { TodoColumnsComponent, ITodoStatusChange } from "../../../shared/components/todo-columns/todo-columns.component";
 
 @Component({
     selector: 'app-dashboard',
@@ -39,7 +39,7 @@ import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from 
         AdminComponent,
         TodoFormComponent,
         SharedTableComponent,
-        DragDropModule
+        TodoColumnsComponent,
     ],
 })
 export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeactivate {
@@ -233,16 +233,10 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
             if (result.confirmed) {
                 this._todoService.deleteTodo(userId, todo.id).subscribe({
                     next: (response) => {
-                        const index = this.todos.findIndex(t => t.id === todo.id);
-                        if (index !== -1) {
-                            this.todos[index] = { ...this.todos[index], is_deleted: true };
-                            this.todos = [...this.todos];
-                        }
-                        const tableIndex = this.tableTodos.findIndex(t => t.id === todo.id);
-                        if (tableIndex !== -1) {
-                            this.tableTodos[tableIndex] = { ...this.tableTodos[tableIndex], is_deleted: true };
-                            this.tableTodos = [...this.tableTodos];
-                        }
+                        // Remove from the local lists entirely so it reflects on UI immediately
+                        this.todos = this.todos.filter(t => t.id !== todo.id);
+                        this.tableTodos = this.tableTodos.filter(t => t.id !== todo.id);
+                        
                         this._toastService.success(response?.message || 'Todo deleted successfully');
                         this._posthogService.capture('todo_deleted', { todo_id: todo.id });
                     },
@@ -297,43 +291,48 @@ export class DashboardComponent implements OnInit, OnDestroy, CanComponentDeacti
             });
     }
 
-    onTodoDrop(event: CdkDragDrop<ITodo[]>, newStatus: string): void {
-        if (event.previousContainer === event.container) {
-            moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
-        } else {
-            const todo = event.previousContainer.data[event.previousIndex];
-            const userId = this._authService.getCurrentUserId();
-            if (!userId) return;
+    onTodoUnassign(todo: ITodo): void {
+        const userId = this._authService.getCurrentUserId();
+        if (!userId) return;
 
-            // Map UI status names to API status values if necessary
-            let apiStatus = newStatus;
-            if (newStatus === 'new-tasks') apiStatus = 'new';
-            if (newStatus === 'in-progress') apiStatus = 'inProgress';
-            if (newStatus === 'completed-dashboard') apiStatus = 'done';
-
-            this._todoService.updateTodo(userId, todo.id, { status: apiStatus as ITodo['status'] }).subscribe({
+        this._todoService.updateTodo(userId, todo.id, { assigned_to_user_id: null })
+            .pipe(takeUntil(this._destroy$))
+            .subscribe({
                 next: (updatedTodo) => {
-                    // Update local state
-                    const index = this.todos.findIndex(t => t.id === todo.id);
-                    if (index !== -1) {
-                        this.todos[index] = { ...this.todos[index], ...updatedTodo } as ITodo;
+                    const idx = this.todos.findIndex(t => t.id === todo.id);
+                    if (idx !== -1) {
+                        this.todos[idx] = { ...this.todos[idx], ...updatedTodo } as ITodo;
                         this.todos = [...this.todos];
                     }
-                    this._toastService.success(`Status updated to ${apiStatus}`);
+                    this._toastService.success('Todo unassigned successfully');
                 },
-                error: (error) => {
-                    this._toastService.error('Failed to update status');
-                    this.loadTodos(); // Reload on error to sync state
+                error: () => {
+                    this._toastService.error('Failed to unassign todo');
+                    this.loadTodos();
                 }
             });
+    }
 
-            transferArrayItem(
-                event.previousContainer.data,
-                event.container.data,
-                event.previousIndex,
-                event.currentIndex
-            );
-        }
+    onTodoStatusChange(event: ITodoStatusChange): void {
+        const userId = this._authService.getCurrentUserId();
+        if (!userId) return;
+
+        this._todoService.updateTodo(userId, event.todo.id, { status: event.newStatus as ITodo['status'] })
+            .pipe(takeUntil(this._destroy$))
+            .subscribe({
+                next: (updatedTodo) => {
+                    const idx = this.todos.findIndex(t => t.id === event.todo.id);
+                    if (idx !== -1) {
+                        this.todos[idx] = { ...this.todos[idx], ...updatedTodo } as ITodo;
+                        this.todos = [...this.todos];
+                    }
+                    this._toastService.success(`Status updated to ${event.newStatus}`);
+                },
+                error: () => {
+                    this._toastService.error('Failed to update status');
+                    this.loadTodos();
+                }
+            });
     }
 
     toggleSection(section: string): void {

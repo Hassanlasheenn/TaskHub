@@ -1,0 +1,274 @@
+<div class="tc-board" cdkDropListGroup [ngStyle]="boardStyle">
+
+    <!-- ── Unassigned (admin only) ──────────────────────────────── -->
+    <div *ngIf="showUnassigned"
+         class="tc-col tc-col--unassigned"
+         [class.tc-col--collapsed]="isCollapsed('unassigned')"
+         [class.tc-col--expanded]="isExpanded('unassigned')">
+
+        <div class="tc-col__header" (click)="toggleSection('unassigned')">
+            <i class="bi bi-clock-history tc-col__icon"></i>
+            <span class="tc-col__title">Unassigned</span>
+            <span class="tc-col__count">{{ _unassigned.length }}</span>
+            <div class="tc-col__header-actions">
+                <button class="tc-col__expand-btn"
+                        [title]="isExpanded('unassigned') ? 'Collapse column' : 'Expand column'"
+                        (click)="toggleExpand('unassigned', $event)">
+                    <i [class]="isExpanded('unassigned') ? 'bi bi-arrows-angle-contract' : 'bi bi-arrows-angle-expand'"></i>
+                </button>
+                <i class="bi bi-chevron-down tc-col__chevron"></i>
+            </div>
+        </div>
+
+        <div class="tc-col__body"
+             cdkDropList
+             cdkDropListAutoScrollStep="15"
+             [cdkDropListData]="_unassigned"
+             (cdkDropListDropped)="onTodoDrop($event, 'unassigned')">
+            <div class="tc-col__list">
+                <div *ngFor="let todo of _unassigned; trackBy: trackById"
+                     class="tc-item"
+                     [ngClass]="getPriorityClass(todo.priority)"
+                     [class.tc-item--done]="todo.status === 'done' || todo.is_deleted"
+                     cdkDrag
+                     [cdkDragStartDelay]="{ touch: 150, mouse: 0 }">
+                    <span class="tc-item__drag-handle" cdkDragHandle><i class="bi bi-grip-vertical"></i></span>
+                    <span class="tc-item__dot" [ngClass]="getPriorityClass(todo.priority)"></span>
+                    <div class="tc-item__body">
+                        <p class="tc-item__title">{{ todo.title }}</p>
+                        <div class="tc-item__meta" *ngIf="todo.category || todo.due_date || todo.created_at">
+                            <span *ngIf="todo.category" class="tc-item__tag"><i class="bi bi-tag"></i>{{ todo.category }}</span>
+                            <span *ngIf="todo.due_date" class="tc-item__date" [ngClass]="getDueDateClass(todo.due_date)"><i class="bi bi-alarm"></i>{{ formatDate(todo.due_date) }}</span>
+                            <span *ngIf="todo.created_at" class="tc-item__created"><i class="bi bi-calendar3"></i>{{ formatDate(todo.created_at) }}</span>
+                        </div>
+                    </div>
+                    <div class="tc-item__actions">
+                        <button class="tc-item__btn tc-item__btn--edit" title="Edit" (click)="edit.emit(todo); $event.stopPropagation()"><i class="bi bi-pencil"></i></button>
+                        <button class="tc-item__btn tc-item__btn--delete" title="Delete" (click)="delete.emit(todo); $event.stopPropagation()"><i class="bi bi-trash"></i></button>
+                        <a class="tc-item__btn tc-item__btn--view" title="View" [routerLink]="['/', todoViewPath, todo.id]" (click)="$event.stopPropagation()"><i class="bi bi-arrow-right-circle-fill"></i></a>
+                    </div>
+                </div>
+                <div *ngIf="_unassigned.length === 0" class="tc-col__empty">
+                    <i class="bi bi-inbox"></i><span>No unassigned tasks</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── New ──────────────────────────────────────────────────── -->
+    <div class="tc-col tc-col--new"
+         [class.tc-col--collapsed]="isCollapsed('new')"
+         [class.tc-col--expanded]="isExpanded('new')">
+
+        <div class="tc-col__header" (click)="toggleSection('new')">
+            <i class="bi bi-plus-circle-fill tc-col__icon"></i>
+            <span class="tc-col__title">New</span>
+            <span class="tc-col__count">{{ _new.length }}</span>
+            <div class="tc-col__header-actions">
+                <button class="tc-col__expand-btn"
+                        [title]="isExpanded('new') ? 'Collapse column' : 'Expand column'"
+                        (click)="toggleExpand('new', $event)">
+                    <i [class]="isExpanded('new') ? 'bi bi-arrows-angle-contract' : 'bi bi-arrows-angle-expand'"></i>
+                </button>
+                <i class="bi bi-chevron-down tc-col__chevron"></i>
+            </div>
+        </div>
+
+        <div class="tc-col__body"
+             cdkDropList
+             cdkDropListAutoScrollStep="15"
+             [cdkDropListData]="_new"
+             (cdkDropListDropped)="onTodoDrop($event, 'new')">
+            <div class="tc-col__list">
+                <div *ngFor="let todo of _new; trackBy: trackById"
+                     class="tc-item"
+                     [ngClass]="getPriorityClass(todo.priority)"
+                     [class.tc-item--done]="todo.status === 'done' || todo.is_deleted"
+                     cdkDrag
+                     [cdkDragStartDelay]="{ touch: 150, mouse: 0 }">
+                    <span class="tc-item__drag-handle" cdkDragHandle><i class="bi bi-grip-vertical"></i></span>
+                    <span class="tc-item__dot" [ngClass]="getPriorityClass(todo.priority)"></span>
+                    <div class="tc-item__body">
+                        <p class="tc-item__title">{{ todo.title }}</p>
+                        <div class="tc-item__meta" *ngIf="todo.category || todo.due_date || todo.created_at">
+                            <span *ngIf="todo.category" class="tc-item__tag"><i class="bi bi-tag"></i>{{ todo.category }}</span>
+                            <span *ngIf="todo.due_date" class="tc-item__date" [ngClass]="getDueDateClass(todo.due_date)"><i class="bi bi-alarm"></i>{{ formatDate(todo.due_date) }}</span>
+                            <span *ngIf="todo.created_at" class="tc-item__created"><i class="bi bi-calendar3"></i>{{ formatDate(todo.created_at) }}</span>
+                        </div>
+                    </div>
+                    <div class="tc-item__actions">
+                        <button class="tc-item__btn tc-item__btn--edit" title="Edit" (click)="edit.emit(todo); $event.stopPropagation()"><i class="bi bi-pencil"></i></button>
+                        <button class="tc-item__btn tc-item__btn--delete" title="Delete" (click)="delete.emit(todo); $event.stopPropagation()"><i class="bi bi-trash"></i></button>
+                        <a class="tc-item__btn tc-item__btn--view" title="View" [routerLink]="['/', todoViewPath, todo.id]" (click)="$event.stopPropagation()"><i class="bi bi-arrow-right-circle-fill"></i></a>
+                    </div>
+                </div>
+                <div *ngIf="_new.length === 0" class="tc-col__empty">
+                    <i class="bi bi-inbox"></i><span>No new tasks</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── In Progress ──────────────────────────────────────────── -->
+    <div class="tc-col tc-col--inprogress"
+         [class.tc-col--collapsed]="isCollapsed('inprogress')"
+         [class.tc-col--expanded]="isExpanded('inprogress')">
+
+        <div class="tc-col__header" (click)="toggleSection('inprogress')">
+            <i class="bi bi-play-circle-fill tc-col__icon"></i>
+            <span class="tc-col__title">In Progress</span>
+            <span class="tc-col__count">{{ _inProgress.length }}</span>
+            <div class="tc-col__header-actions">
+                <button class="tc-col__expand-btn"
+                        [title]="isExpanded('inprogress') ? 'Collapse column' : 'Expand column'"
+                        (click)="toggleExpand('inprogress', $event)">
+                    <i [class]="isExpanded('inprogress') ? 'bi bi-arrows-angle-contract' : 'bi bi-arrows-angle-expand'"></i>
+                </button>
+                <i class="bi bi-chevron-down tc-col__chevron"></i>
+            </div>
+        </div>
+
+        <div class="tc-col__body"
+             cdkDropList
+             cdkDropListAutoScrollStep="15"
+             [cdkDropListData]="_inProgress"
+             (cdkDropListDropped)="onTodoDrop($event, 'inProgress')">
+            <div class="tc-col__list">
+                <div *ngFor="let todo of _inProgress; trackBy: trackById"
+                     class="tc-item"
+                     [ngClass]="getPriorityClass(todo.priority)"
+                     [class.tc-item--done]="todo.status === 'done' || todo.is_deleted"
+                     cdkDrag
+                     [cdkDragStartDelay]="{ touch: 150, mouse: 0 }">
+                    <span class="tc-item__drag-handle" cdkDragHandle><i class="bi bi-grip-vertical"></i></span>
+                    <span class="tc-item__dot" [ngClass]="getPriorityClass(todo.priority)"></span>
+                    <div class="tc-item__body">
+                        <p class="tc-item__title">{{ todo.title }}</p>
+                        <div class="tc-item__meta" *ngIf="todo.category || todo.due_date || todo.created_at">
+                            <span *ngIf="todo.category" class="tc-item__tag"><i class="bi bi-tag"></i>{{ todo.category }}</span>
+                            <span *ngIf="todo.due_date" class="tc-item__date" [ngClass]="getDueDateClass(todo.due_date)"><i class="bi bi-alarm"></i>{{ formatDate(todo.due_date) }}</span>
+                            <span *ngIf="todo.created_at" class="tc-item__created"><i class="bi bi-calendar3"></i>{{ formatDate(todo.created_at) }}</span>
+                        </div>
+                    </div>
+                    <div class="tc-item__actions">
+                        <button class="tc-item__btn tc-item__btn--edit" title="Edit" (click)="edit.emit(todo); $event.stopPropagation()"><i class="bi bi-pencil"></i></button>
+                        <button class="tc-item__btn tc-item__btn--delete" title="Delete" (click)="delete.emit(todo); $event.stopPropagation()"><i class="bi bi-trash"></i></button>
+                        <a class="tc-item__btn tc-item__btn--view" title="View" [routerLink]="['/', todoViewPath, todo.id]" (click)="$event.stopPropagation()"><i class="bi bi-arrow-right-circle-fill"></i></a>
+                    </div>
+                </div>
+                <div *ngIf="_inProgress.length === 0" class="tc-col__empty">
+                    <i class="bi bi-inbox"></i><span>No tasks in progress</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Paused ────────────────────────────────────────────────── -->
+    <div class="tc-col tc-col--paused"
+         [class.tc-col--collapsed]="isCollapsed('paused')"
+         [class.tc-col--expanded]="isExpanded('paused')">
+
+        <div class="tc-col__header" (click)="toggleSection('paused')">
+            <i class="bi bi-pause-circle-fill tc-col__icon"></i>
+            <span class="tc-col__title">Paused</span>
+            <span class="tc-col__count">{{ _paused.length }}</span>
+            <div class="tc-col__header-actions">
+                <button class="tc-col__expand-btn"
+                        [title]="isExpanded('paused') ? 'Collapse column' : 'Expand column'"
+                        (click)="toggleExpand('paused', $event)">
+                    <i [class]="isExpanded('paused') ? 'bi bi-arrows-angle-contract' : 'bi bi-arrows-angle-expand'"></i>
+                </button>
+                <i class="bi bi-chevron-down tc-col__chevron"></i>
+            </div>
+        </div>
+
+        <div class="tc-col__body"
+             cdkDropList
+             cdkDropListAutoScrollStep="15"
+             [cdkDropListData]="_paused"
+             (cdkDropListDropped)="onTodoDrop($event, 'paused')">
+            <div class="tc-col__list">
+                <div *ngFor="let todo of _paused; trackBy: trackById"
+                     class="tc-item"
+                     [ngClass]="getPriorityClass(todo.priority)"
+                     [class.tc-item--done]="todo.status === 'done' || todo.is_deleted"
+                     cdkDrag
+                     [cdkDragStartDelay]="{ touch: 150, mouse: 0 }">
+                    <span class="tc-item__drag-handle" cdkDragHandle><i class="bi bi-grip-vertical"></i></span>
+                    <span class="tc-item__dot" [ngClass]="getPriorityClass(todo.priority)"></span>
+                    <div class="tc-item__body">
+                        <p class="tc-item__title">{{ todo.title }}</p>
+                        <div class="tc-item__meta" *ngIf="todo.category || todo.due_date || todo.created_at">
+                            <span *ngIf="todo.category" class="tc-item__tag"><i class="bi bi-tag"></i>{{ todo.category }}</span>
+                            <span *ngIf="todo.due_date" class="tc-item__date" [ngClass]="getDueDateClass(todo.due_date)"><i class="bi bi-alarm"></i>{{ formatDate(todo.due_date) }}</span>
+                            <span *ngIf="todo.created_at" class="tc-item__created"><i class="bi bi-calendar3"></i>{{ formatDate(todo.created_at) }}</span>
+                        </div>
+                    </div>
+                    <div class="tc-item__actions">
+                        <button class="tc-item__btn tc-item__btn--edit" title="Edit" (click)="edit.emit(todo); $event.stopPropagation()"><i class="bi bi-pencil"></i></button>
+                        <button class="tc-item__btn tc-item__btn--delete" title="Delete" (click)="delete.emit(todo); $event.stopPropagation()"><i class="bi bi-trash"></i></button>
+                        <a class="tc-item__btn tc-item__btn--view" title="View" [routerLink]="['/', todoViewPath, todo.id]" (click)="$event.stopPropagation()"><i class="bi bi-arrow-right-circle-fill"></i></a>
+                    </div>
+                </div>
+                <div *ngIf="_paused.length === 0" class="tc-col__empty">
+                    <i class="bi bi-inbox"></i><span>No paused tasks</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Done ─────────────────────────────────────────────────── -->
+    <div class="tc-col tc-col--done"
+         [class.tc-col--collapsed]="isCollapsed('done')"
+         [class.tc-col--expanded]="isExpanded('done')">
+
+        <div class="tc-col__header" (click)="toggleSection('done')">
+            <i class="bi bi-check-circle-fill tc-col__icon"></i>
+            <span class="tc-col__title">Done</span>
+            <span class="tc-col__count">{{ _done.length }}</span>
+            <div class="tc-col__header-actions">
+                <button class="tc-col__expand-btn"
+                        [title]="isExpanded('done') ? 'Collapse column' : 'Expand column'"
+                        (click)="toggleExpand('done', $event)">
+                    <i [class]="isExpanded('done') ? 'bi bi-arrows-angle-contract' : 'bi bi-arrows-angle-expand'"></i>
+                </button>
+                <i class="bi bi-chevron-down tc-col__chevron"></i>
+            </div>
+        </div>
+
+        <div class="tc-col__body"
+             cdkDropList
+             cdkDropListAutoScrollStep="15"
+             [cdkDropListData]="_done"
+             (cdkDropListDropped)="onTodoDrop($event, 'done')">
+            <div class="tc-col__list">
+                <div *ngFor="let todo of _done; trackBy: trackById"
+                     class="tc-item"
+                     [ngClass]="getPriorityClass(todo.priority)"
+                     [class.tc-item--done]="todo.status === 'done' || todo.is_deleted"
+                     cdkDrag
+                     [cdkDragStartDelay]="{ touch: 150, mouse: 0 }">
+                    <span class="tc-item__drag-handle" cdkDragHandle><i class="bi bi-grip-vertical"></i></span>
+                    <span class="tc-item__dot" [ngClass]="getPriorityClass(todo.priority)"></span>
+                    <div class="tc-item__body">
+                        <p class="tc-item__title">{{ todo.title }}</p>
+                        <div class="tc-item__meta" *ngIf="todo.category || todo.due_date || todo.created_at">
+                            <span *ngIf="todo.category" class="tc-item__tag"><i class="bi bi-tag"></i>{{ todo.category }}</span>
+                            <span *ngIf="todo.due_date" class="tc-item__date" [ngClass]="getDueDateClass(todo.due_date)"><i class="bi bi-alarm"></i>{{ formatDate(todo.due_date) }}</span>
+                            <span *ngIf="todo.created_at" class="tc-item__created"><i class="bi bi-calendar3"></i>{{ formatDate(todo.created_at) }}</span>
+                        </div>
+                    </div>
+                    <div class="tc-item__actions">
+                        <button class="tc-item__btn tc-item__btn--edit" title="Edit" (click)="edit.emit(todo); $event.stopPropagation()"><i class="bi bi-pencil"></i></button>
+                        <button class="tc-item__btn tc-item__btn--delete" title="Delete" (click)="delete.emit(todo); $event.stopPropagation()"><i class="bi bi-trash"></i></button>
+                        <a class="tc-item__btn tc-item__btn--view" title="View" [routerLink]="['/', todoViewPath, todo.id]" (click)="$event.stopPropagation()"><i class="bi bi-arrow-right-circle-fill"></i></a>
+                    </div>
+                </div>
+                <div *ngIf="_done.length === 0" class="tc-col__empty">
+                    <i class="bi bi-inbox"></i><span>No completed tasks</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>

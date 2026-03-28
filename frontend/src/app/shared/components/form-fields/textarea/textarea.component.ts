@@ -27,8 +27,10 @@ export class TextareaFormComponent implements OnInit, OnDestroy, OnChanges {
     @Input() rows: number = 3;
     @Input() showImagePreviews: boolean = true;
     @Input() imagePreviewMode: 'grid' | 'carousel' | 'filmstrip' = 'grid';
+    @Input() disableInternalLightbox: boolean = false;
 
     @Output() previewActiveChange = new EventEmitter<boolean>();
+    @Output() imageClick = new EventEmitter<string>();
 
     isUploading: boolean = false;
     previewUrl: string | null = null;
@@ -167,6 +169,10 @@ export class TextareaFormComponent implements OnInit, OnDestroy, OnChanges {
     }
 
     openPreview(url: string): void {
+        if (this.disableInternalLightbox) {
+            this.imageClick.emit(url);
+            return;
+        }
         this.previewUrl = url;
         this.carouselIndex = this.computedImageUrls.indexOf(url);
         if (this.carouselIndex === -1) this.carouselIndex = 0;
@@ -180,6 +186,29 @@ export class TextareaFormComponent implements OnInit, OnDestroy, OnChanges {
             this.previewActiveChange.emit(false);
         }
         this._setBodyScrollLock(false);
+    }
+
+    downloadImage(url: string | null): void {
+        if (!url) return;
+        
+        const filename = url.split('/').pop() || 'image';
+        
+        fetch(url)
+            .then(response => response.blob())
+            .then(blob => {
+                const blobUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(blobUrl);
+            })
+            .catch(err => {
+                console.error('Download failed:', err);
+                window.open(url, '_blank');
+            });
     }
 
     private _setBodyScrollLock(lock: boolean): void {

@@ -42,7 +42,8 @@ def get_todos(
     status: Optional[str] = None,
     created_from: Optional[str] = None,
     created_to: Optional[str] = None,
-    db: Session = Depends(database.get_db)
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
     sort_order = sort_order.lower() if sort_order.lower() in ("asc", "desc") else "desc"
     has_filters = any([title, priority, status, created_from, created_to])
@@ -54,10 +55,21 @@ def get_todos(
                 todos=[schemas.TodoResponse(**t) for t in cached["todos"]],
                 total=cached["total"],
             )
-    todo_filter = and_(
-        models.Todo.assigned_to_user_id == user_id,
-        models.Todo.is_deleted == False
-    )
+    # Admins see their own assigned todos PLUS todos with no assignee (unassigned column).
+    # Regular users only see todos assigned to them.
+    if current_user.role == "admin":
+        todo_filter = and_(
+            or_(
+                models.Todo.assigned_to_user_id == user_id,
+                models.Todo.assigned_to_user_id == None
+            ),
+            models.Todo.is_deleted == False
+        )
+    else:
+        todo_filter = and_(
+            models.Todo.assigned_to_user_id == user_id,
+            models.Todo.is_deleted == False
+        )
     if title:
         todo_filter = and_(todo_filter, models.Todo.title.ilike(f"%{title}%"))
     if priority:
@@ -1164,11 +1176,17 @@ async def upload_todo_image(
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Image must be under 10MB")
 
-    url = storage_service.upload_file(content, file.filename or "pasted-image.png", folder="todo_images", content_type=file.content_type)
+    url = storage_service.upload_file(
+        content,
+        file.filename or "pasted-image.png",
+        folder="todo_images",
+        content_type=file.content_type,
+        s3_only=True  # Never fall back to local — local URLs break on redeployment
+    )
     if not url:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to upload image")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Image storage (S3) is not configured or unavailable"
+        )
 
-    # Convert to full URL (handles local fallback)
-    full_url = get_full_url(request, url)
-    return {"url": full_url}
-    return {"message": "Todo deleted successfully"}
+    return {"url": url}

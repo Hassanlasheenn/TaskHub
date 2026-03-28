@@ -1261,13 +1261,15 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.7);
     z-index: 999999;
     display: flex;
     align-items: center;
     justify-content: center;
     backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     padding: 1.5rem;
+    box-sizing: border-box;
 
     .preview-content {
         position: relative;
@@ -1419,6 +1421,8 @@
             padding: 0.5rem 1rem;
             background: var(--primary-gradient-start);
             border-radius: 8px;
+            border: none;
+            cursor: pointer;
             transition: opacity 0.2s;
 
             &:hover { opacity: 0.9; }

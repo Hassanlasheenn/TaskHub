@@ -85,9 +85,11 @@ class S3StorageService:
         # Fallback to local storage
         return self._save_local(optimized_content, filename, "profile_pics")
 
-    def upload_file(self, file_content: bytes, filename: str, folder: str = "attachments", content_type: Optional[str] = None) -> Optional[str]:
+    def upload_file(self, file_content: bytes, filename: str, folder: str = "attachments", content_type: Optional[str] = None, s3_only: bool = False) -> Optional[str]:
         """
         Uploads a general file to S3 or local fallback.
+        Pass s3_only=True to skip local fallback (e.g. for images stored in DB as markdown URLs,
+        which would break on redeployment if stored locally).
         """
         if self.s3_client:
             try:
@@ -126,6 +128,12 @@ class S3StorageService:
                 return url
             except Exception as e:
                 logger.error(f"❌ S3 File upload failed, falling back to local: {e}")
+                if s3_only:
+                    return None
+
+        if s3_only:
+            logger.error("❌ S3 not configured and s3_only=True — refusing local fallback")
+            return None
 
         # Fallback to local storage
         return self._save_local(file_content, filename, folder)

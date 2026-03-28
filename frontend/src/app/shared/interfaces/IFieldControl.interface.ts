@@ -19,6 +19,7 @@ export interface IFieldControl {
     maxDate?: string;
     showImagePreviews?: boolean;
     imagePreviewMode?: 'grid' | 'carousel' | 'filmstrip';
+    disableInternalLightbox?: boolean;
 }
 
 export interface IDropdownOptions {

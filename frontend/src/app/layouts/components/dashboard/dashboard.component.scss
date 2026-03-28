@@ -4,10 +4,10 @@
     box-sizing: border-box;
     overflow: visible;
     min-height: 0;
-    padding: 1.5rem 0;
+    padding: 0 0 1.5rem 0;
 
     @media (max-width: 991.98px) {
-        padding: 1rem;
+        padding: 0 1rem 1rem 1rem;
     }
 }
 
@@ -200,77 +200,67 @@
 .todo-mini-card {
     background: var(--card-color-solid, #ffffff);
     color: var(--text-primary);
-    border-radius: 12px;
-    padding: 1rem;
-    padding-bottom: 3rem; 
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
     border-left: 4px solid #e2e8f0;
     transition: all 0.2s ease;
     position: relative;
     overflow: hidden;
     cursor: pointer;
 
-    .todo-card-top {
+    &:hover {
+        transform: translateX(4px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .todo-bar-content {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 0.75rem;
+        gap: 1rem;
+        width: 100%;
+    }
 
-        .badge-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
+    .todo-bar-main {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+        min-width: 0;
 
-        .category-mini-badge {
-            font-size: 0.6rem;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-weight: 700;
-            text-transform: uppercase;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-            letter-spacing: 0.03em;
-            background: rgba(107, 207, 209, 0.1);
-            color: var(--primary-gradient-start);
-            border: 1px solid rgba(107, 207, 209, 0.2);
-        }
-
-        .due-date {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.65rem;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 6px;
+        h4 {
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
             white-space: nowrap;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
-
-            &.urgency-high {
-                background: rgba(220, 53, 69, 0.1);
-                color: #dc3545;
-                border: 1px solid rgba(220, 53, 69, 0.2);
-            }
-
-            &.urgency-medium {
-                background: rgba(245, 158, 11, 0.1);
-                color: #f59e0b;
-                border: 1px solid rgba(245, 158, 11, 0.2);
-            }
-
-            &.urgency-low {
-                background: rgba(16, 185, 129, 0.1);
-                color: #10b981;
-                border: 1px solid rgba(16, 185, 129, 0.2);
-            }
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
         }
     }
 
-    .priority-mini-badge {
+    .priority-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        
+        &.priority-high { background-color: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+        &.priority-medium { background-color: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.4); }
+        &.priority-low { background-color: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+        &.priority-done { background-color: #6bcfd1; }
+    }
+
+    .badge-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-left: 0.5rem;
+    }
+
+    .category-mini-badge {
         font-size: 0.6rem;
         padding: 2px 8px;
         border-radius: 6px;
@@ -279,68 +269,81 @@
         display: inline-flex;
         align-items: center;
         gap: 0.3rem;
-        letter-spacing: 0.03em;
-
-        &.priority-high { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-        &.priority-medium { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-        &.priority-low { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-        &.priority-done { background: rgba(107, 207, 209, 0.1); color: #6bcfd1; }
+        background: rgba(107, 207, 209, 0.1);
+        color: var(--primary-gradient-start);
+        border: 1px solid rgba(107, 207, 209, 0.2);
+        white-space: nowrap;
     }
 
-    h4 {
-        margin: 0;
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        word-break: break-word;
-        line-height: 1.4;
-    }
-
-    .todo-mini-meta {
-        position: absolute;
-        bottom: 0.875rem;
-        left: 1rem;
-        right: 1rem;
+    .due-date {
         display: flex;
         align-items: center;
-        justify-content: flex-end;
-        gap: 0.75rem;
-        font-size: 0.7rem;
-        color: var(--text-secondary);
+        gap: 0.3rem;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+        text-transform: uppercase;
 
-        .card-actions {
-            display: flex;
-            align-items: center;
-            gap: 0.625rem;
+        &.urgency-high {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
         }
+        &.urgency-medium {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+        }
+        &.urgency-low {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+    }
+
+    .card-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        opacity: 0;
+        transition: opacity 0.2s ease;
 
         .action-btn, .view-link {
-            color: var(--primary-gradient-start);
+            color: var(--text-secondary);
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
             background: none;
             border: none;
-            padding: 0;
+            padding: 4px;
             cursor: pointer;
+            border-radius: 4px;
             
-            i { font-size: 1.1rem; }
+            i { font-size: 1rem; }
+            
             &:hover { 
-                color: var(--primary-gradient-end);
+                color: var(--primary-gradient-start);
+                background: rgba(107, 207, 209, 0.1);
             }
             &.delete:hover {
                 color: #ef4444;
+                background: rgba(239, 68, 68, 0.1);
             }
         }
+    }
+
+    &:hover .card-actions {
+        opacity: 1;
     }
 
     &.priority-high { border-left-color: #ef4444; }
     &.priority-medium { border-left-color: #f59e0b; }
     &.priority-low { border-left-color: #10b981; }
     &.done { 
-        opacity: 0.9; 
+        opacity: 0.8; 
         border-left-color: #10b981;
         background: var(--bg-soft);
+        
+        h4 { text-decoration: line-through; color: var(--text-secondary); }
     }
 }
 
@@ -393,26 +396,27 @@
     }
 
     .add-task-btn {
-        position: relative;
-        z-index: 1;
-        padding: 0.75rem 1.5rem;
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
         background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
         color: white;
         border: none;
-        border-radius: 12px;
-        font-weight: 600;
-        font-size: 0.95rem;
+        border-radius: 50%;
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        justify-content: center;
         cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 15px rgba(107, 207, 209, 0.3);
-        white-space: nowrap;
+        transition: box-shadow 0.2s ease, transform 0.15s ease;
+        box-shadow: 0 4px 14px rgba(107, 207, 209, 0.35);
 
         i {
-            font-size: 1.1rem;
-            transition: transform 0.3s ease;
+            font-size: 1.25rem;
+        }
+
+        &:hover {
+            box-shadow: 0 6px 20px rgba(107, 207, 209, 0.5);
+            transform: translateY(-1px);
         }
 
         &:active {
@@ -420,8 +424,7 @@
         }
 
         @media (max-width: 576px) {
-            width: 100%;
-            justify-content: center;
+            // Keep it small circle on mobile
         }
     }
 
@@ -434,8 +437,8 @@
         border: 1px solid var(--card-border-color);
 
         .view-toggle-btn {
-            width: 40px;
-            height: 40px;
+            width: 34px;
+            height: 34px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -445,7 +448,7 @@
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
-            font-size: 1.1rem;
+            font-size: 0.95rem;
 
             &:hover {
                 color: var(--primary-gradient-start);

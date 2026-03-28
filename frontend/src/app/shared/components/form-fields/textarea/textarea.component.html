@@ -251,6 +251,10 @@
             <div class="textarea-form__carousel-counter" *ngIf="computedImageUrls.length > 1">
                 {{ carouselIndex + 1 }} / {{ computedImageUrls.length }}
             </div>
+
+            <button type="button" class="textarea-form__lightbox-download" (click)="downloadImage(computedImageUrls[carouselIndex])" aria-label="Download image" title="Download image">
+                <i class="bi bi-download"></i>
+            </button>
         </div>
     </div>
 </div>

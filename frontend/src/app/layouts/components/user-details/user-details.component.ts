@@ -13,14 +13,14 @@ import { DashboardSections } from "../../enums/dashboard-sections.enum";
 import { NavigationService } from "../../../core/services/navigation.service";
 import { SharedTableComponent } from "../../../shared/components/shared-table/shared-table.component";
 import { ConfirmationDialogService } from "../../../core/services/confirmation-dialog.service";
-import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from "@angular/cdk/drag-drop";
+import { TodoColumnsComponent, ITodoStatusChange } from "../../../shared/components/todo-columns/todo-columns.component";
 
 @Component({
     selector: 'app-user-details',
     templateUrl: './user-details.component.html',
     styleUrls: ['./user-details.component.scss'],
     standalone: true,
-    imports: [CommonModule, RouterLink, DragDropModule, SharedTableComponent]
+    imports: [CommonModule, RouterLink, SharedTableComponent, TodoColumnsComponent]
 })
 export class UserDetailsComponent implements OnInit, OnDestroy {
     private readonly _destroy$ = new Subject<void>();
@@ -170,11 +170,8 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
                 this._todoService.deleteTodo(userId, todo.id).subscribe({
                     next: (response) => {
                         if (this.userData) {
-                            const index = this.userData.todos.findIndex(t => t.id === todo.id);
-                            if (index !== -1) {
-                                this.userData.todos[index] = { ...this.userData.todos[index], is_deleted: true } as any;
-                                this.userData = { ...this.userData, todos: [...this.userData.todos] };
-                            }
+                            this.userData.todos = this.userData.todos.filter(t => t.id !== todo.id);
+                            this.userData = { ...this.userData, todos: [...this.userData.todos] };
                         }
                         this.tableTodos = this.tableTodos.filter(t => t.id !== todo.id);
                         this._toastService.success(response?.message || 'Todo deleted successfully');
@@ -224,45 +221,52 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
         return this.collapsedSections.has(section);
     }
 
-    onTodoDrop(event: CdkDragDrop<ITodoResponse[]>, newStatus: string): void {
-        if (event.previousContainer === event.container) {
-            moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
-        } else {
-            const todo = event.previousContainer.data[event.previousIndex];
-            const userId = this._authService.getCurrentUserId();
-            if (!userId) return;
+    onTodoUnassign(todo: ITodo): void {
+        const userId = this._authService.getCurrentUserId();
+        if (!userId) return;
 
-            // Map UI status names to API status values
-            let apiStatus = newStatus;
-            if (newStatus === 'new-tasks') apiStatus = 'new';
-            if (newStatus === 'in-progress') apiStatus = 'inProgress';
-            if (newStatus === 'completed-dashboard') apiStatus = 'done';
-
-            this._todoService.updateTodo(userId, todo.id, { status: apiStatus as ITodo['status'] }).subscribe({
+        this._todoService.updateTodo(userId, todo.id, { assigned_to_user_id: null })
+            .pipe(takeUntil(this._destroy$))
+            .subscribe({
                 next: (updatedTodo) => {
-                    // Update local state in userData.todos
                     if (this.userData) {
-                        const index = this.userData.todos.findIndex(t => t.id === todo.id);
-                        if (index !== -1) {
-                            this.userData.todos[index] = { ...this.userData.todos[index], ...updatedTodo };
-                            this.userData.todos = [...this.userData.todos];
+                        const idx = this.userData.todos.findIndex(t => t.id === todo.id);
+                        if (idx !== -1) {
+                            this.userData.todos[idx] = { ...this.userData.todos[idx], ...updatedTodo };
+                            this.userData = { ...this.userData, todos: [...this.userData.todos] };
                         }
                     }
-                    this._toastService.success(`Status updated to ${apiStatus}`);
+                    this._toastService.success('Todo unassigned successfully');
                 },
-                error: (error) => {
-                    this._toastService.error('Failed to update status');
-                    this.loadUserData(); // Reload on error
+                error: () => {
+                    this._toastService.error('Failed to unassign todo');
+                    this.loadUserData();
                 }
             });
+    }
 
-            transferArrayItem(
-                event.previousContainer.data,
-                event.container.data,
-                event.previousIndex,
-                event.currentIndex
-            );
-        }
+    onTodoStatusChange(event: ITodoStatusChange): void {
+        const userId = this._authService.getCurrentUserId();
+        if (!userId) return;
+
+        this._todoService.updateTodo(userId, event.todo.id, { status: event.newStatus as ITodo['status'] })
+            .pipe(takeUntil(this._destroy$))
+            .subscribe({
+                next: (updatedTodo) => {
+                    if (this.userData) {
+                        const idx = this.userData.todos.findIndex(t => t.id === event.todo.id);
+                        if (idx !== -1) {
+                            this.userData.todos[idx] = { ...this.userData.todos[idx], ...updatedTodo };
+                            this.userData = { ...this.userData, todos: [...this.userData.todos] };
+                        }
+                    }
+                    this._toastService.success(`Status updated to ${event.newStatus}`);
+                },
+                error: () => {
+                    this._toastService.error('Failed to update status');
+                    this.loadUserData();
+                }
+            });
     }
 
     getTodosByStatus(status: string): ITodoResponse[] {

@@ -139,6 +139,14 @@ export class SharedTableComponent implements AfterViewChecked, OnInit, OnDestroy
         return this.totalItems > 0;
     }
 
+    get pageSizeOptions(): number[] {
+        const count = Math.max(1, Math.ceil(this.totalItems / 5));
+        // Avoid too many options if totalItems is huge, but follow user's "and so on" logic
+        // Let's cap it at a reasonable number like 10 options (up to 50) if we want, 
+        // but the prompt says "and so on", so I'll follow it.
+        return Array.from({ length: count }, (_, i) => (i + 1) * 5);
+    }
+
     readonly LayoutPaths = LayoutPaths;
     readonly InputTypes = InputTypes;
     trackById: TrackByFunction<any> = trackById;

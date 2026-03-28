@@ -16,7 +16,7 @@ export class PaginationComponent implements OnChanges {
     @Output() pageChange = new EventEmitter<number>();
     @Output() pageSizeChange = new EventEmitter<number>();
 
-    readonly pageSizeOptions = [5, 10];
+    @Input() pageSizeOptions: number[] = [5, 10];
     pages: Array<number | null> = [];
 
     get isDisabled(): boolean {
